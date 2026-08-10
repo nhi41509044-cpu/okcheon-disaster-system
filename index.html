@@ -544,7 +544,7 @@ var LOGO_URL = "https://images.wrks.ai/dalle/u2gY6mk7Nz1WqUIaQzE7cahyU0Z7dF1SHSq
 function dbgLog(msg){}
 // 사고 원인(기상 요인) — 재난 유형보다 상위 개념
 var DCAUSES = ["호우","강풍","대설","한파·결빙","폭염","태풍","지진","기타"];
-var DTYPES = ["침수","토사유출","산사태","낙석","강풍","수목(시설물)전도","결빙","포트홀","정전","단수","화재","산불","시설물 피해","기타"];
+var DTYPES = ["침수","토사유출","산사태","낙석","강풍","수목 전도","전주 전도","결빙","포트홀","정전","단수","화재","산불","시설물 피해","기타"];
 // 재난 유형별 지도(위성) 표시 이모티콘. bg=배경(흐리게 크게 깔림) + fg=전경(진하게 위에 겹침)으로 하나의 아이콘처럼 합성
 var CREASONS = ["도로 침수","유실·붕괴","낙석·산사태","결빙·폭설","교량 통제","지하차도 통제","기타"];
 var REGIONS = [["옥천읍",36.300,127.585],["동이면",36.285,127.646],["안남면",36.352,127.685],["안내면",36.395,127.639],["청성면",36.322,127.737],["청산면",36.342,127.816],["이원면",36.222,127.631],["군서면",36.265,127.527],["군북면",36.351,127.568]];
@@ -1245,6 +1245,34 @@ function loadLocal(){
 function persistPeriods(){
   try{ localStorage.setItem("okc6_periods", JSON.stringify(savedPeriods)); }catch(e){}
 }
+/* ---------- 유형 명칭 일괄 정리 (1회성) ----------
+   기존 "수목전도" / "수목(시설물)전도" 로 등록된 건들을 새 명칭으로 옮긴다.
+   전주·통신주·가로등이 원인인 건은 "전주 전도", 나머지는 "수목 전도".        */
+var CAD_TYPE_FIX_KEY = "okc6_typefix_v1";
+function migrateTreeTypes(){
+  try{ if(localStorage.getItem(CAD_TYPE_FIX_KEY)) return; }catch(e){}
+  var OLD = ["수목전도", "수목(시설물)전도"];
+  // 이 위치(또는 내용)에 해당하면 전주 전도로 분류
+  var POLE_LOC = ["조령리 755-9"];
+  var POLE_WORD = /전주|전신주|통신주|가로등|kt|KT|한전/;
+  var changed = 0;
+  items.forEach(function(it){
+    if(OLD.indexOf(it.type) < 0) return;
+    var txt = (it.location || "") + " " + (it.facilityDamage || "") + " " +
+      ((it.timeline || []).map(function(s){ return (s.desc || "") + " " + (s.manager || ""); }).join(" "));
+    var isPole = POLE_LOC.some(function(p){ return (it.location || "").indexOf(p) >= 0; }) || POLE_WORD.test(txt);
+    it.type = isPole ? "전주 전도" : "수목 전도";
+    changed++;
+    if(itemsRef) itemsRef.child(it.id).child("type").set(it.type);
+  });
+  if(changed){
+    persist();
+    renderAll();
+    console.log("유형 명칭 정리:", changed, "건");
+  }
+  try{ localStorage.setItem(CAD_TYPE_FIX_KEY, "1"); }catch(e){}
+}
+
 function saveItem(it){
   items = items.filter(function(x){ return x.id !== it.id; });
   items.push(it);
@@ -1476,6 +1504,7 @@ function initFirebase(){
     itemsRef.on("value", function(snap){
       var v = snap.val();
       if(v){ items = Object.values(v); persist(); }
+      migrateTreeTypes();   // 기존 "수목전도" 건들을 새 명칭으로 1회 정리
       renderAll();
     });
     chatRef = db.ref("okc_chat_v6");
@@ -2744,7 +2773,7 @@ function aiParseRemote(txt, key){
 function guessType(txt){
   for(var i = 0; i < DTYPES.length; i++){ if(txt.indexOf(DTYPES[i]) >= 0) return DTYPES[i]; }
   var kw = [["물에","침수"],["잠김","침수"],["토사","토사유출"],["붕괴","산사태"],["돌","낙석"],["바람","강풍"],
-    ["나무","수목(시설물)전도"],["쓰러","수목(시설물)전도"],["전주","수목(시설물)전도"],["통신주","수목(시설물)전도"],["가로등","수목(시설물)전도"],["전신주","수목(시설물)전도"],["얼음","결빙"],["빙판","결빙"],["도로파임","포트홀"],["구멍","포트홀"],
+    ["전주","전주 전도"],["전신주","전주 전도"],["통신주","전주 전도"],["가로등","전주 전도"],["나무","수목 전도"],["수목","수목 전도"],["쓰러","수목 전도"],["얼음","결빙"],["빙판","결빙"],["도로파임","포트홀"],["구멍","포트홀"],
     ["전기","정전"],["불이","화재"],["산에 불","산불"],["단수","단수"],["파손","시설물 피해"]];
   for(var j = 0; j < kw.length; j++){ if(txt.indexOf(kw[j][0]) >= 0) return kw[j][1]; }
   return "기타";
