@@ -3664,6 +3664,10 @@ function makeHwpxReport(from, to, title, damage){
     a.download = "약식보고_" + from.replace(/-/g,"") + "-" + to.replace(/-/g,"") + ".hwpx";
     a.click();
     setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+    if(window._trMapFailed){
+      window._trMapFailed = false;
+      alert("위성 위치도를 불러오지 못해 위 치 도 칸은 빈 칸으로 만들었습니다.\n한글에서 직접 지도 캡처를 붙여넣어 주세요.");
+    }
   }).catch(function(err){
     console.error(err);
     alert("보고서 생성 중 오류가 발생했습니다.\n" + err);
@@ -3784,10 +3788,13 @@ function openTrendReport(id){
 
 // 위치도 자동 캡처: 위성 타일을 직접 내려받아 캔버스에 이어붙여 한 장의 지도 이미지를 만든다.
 // (지도 화면을 그대로 캡처하는 방식은 브라우저 보안 때문에 불가능하므로 타일을 새로 받아 합성한다)
-function captureSatellite(lat, lng, zoom, w, h){
-  var key = getKey("vw");
-  if(!key) return Promise.reject("VWorld 인증키가 없어 위성 위치도를 만들 수 없습니다.\n⚙설정에서 인증키를 등록해주세요.");
+// 위치도 자동 생성.
+// VWorld 위성 타일은 CORS를 허용하지 않아 캔버스로 가져올 수 없다(그리고 실패한 요청이
+// 캐시에 남아 지도 자체를 느리게 만든다). 그래서 위치도 캡처에는 CORS를 허용하는
+// ESRI World Imagery 위성 영상을 사용한다.
+var CAP_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
+function captureSatellite(lat, lng, zoom, w, h){
   var n = Math.pow(2, zoom);
   var xf = (lng + 180) / 360 * n;
   var latRad = lat * Math.PI / 180;
@@ -3796,7 +3803,7 @@ function captureSatellite(lat, lng, zoom, w, h){
   var cv = document.createElement("canvas");
   cv.width = w; cv.height = h;
   var ctx = cv.getContext("2d");
-  ctx.fillStyle = "#20303f"; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "#e8eef2"; ctx.fillRect(0, 0, w, h);
 
   var cx = w/2, cy = h/2, T = 256;
   var list = [];
@@ -3806,16 +3813,10 @@ function captureSatellite(lat, lng, zoom, w, h){
     }
   }
 
-  // 타일을 한 번에 다 요청하면 서버가 일부를 거절하므로 4장씩 나눠서 순차 요청 (실패 시 1회 재시도)
-  function loadTile(tx, ty, retry){
+  function loadTile(tx, ty){
     return new Promise(function(res){
       var done = false;
-      var fin = function(v){
-        if(done) return;
-        done = true;
-        if(!v && !retry){ res(loadTile(tx, ty, true)); return; }  // 한 번 더 시도
-        res(v);
-      };
+      var fin = function(v){ if(!done){ done = true; res(v); } };
       var img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = function(){
@@ -3823,8 +3824,8 @@ function captureSatellite(lat, lng, zoom, w, h){
         fin(true);
       };
       img.onerror = function(){ fin(false); };
-      setTimeout(function(){ fin(false); }, 15000);
-      img.src = "https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Satellite/" + zoom + "/" + ty + "/" + tx + ".jpeg";
+      setTimeout(function(){ fin(false); }, 9000);
+      img.src = CAP_TILE_URL.replace("{z}", zoom).replace("{y}", ty).replace("{x}", tx);
     });
   }
 
@@ -3832,7 +3833,7 @@ function captureSatellite(lat, lng, zoom, w, h){
   function runNext(){
     if(idx >= list.length) return Promise.resolve();
     var t = list[idx++];
-    return loadTile(t[0], t[1], false).then(function(v){
+    return loadTile(t[0], t[1]).then(function(v){
       if(v) okCnt++;
       setCadLoadingUI(true, "위치도 만드는 중... (" + Math.min(idx, list.length) + "/" + list.length + ")");
       return runNext();
@@ -3842,16 +3843,16 @@ function captureSatellite(lat, lng, zoom, w, h){
   for(var L = 0; L < 4; L++) lanes.push(runNext());
 
   return Promise.all(lanes).then(function(){
-    if(okCnt < list.length * 0.5) throw "위성 지도를 충분히 불러오지 못했습니다. (" + okCnt + "/" + list.length + ")";
+    if(okCnt < list.length * 0.5) throw "위성 영상을 충분히 불러오지 못했습니다. (" + okCnt + "/" + list.length + ")";
     // 중심 표시: 지도 앱에서 쓰는 물방울 모양 핀
     var px = cx, py = cy;
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,.45)"; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
     ctx.fillStyle = "#dc2626";
     ctx.beginPath();
-    ctx.arc(px, py - 26, 15, Math.PI, 0);                 // 머리(반원)
-    ctx.bezierCurveTo(px + 15, py - 8, px + 5, py - 6, px, py);   // 오른쪽 꼬리
-    ctx.bezierCurveTo(px - 5, py - 6, px - 15, py - 8, px - 15, py - 26); // 왼쪽 꼬리
+    ctx.arc(px, py - 26, 15, Math.PI, 0);
+    ctx.bezierCurveTo(px + 15, py - 8, px + 5, py - 6, px, py);
+    ctx.bezierCurveTo(px - 5, py - 6, px - 15, py - 8, px - 15, py - 26);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -3859,98 +3860,6 @@ function captureSatellite(lat, lng, zoom, w, h){
     ctx.beginPath(); ctx.arc(px, py - 26, 5.5, 0, Math.PI*2); ctx.fill();
     try{
       return cv.toDataURL("image/jpeg", 0.85).split(",")[1];
-    }catch(e){
-      throw "지도 이미지를 저장할 수 없습니다(브라우저 보안 제한).";
-    }
-  });
-}
-
-function openTrendReport(id){
-  var it = getItem(id);
-  if(!it) return;
-  var acts = (it.timeline || []).filter(function(s){ return s.desc; }).map(function(s){
-    var tm = s.time ? String(fmt(s.time)).slice(11) : "";
-    return "  \u2022 " + (tm ? tm + " " : "") + s.desc;
-  });
-  while(acts.length < 3) acts.push("");
-
-  openModal("📄 동향보고 (HWPX)",
-    '<label>보고 제목</label><input type="text" id="tr_title" value="' + esc((it.cause ? it.cause + "으로 인한 " : "") + (it.type || "") + " 상황 보고") + '">' +
-    '<label>일시</label><input type="text" id="tr_when" value="' + esc(trWhen(it.t0)) + '">' +
-    '<label>대상 <span class="note" style="font-weight:400">(피해자·신고자)</span></label>' +
-    '<input type="text" id="tr_who" value="' + esc(trWho(it)) + '">' +
-    '<label>장소</label><input type="text" id="tr_place" value="' + esc(hxTrimAddr(it.location)) + '">' +
-    '<label>피해원인</label><input type="text" id="tr_cause" value="' + esc((it.cause ? it.cause + "으로 인한 " : "") + (it.type || "")) + '">' +
-    '<label>피해내용</label><input type="text" id="tr_damage" value="' + esc(trDamage(it)) + '">' +
-    '<label>조치사항 <span class="note" style="font-weight:400">(한 줄에 하나씩)</span></label>' +
-    '<input type="text" id="tr_a1" value="' + esc(acts[0]) + '">' +
-    '<input type="text" id="tr_a2" value="' + esc(acts[1]) + '" style="margin-top:6px">' +
-    '<input type="text" id="tr_a3" value="' + esc(acts[2]) + '" style="margin-top:6px">' +
-    '<label>사진대지 주소</label><input type="text" id="tr_addr" value="' + esc(hxTrimAddr(it.location)) + '">' +
-    '<label>사진 설명</label><input type="text" id="tr_cap" value="' + esc(String(trDamage(it)).replace(/^\s*-\s*/, "")) + '">' +
-    '<label>위치도 확대 수준</label>' +
-    '<select id="tr_zoom"><option value="16">넓게 (주변 도로까지)</option>' +
-    '<option value="17" selected>보통</option><option value="18">가깝게 (건물 위주)</option></select>' +
-    '<div class="note">위 치 도는 해당 지점의 위성지도를 자동으로 캡처해 문서에 넣습니다. ' +
-    '현장사진은 한글에서 직접 교체해 주세요.</div>',
-    function(){ return makeTrendReport(it); });
-}
-
-
-// 위치도 자동 캡처: 위성 타일을 직접 내려받아 캔버스에 이어붙여 한 장의 지도 이미지를 만든다.
-// (지도 화면을 그대로 캡처하는 방식은 브라우저 보안 때문에 불가능하므로 타일을 새로 받아 합성한다)
-function captureSatellite(lat, lng, zoom, w, h){
-  var key = getKey("vw");
-  if(!key) return Promise.reject("VWorld 인증키가 없어 위성 위치도를 만들 수 없습니다.\n⚙설정에서 인증키를 등록해주세요.");
-
-  // 위경도 → 타일 좌표(Web Mercator)
-  var n = Math.pow(2, zoom);
-  var xf = (lng + 180) / 360 * n;
-  var latRad = lat * Math.PI / 180;
-  var yf = (1 - Math.log(Math.tan(latRad) + 1/Math.cos(latRad)) / Math.PI) / 2 * n;
-
-  var cv = document.createElement("canvas");
-  cv.width = w; cv.height = h;
-  var ctx = cv.getContext("2d");
-  ctx.fillStyle = "#20303f"; ctx.fillRect(0, 0, w, h);
-
-  var cx = w/2, cy = h/2, T = 256;
-  var x0 = Math.floor(xf - cx/T) - 1, x1 = Math.floor(xf + cx/T) + 1;
-  var y0 = Math.floor(yf - cy/T) - 1, y1 = Math.floor(yf + cy/T) + 1;
-
-  var jobs = [];
-  for(var tx = x0; tx <= x1; tx++){
-    for(var ty = y0; ty <= y1; ty++){
-      (function(tx, ty){
-        jobs.push(new Promise(function(res){
-          var done = false;
-          var fin = function(v){ if(!done){ done = true; res(v); } };
-          var img = new Image();
-          img.crossOrigin = "anonymous";
-          img.onload = function(){
-            try{ ctx.drawImage(img, Math.round(cx + (tx - xf)*T), Math.round(cy + (ty - yf)*T), T, T); }catch(e){}
-            fin(true);
-          };
-          img.onerror = function(){ fin(false); };
-          setTimeout(function(){ fin(false); }, 7000);   // 응답이 없으면 7초 후 포기
-          img.src = "https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Satellite/" + zoom + "/" + ty + "/" + tx + ".jpeg";
-        }));
-      })(tx, ty);
-    }
-  }
-
-  return Promise.all(jobs).then(function(rs){
-    if(!rs.some(Boolean)) throw "위성 지도를 불러오지 못했습니다. (네트워크 또는 인증키 확인)";
-    // 중심 표시(빨간 원)
-    ctx.strokeStyle = "#dc2626"; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx-26, cy); ctx.lineTo(cx-6, cy);
-    ctx.moveTo(cx+6, cy); ctx.lineTo(cx+26, cy);
-    ctx.moveTo(cx, cy-26); ctx.lineTo(cx, cy-6);
-    ctx.moveTo(cx, cy+6); ctx.lineTo(cx, cy+26); ctx.stroke();
-    try{
-      var url = cv.toDataURL("image/jpeg", 0.85);   // 캔버스가 오염되면 여기서 예외
-      return url.split(",")[1];                      // base64 본문만
     }catch(e){
       throw "지도 이미지를 저장할 수 없습니다(브라우저 보안 제한).";
     }
@@ -4015,7 +3924,11 @@ function makeTrendReport(it){
     Promise.race([
       captureSatellite(pos[0], pos[1], zoom, 800, 560),
       new Promise(function(_, rj){ setTimeout(function(){ rj("위치도 생성 시간 초과"); }, 45000); })
-    ]).catch(function(err){ console.warn("위치도 캡처 실패:", err); return null; }),
+    ]).catch(function(err){
+      console.warn("위치도 캡처 실패:", err);
+      window._trMapFailed = true;
+      return null;
+    }),
     trPhotoB64(photos[0], 900),
     trPhotoB64(photos[1], 900)
   ])
