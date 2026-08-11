@@ -217,7 +217,8 @@ body.drill-mode #drillBanner{display:block}
 .warnban .wtime{display:block;font-weight:400;font-size:10.5px;opacity:.92;margin-top:1px}
 .warnban .wdel{margin-left:4px;cursor:pointer;opacity:.8;font-weight:400;font-size:15px}
 .warnban .wdel:hover{opacity:1}
-.warn-pre{background:#eab308}
+.warn-pre{background:#eab308;color:#3b2f00}
+.warn-pre .wlv{background:rgba(0,0,0,.14)}
 .warn-watch{background:#f97316}
 .warn-alert{background:#dc2626}
 @keyframes warnIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
@@ -449,6 +450,18 @@ body.fs-xl .msel-opt,body.fs-xl .tm-opt,body.fs-xl .note{font-size:16px}
 
 .hbtn{display:inline-flex;align-items:center;gap:5px}
 .xlsico{flex-shrink:0;vertical-align:middle}
+
+/* 특보 단계별 구분 강화 */
+.warn-watch{background:#f97316}
+.warn-alert{background:#dc2626;box-shadow:0 4px 14px rgba(220,38,38,.5)}
+.warnban .wlv{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:20px;
+  background:rgba(255,255,255,.26);font-size:11.5px;font-weight:900;vertical-align:middle}
+.warn-alert .wlv{background:#fff;color:#dc2626}
+.warn-watch .wlv{background:rgba(255,255,255,.32)}
+/* 발령 중인 특보가 없을 때 */
+.warn-none{background:#475569;color:#fff;box-shadow:0 4px 10px rgba(0,0,0,.22)}
+.warn-none .wtxt{font-weight:700;font-size:12.5px}
+.warn-none .wtime{opacity:.85}
 </style>
 <script>/*!
 
@@ -503,7 +516,6 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <span class="glabel">등록</span>
     <button class="hbtn b-red" onclick="startDisaster()">＋ 재난등록</button>
     <button class="hbtn b-x" onclick="startClosure()">❌ 통행차단</button>
-    <button class="hbtn" style="background:#f59e0b;color:#fff" onclick="openWarnRegister()">⚠ 특보</button>
     <button class="hbtn b-ai" onclick="openAIRegister()">🤖 요약</button>
     <span class="gsep"></span>
     <span class="glabel">보기</span>
@@ -584,7 +596,6 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   </div>
   <div id="petalmenu" class="petal-hidden">
     <div id="petalbackdrop" onclick="togglePetalMenu()"></div>
-    <button class="petal" style="--i:0" onclick="petalRun(openWarnRegister)"><span>⚠</span>특보</button>
     <button class="petal" style="--i:1" onclick="petalRun(openAIRegister)"><span>🤖</span>요약</button>
     <button class="petal" style="--i:2" onclick="petalRun(openDashboard)"><span>📈</span>대시보드</button>
     <button class="petal" style="--i:3" onclick="petalRun(openReport)"><span>📊</span>보고서</button>
@@ -1159,18 +1170,19 @@ var warnRef = null;
 var activeWarnings = [];
 // 기상특보 13종 정의 (종류·이모티콘)
 var WARN_TYPES = [
-  {k:"호우", e:"🌧☂️"},
-  {k:"대설", e:"❄️"},
-  {k:"폭염", e:"☀️"},
+  {k:"호우", e:"🌧️"},
+  {k:"대설", e:"🌨️"},
+  {k:"폭염", e:"🔥"},
   {k:"한파", e:"🥶"},
   {k:"강풍", e:"💨"},
   {k:"풍랑", e:"🌊"},
   {k:"태풍", e:"🌀"},
   {k:"호우·홍수", e:"🌊"},
   {k:"건조", e:"🍂"},
-  {k:"황사", e:"🟤"},
+  {k:"황사", e:"🌫️"},
+  {k:"안개", e:"🌁"},
   {k:"폭풍해일", e:"🌊"},
-  {k:"지진해일", e:"🌊"},
+  {k:"지진해일", e:"🏄"},
   {k:"열대야", e:"🌡️"}
 ];
 // 특보 단계 (예비특보·주의보·경보)
@@ -3647,7 +3659,7 @@ function loadKmaWarnings(showAlert){
         var msg = "❌ 기상청 연결 실패\n\n" + kmaLastError;
         if(/Failed to fetch|NetworkError|CORS/i.test(kmaLastError)){
           msg += "\n\n브라우저 보안(CORS) 때문에 기상청 서버를 직접 부를 수 없는 상태입니다.\n" +
-                 "이 경우 자동 연동은 어렵고, 지금처럼 담당자가 ⚠특보 버튼으로 직접 등록하셔야 합니다.";
+                 "이 경우 자동 연동은 어렵고, 지금처럼 특보 자동 표시가 되지 않습니다.";
         }
         alert(msg);
       }
@@ -3743,6 +3755,20 @@ function renderWarnBanners(){
     if(d !== 0) return d;
     return (b.createdAt||0) - (a.createdAt||0);
   });
+  // 발효 중인 특보가 하나도 없으면 "없음" 배너를 띄운다
+  if(!sorted.length){
+    var d0 = new Date(serverNow());
+    var p = function(n){ return ("0"+n).slice(-2); };
+    var stamp = d0.getFullYear() + "년 " + p(d0.getMonth()+1) + "월 " + p(d0.getDate()) + "일 " +
+                p(d0.getHours()) + "시 " + p(d0.getMinutes()) + "분 기준";
+    var none = document.createElement("div");
+    none.className = "warnban warn-none";
+    none.innerHTML = '<span class="wemoji">☑️</span>' +
+      '<span class="wtxt">옥천군 현재 발령중인 기상특보 없음' +
+      '<span class="wtime">' + esc(stamp) + '</span></span>';
+    box.appendChild(none);
+    return;
+  }
   sorted.forEach(function(w){
     var lv = warnLevelInfo(w.level);
     var emoji = warnEmoji(w.type);
@@ -3750,12 +3776,12 @@ function renderWarnBanners(){
     var div = document.createElement("div");
     div.className = "warnban " + lv.cls;
     div.innerHTML = '<span class="wemoji">' + emoji + '</span>' +
-      '<span class="wtxt">' + esc(w.type) + esc(w.level) +
+      '<span class="wtxt">' + esc(w.type) + '<b class="wlv">' + esc(w.level) + '</b>' +
       (w.src === "kma" ? '<span class="wsrc">기상청</span>' : '') +
       (timeTxt ? '<span class="wtime">' + esc(timeTxt) + ' 발령</span>' : '') +
       (w.note ? '<span class="wtime">' + esc(w.note) + '</span>' : '') +
       '</span>' +
-      '<span class="wdel" onclick="removeWarning(\'' + w.id + '\')" title="해제">✕</span>';
+      (w.src === "kma" ? '' : '<span class="wdel" onclick="removeWarning(\'' + w.id + '\')" title="해제">✕</span>');
     box.appendChild(div);
   });
 }
@@ -4848,6 +4874,7 @@ function fmtTmFc(s){
 
 /* ---------- 실시간 시각 표시 ---------- */
 function updateClock(){
+  try{ if(!activeWarnings.length && !kmaWarnings.length) renderWarnBanners(); }catch(e){}
   var el = document.getElementById("nowclock");
   if(!el) return;
   var d = new Date();
