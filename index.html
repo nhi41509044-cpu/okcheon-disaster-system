@@ -446,6 +446,9 @@ body.fs-xl .kbox b{font-size:29px}
 body.fs-xl .kbox i{font-size:13px}
 body.fs-xl .msel-opt,body.fs-xl .tm-opt,body.fs-xl .note{font-size:16px}
 .warnban .wsrc{font-size:9.5px;font-weight:800;background:rgba(255,255,255,.3);padding:1px 5px;border-radius:8px;margin-left:5px;vertical-align:middle}
+
+.hbtn{display:inline-flex;align-items:center;gap:5px}
+.xlsico{flex-shrink:0;vertical-align:middle}
 </style>
 <script>/*!
 
@@ -508,7 +511,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <button class="hbtn b-gray" onclick="openHistorySearch()">📅 조회</button>
     <span class="gsep"></span>
     <span class="glabel">문서</span>
-    <button class="hbtn b-blue" onclick="openReport()">📗 엑셀출력</button>
+    <button class="hbtn b-blue" onclick="openReport()"><svg class="xlsico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="2" y="3" width="20" height="18" rx="2.5" fill="#1D6F42"/><rect x="4.5" y="6" width="15" height="12" rx="1" fill="#fff"/><rect x="4.5" y="6" width="15" height="2.6" fill="#9ed3b4"/><path d="M11.6 8.6v9.4M4.5 12.4h15" stroke="#1D6F42" stroke-width="1" opacity=".55"/><path d="M6.6 10.2l3.2 5.6M9.8 10.2l-3.2 5.6" stroke="#1D6F42" stroke-width="1.5" stroke-linecap="round"/></svg> 엑셀출력</button>
     <button class="hbtn b-blue" onclick="openHwpxReport()">📄 약식보고</button>
     <span class="hmore" id="hmore">
       <button class="hbtn b-gray" onclick="toggleMore(event)" aria-label="더보기 메뉴" aria-expanded="false">⋯ 더보기</button>
@@ -1651,6 +1654,13 @@ function initFirebase(){
     pinRef.on("value", function(snap){
       pinnedMsgId = snap.val() || null;
       renderChat();
+    });
+    db.ref("okc_kmarelay_v6").on("value", function(snap){
+      var v = snap.val();
+      if(v){
+        try{ localStorage.setItem("okc6_kmarelay", v); }catch(e){}
+        if(!kmaWarnings.length) loadKmaWarnings(false);
+      }
     });
     periodsRef = db.ref("okc_periods_v6");
     periodsRef.on("value", function(snap){
@@ -3555,11 +3565,15 @@ function topKey(map){
 /* ================= 기상청 특보 자동 연동 ================= */
 // 옥천군 특보구역 코드 (기상청 API허브 wrn_reg.php 기준)
 var KMA_REG_OKCHEON = "L1040600";
+function getKmaRelay(){
+  try{ return (localStorage.getItem("okc6_kmarelay") || "").trim(); }catch(e){ return ""; }
+}
 var kmaWarnings = [];      // 기상청에서 받아온 옥천군 특보
 var kmaLastError = "";
 var kmaLastCheck = 0;
 
 // 코드 → 이름 (기상청 wrn 코드 체계)
+// 응답에는 한글 이름이 그대로 오지만, 코드로 오는 경우도 대비해 둘 다 처리한다.
 var KMA_WRN = {"1":"강풍","2":"호우","3":"한파","4":"건조","5":"폭풍해일","6":"지진해일",
                "7":"풍랑","8":"태풍","9":"대설","12":"황사","13":"폭염",
                "W":"강풍","R":"호우","C":"한파","D":"건조","O":"폭풍해일","N":"지진해일",
@@ -3570,30 +3584,30 @@ var KMA_CMD = {"1":"발표","2":"대치","3":"해제","5":"연장","6":"변경",
 // 응답 본문에서 옥천군 특보만 뽑아낸다.
 // 형식: # 로 시작하는 주석/헤더를 제외한 공백 구분 텍스트 행
 function parseKmaWarnings(txt){
+  // 실제 응답 형식(쉼표 구분, 10개 항목):
+  // REG_UP, REG_UP_KO, REG_ID, REG_KO, TM_FC, TM_EF, WRN, LVL, CMD, ED_TM
   var out = [];
   String(txt || "").split(/\r?\n/).forEach(function(line){
     var s = line.trim();
     if(!s || s.charAt(0) === "#") return;
-    if(s.indexOf(KMA_REG_OKCHEON) < 0) return;   // 옥천군 줄만
-    var t = s.split(/\s+/).filter(Boolean);
-    // 12자리 숫자 = 시각(발표/발효). 뒤쪽 것을 발효시각으로 본다.
-    var times = t.filter(function(x){ return /^\d{12}$/.test(x); });
-    var tmEf = times.length ? times[times.length - 1] : "";
-    // 시각 뒤에 오는 값들이 특보종류·수준·명령
-    var pos = -1;
-    for(var i = t.length - 1; i >= 0; i--){ if(/^\d{12}$/.test(t[i])){ pos = i; break; } }
-    var rest = pos >= 0 ? t.slice(pos + 1) : [];
-    var wrn = rest[0] || "", lvl = rest[1] || "", cmd = rest[2] || "";
-    var name = KMA_WRN[wrn] || wrn;
+    if(s.indexOf(KMA_REG_OKCHEON) < 0) return;      // 옥천군 줄만
+    var f = s.split(",").map(function(x){ return x.trim(); });
+    if(f.length < 9) return;
+    var wrn = f[6], lvl = f[7], cmd = f[8];
+    var name  = KMA_WRN[wrn] || wrn;
     var level = KMA_LVL[lvl] || lvl;
     var cmdTxt = KMA_CMD[cmd] || cmd;
-    if(cmdTxt === "해제" || cmdTxt === "변경해제") return;   // 해제된 건 표시하지 않음
-    out.push({type:name, level:level, time:tmEf, cmd:cmdTxt, raw:s, src:"kma"});
+    if(/해제/.test(cmdTxt)) return;                  // 해제된 특보는 표시하지 않음
+    out.push({type:name, level:level, time:f[5] || f[4], cmd:cmdTxt, raw:s, src:"kma"});
   });
   return out;
 }
 
 function kmaUrl(){
+  // 중계기를 등록해두면 그쪽으로 요청한다(기상청은 브라우저 직접 호출을 허용하지 않음).
+  var relay = "";
+  try{ relay = (localStorage.getItem("okc6_kmarelay") || "").trim(); }catch(e){}
+  if(relay) return relay.replace(/\/+$/, "") + "/warn";
   var key = getKey("kmakey");
   if(!key) return "";
   return "https://apihub.kma.go.kr/api/typ01/url/wrn_now_data.php?fe=f&tm=&disp=0&help=0&authKey=" + encodeURIComponent(key);
@@ -3603,8 +3617,8 @@ function kmaUrl(){
 function loadKmaWarnings(showAlert){
   var url = kmaUrl();
   if(!url){
-    kmaLastError = "인증키가 등록되지 않았습니다.";
-    if(showAlert) alert("⚙설정에서 기상청 인증키를 먼저 등록해 주세요.");
+    kmaLastError = "중계기 주소 또는 인증키가 등록되지 않았습니다.";
+    if(showAlert) alert("⚙설정에서 중계기 주소(권장) 또는 기상청 인증키를 먼저 등록해 주세요.");
     return Promise.resolve(false);
   }
   return fetch(url)
@@ -3644,7 +3658,15 @@ function loadKmaWarnings(showAlert){
 // 인증키 저장 후 바로 시험
 function saveKmaKey(){
   var v = (document.getElementById("f_kmakey").value || "").trim();
-  try{ localStorage.setItem("okc6_kmakey", v); }catch(e){}
+  var r = (document.getElementById("f_kmarelay").value || "").trim();
+  try{
+    localStorage.setItem("okc6_kmakey", v);
+    localStorage.setItem("okc6_kmarelay", r);
+  }catch(e){}
+  // 중계기 주소는 모든 담당자에게 공유 (인증키는 중계기 안에 있으므로 공유하지 않음)
+  if(r && typeof db !== "undefined" && db){
+    try{ db.ref("okc_kmarelay_v6").set(r); }catch(e){}
+  }
   loadKmaWarnings(true);
 }
 
@@ -4513,10 +4535,12 @@ function openSettings(){
     '<div class="note">입력하지 않아도 요약등록의 기본 문구분석 기능은 동작합니다. 브라우저에만 저장되며 이 기기에서 직접 API로 전송됩니다.</div>' +
     '<label>로고 이미지 교체</label><input type="file" id="f_logo" accept="image/*">' +
     '<label>기상청 특보 자동 연동 <span class="note" style="font-weight:400">(API허브 인증키)</span></label>' +
-    '<input type="text" id="f_kmakey" placeholder="기상청 API허브 인증키" value="' + esc(getKey("kmakey")) + '">' +
+    '<input type="text" id="f_kmarelay" placeholder="중계기 주소 (예: https://okcheon-kma.○○○.workers.dev)" value="' + esc(getKmaRelay()) + '">' +
+    '<input type="text" id="f_kmakey" placeholder="기상청 인증키 (중계기를 쓰면 비워두세요)" value="' + esc(getKey("kmakey")) + '" style="margin-top:6px">' +
     '<div class="msel-actions" style="padding:2px 0 8px"><button type="button" onclick="saveKmaKey()">🔗 저장 후 연결 시험</button></div>' +
     '<div class="note">옥천군(구역코드 L1040600) 특보만 자동으로 받아 화면에 표시합니다. ' +
-    'apihub.kma.go.kr 가입 후 「예특보 → 기상특보 → 특보현황 조회」 활용신청이 필요합니다.' +
+    '기상청은 브라우저에서 직접 호출할 수 없어(CORS) <b>중계기 주소</b>를 등록해야 동작합니다. ' +
+    '중계기를 쓰면 인증키는 중계기 안에 보관되므로 여기에 적지 않아도 됩니다.' +
     (kmaLastError ? '<br><b style="color:#b91c1c">마지막 오류: ' + esc(kmaLastError) + '</b>' : '') + '</div>' +
     '<label>글자 크기 <span class="note" style="font-weight:400">(이 기기에만 적용)</span></label>' +
     '<div class="msel-actions" style="padding:2px 0 8px">' +
@@ -4890,7 +4914,7 @@ initChatIds();
 checkGate();
 checkLocalFileMode();
 initFontSize();
-if(getKey("kmakey")){ loadKmaWarnings(false); setInterval(function(){ loadKmaWarnings(false); }, 10*60*1000); }
+if(getKmaRelay() || getKey("kmakey")){ loadKmaWarnings(false); setInterval(function(){ loadKmaWarnings(false); }, 10*60*1000); }
 renderChat();
 loadGeocodeCache();
 loadWeather();
