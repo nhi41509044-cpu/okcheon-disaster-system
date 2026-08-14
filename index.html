@@ -304,14 +304,15 @@ body.drill-mode #drillBanner{display:block}
   .petal span{font-size:20px;line-height:1}
   .petal-center{background:#1e3a5f;transform:scale(1);opacity:1;pointer-events:auto;font-size:15px;z-index:2;border:2px solid rgba(255,255,255,.5)}
   #petalmenu:not(.petal-hidden) .petal{opacity:1;pointer-events:auto}
-  /* 7개를 정중앙 닫기 버튼 주위로 360도 원형 배치 (반지름 110px) */
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:0"]{transform:translate(0,-110px) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:1"]{transform:translate(86px,-69px) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:2"]{transform:translate(107px,24px) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:3"]{transform:translate(48px,99px) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:4"]{transform:translate(-48px,99px) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:5"]{transform:translate(-107px,24px) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:6"]{transform:translate(-86px,-69px) scale(1)}
+  /* 8개를 정중앙 닫기 버튼 주위로 45도 간격 원형 배치 (반지름 112px) */
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:0"]{transform:translate(0,-112px) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:1"]{transform:translate(79px,-79px) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:2"]{transform:translate(112px,0) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:3"]{transform:translate(79px,79px) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:4"]{transform:translate(0,112px) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:5"]{transform:translate(-79px,79px) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:6"]{transform:translate(-112px,0) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:7"]{transform:translate(-79px,-79px) scale(1)}
   /* 하단 탭을 크고 명확하게 */
   #mtabs button{padding:12px 4px;font-size:13px}
   /* 위험지역/레이어 버튼도 터치 크게 */
@@ -476,7 +477,7 @@ body.trendpick .litem:hover{background:#dcfce7;outline:2px solid #16a34a;outline
 body.trendpick #map{cursor:crosshair}
 
 /* 조치사항 시각·내용 입력 */
-.actrow{display:flex;gap:6px;margin-bottom:6px}
+.actrow{display:flex;align-items:center;gap:6px;margin-bottom:6px}
 .actrow input{flex:1;min-width:0}
 .actrow .acttime{flex:0 0 84px;text-align:center}
 
@@ -502,19 +503,28 @@ body.trendpick #map{cursor:crosshair}
   .warnban .wtime{font-size:12px}
   .warnban .wlv{font-size:13.5px;padding:1px 8px}
   .warn-none .wtxt{font-size:13.5px}
-  #kmabtn,#delbtn{left:10px;width:46px;height:46px;border-width:2px}
-  #kmabtn{bottom:62px}
-  #delbtn{bottom:114px}
-  #kmabtn img{width:21px;height:21px}
-  #kmabtn span{font-size:6.5px}
-  #delbtn .dico{width:22px;height:22px}
-  #delbtn .dtxt{font-size:6.5px}
+  /* 모바일에서는 ⋯메뉴 안에 같은 기능이 있으므로 지도 위 원형 버튼은 숨긴다 */
+  #kmabtn,#delbtn{display:none}
   .stats{top:auto;bottom:8px;left:8px;right:8px;max-width:none;justify-content:center;padding:8px}
   .stats .kbox{min-width:60px;padding:4px 8px}
   .stats .kbox b{font-size:18px}
   .stats .kbox i{font-size:10px}
   .stats #nowclock{font-size:11px}
 }
+
+/* 동향보고 대상 입력 행 */
+.whorow{display:flex;align-items:center;gap:6px;margin-bottom:9px;padding-bottom:9px;
+  border-bottom:1px dashed #e2e8f0}
+.whorow:last-of-type{border-bottom:none;padding-bottom:0}
+.wfields{flex:1;min-width:0}
+.wr1{display:flex;gap:6px;margin-bottom:6px}
+.wr1 input{flex:1;min-width:0}
+.wfields input{margin-bottom:0}
+.rowdel{flex:0 0 34px;height:34px;display:flex;align-items:center;justify-content:center;
+  border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8;border-radius:8px;cursor:pointer;
+  font-family:inherit;padding:0}
+.rowdel:hover{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
+.rowdel svg{display:block}
 </style>
 <script>/*!
 
@@ -645,11 +655,14 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   </div>
   <div id="petalmenu" class="petal-hidden">
     <div id="petalbackdrop" onclick="togglePetalMenu()"></div>
+    <button class="petal" style="--i:0" onclick="petalRun(startClosure)"><span>❌</span>통행차단</button>
     <button class="petal" style="--i:1" onclick="petalRun(openAIRegister)"><span>🤖</span>요약</button>
     <button class="petal" style="--i:2" onclick="petalRun(openDashboard)"><span>📈</span>대시보드</button>
-    <button class="petal" style="--i:3" onclick="petalRun(openReport)"><span>📊</span>보고서</button>
-    <button class="petal" style="--i:4" onclick="petalRun(openHistorySearch)"><span>📅</span>조회</button>
-    <button class="petal" style="--i:5" onclick="petalRun(openBulkDelete)"><span>🗑</span>삭제</button>
+    <button class="petal" style="--i:3" onclick="petalRun(openReport)"><span>📊</span>엑셀출력</button>
+    <button class="petal" style="--i:4" onclick="petalRun(startTrendPick)"><span>📄</span>동향보고</button>
+    <button class="petal" style="--i:5" onclick="petalRun(openHistorySearch)"><span>📅</span>날짜조회</button>
+    <button class="petal" style="--i:6" onclick="petalRun(openWxLinks)"><span>🌤</span>기상청</button>
+    <button class="petal" style="--i:7" onclick="petalRun(openBulkDelete)"><span>🗑</span>삭제관리</button>
     <button class="petal petal-center" onclick="togglePetalMenu()">닫기</button>
   </div>
 </div>
@@ -1033,7 +1046,7 @@ function renderCadastralInView(){
       var latlngs = coords.map(function(ring){
         return ring.map(function(pt){ return [pt[1], pt[0]]; });
       });
-      var poly = L.polygon(latlngs, {renderer: cadRenderer, color:"#fbbf24", weight:1.2, fill:false, opacity:0.62, lineJoin:"round", lineCap:"round", smoothFactor:0.4, interactive:true});
+      var poly = L.polygon(latlngs, {renderer: cadRenderer, color:"#fbbf24", weight: z >= 18 ? 1 : 1.2, fill:false, opacity: z >= 18 ? 0.75 : 0.6, lineJoin:"round", lineCap:"round", smoothFactor:0, interactive:true});
       if(jibun){
         poly.bindTooltip(String(jibun), {sticky:true, className:"cad-tip"});
         if(showLabel){
@@ -4288,6 +4301,11 @@ function openTrendReport(id){
 }
 
 /* ---------- 동향보고 입력: 행 추가 ---------- */
+// 입력 행 삭제 아이콘 (이모지 대신 선으로 그려 입력 폼 분위기에 맞춘다)
+var ROWDEL_ICO = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">' +
+  '<path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>';
+
+
 // 시간 칸에 숫자만 넣어도 자동으로 15:50 형태가 되도록
 function trTimeFix(el){
   var d = String(el.value || "").replace(/[^0-9]/g, "").slice(0, 4);
@@ -4300,10 +4318,12 @@ function addWhoRow(nm, tel, addr){
   var d = document.createElement("div");
   d.className = "whorow";
   d.innerHTML =
-    '<div class="wr1"><input type="text" class="tr_wn" placeholder="성함" value="' + esc(nm || "") + '">' +
-    '<input type="text" class="tr_wt" placeholder="연락처" value="' + esc(tel || "") + '">' +
-    '<button type="button" class="rowdel" onclick="this.closest(\'.whorow\').remove()" title="삭제">✕</button></div>' +
-    '<input type="text" class="tr_wa" placeholder="주소" value="' + esc(addr || "") + '">';
+    '<div class="wfields">' +
+      '<div class="wr1"><input type="text" class="tr_wn" placeholder="성함" value="' + esc(nm || "") + '">' +
+      '<input type="text" class="tr_wt" placeholder="연락처" value="' + esc(tel || "") + '"></div>' +
+      '<input type="text" class="tr_wa" placeholder="주소" value="' + esc(addr || "") + '">' +
+    '</div>' +
+    '<button type="button" class="rowdel" onclick="this.closest(\'.whorow\').remove()" title="이 대상 삭제">' + ROWDEL_ICO + '</button>';
   box.appendChild(d);
 }
 function addActRow(tm, desc){
@@ -4314,7 +4334,7 @@ function addActRow(tm, desc){
   d.innerHTML =
     '<input type="text" class="acttime tr_at" placeholder="15:50" maxlength="5" value="' + esc(tm || "") + '" oninput="trTimeFix(this)">' +
     '<input type="text" class="tr_ad" placeholder="조치 내용" value="' + esc(desc || "") + '">' +
-    '<button type="button" class="rowdel" onclick="this.closest(\'.actrow\').remove()" title="삭제">✕</button>';
+    '<button type="button" class="rowdel" onclick="this.closest(\'.actrow\').remove()" title="이 조치 삭제">' + ROWDEL_ICO + '</button>';
   box.appendChild(d);
 }
 
