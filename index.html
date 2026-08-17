@@ -280,10 +280,10 @@ body.drill-mode #drillBanner{display:block}
   #panelclose{position:fixed;top:auto;bottom:16px;left:50%;transform:translateX(-50%);z-index:1600;background:#1e3a5f;color:#fff;border:0;border-radius:22px;padding:11px 26px;font-size:14px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:pointer}
 }
 @media (max-width:860px){
-  /* 날씨는 우하단에 내용 크기만큼만 고정 (빈 여백 없이, 특보 배너는 상단에 별도 배치) */
-  #wxbar{top:auto;bottom:8px;left:auto;right:8px;width:auto;max-width:60vw;padding:6px 10px;
-    font-size:11px;gap:5px;border-radius:9px;z-index:850;flex-wrap:nowrap;white-space:nowrap;overflow:hidden;
-    box-shadow:0 3px 10px rgba(0,0,0,.18)}
+  /* 특보는 화면 최하단 고정(가로 전체), 날씨는 그 바로 위에 고정 */
+  #wxbar{top:auto;bottom:var(--warn-h,0px);left:0;right:0;width:auto;max-width:none;padding:6px 10px;
+    font-size:11px;gap:5px;border-radius:0;z-index:851;flex-wrap:nowrap;white-space:nowrap;overflow:hidden;
+    box-shadow:0 -2px 8px rgba(0,0,0,.18)}
   #wxbar .wxlink{display:none}   /* 좁은 화면에서는 상세보기 링크 숨김 */
   #wxbar .wxtemp{font-size:12px}
   #wxbar .wxupd{display:none}
@@ -319,15 +319,14 @@ body.drill-mode #drillBanner{display:block}
   .petal span{font-size:20px;line-height:1}
   .petal-center{background:#1e3a5f;transform:scale(1);opacity:1;pointer-events:auto;font-size:15px;z-index:2;border:2px solid rgba(255,255,255,.5)}
   #petalmenu:not(.petal-hidden) .petal{opacity:1;pointer-events:auto}
-  /* 8개를 정중앙 닫기 버튼 주위로 45도 간격 원형 배치 (반지름 112px) */
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:0"]{transform:translate(0,-112px) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:1"]{transform:translate(79px,-79px) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:2"]{transform:translate(112px,0) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:3"]{transform:translate(79px,79px) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:4"]{transform:translate(0,112px) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:5"]{transform:translate(-79px,79px) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:6"]{transform:translate(-112px,0) scale(1)}
-  #petalmenu:not(.petal-hidden) .petal[style*="--i:7"]{transform:translate(-79px,-79px) scale(1)}
+  /* 7개를 정중앙 닫기 버튼 주위로 51.43도(360/7) 간격 균등 원형 배치 (반지름 112px) */
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:0"]{transform:translate(0px,-112px) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:1"]{transform:translate(87.6px,-69.8px) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:2"]{transform:translate(109.2px,24.9px) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:3"]{transform:translate(48.6px,100.9px) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:4"]{transform:translate(-48.6px,100.9px) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:5"]{transform:translate(-109.2px,24.9px) scale(1)}
+  #petalmenu:not(.petal-hidden) .petal[style*="--i:6"]{transform:translate(-87.6px,-69.8px) scale(1)}
   /* 하단 탭을 크고 명확하게 */
   #mtabs button{padding:12px 4px;font-size:13px}
   /* 위험지역/레이어 버튼도 터치 크게 */
@@ -500,7 +499,7 @@ body.trendpick #map{cursor:crosshair}
 
 /* 모바일에서 크기 조정 */
 @media (max-width:860px){
-  #warnbanners{bottom:auto;top:var(--hdr-h,56px);right:0;left:0;max-width:none;align-items:stretch;gap:0;z-index:950;min-height:0;height:auto}
+  #warnbanners{bottom:0;top:auto;right:0;left:0;max-width:none;align-items:stretch;gap:0;z-index:950;min-height:0;height:auto}
   #warnbanners .warnban{width:100%;box-sizing:border-box;border-radius:0;min-height:0;height:auto;flex:0 0 auto;align-self:stretch}
   .warnban{font-size:12px;padding:7px 10px;gap:6px;border-radius:9px;min-height:0;line-height:1.25}
   .warnban .wemoji{font-size:17px;line-height:1}
@@ -662,20 +661,20 @@ body.trendpick #map{cursor:crosshair}
   header{padding:4px 8px;gap:0;flex-wrap:wrap;justify-content:center}
   header h1{width:100%;font-size:13px;text-align:center;margin:0 0 3px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #hdricons{width:100%;display:flex;gap:4px;align-items:center;justify-content:center;margin:0;flex-wrap:wrap}
-  #hdricons > *{width:auto;min-width:0;height:28px;border-radius:8px;padding:0 8px;margin:0;
-    display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;line-height:1;
-    overflow:hidden;white-space:nowrap;background:rgba(255,255,255,.16);color:#fff;border:0;gap:4px}
+  #hdricons{width:100%;display:flex;gap:3px;align-items:center;justify-content:center;margin:0;flex-wrap:nowrap}
+  #hdricons > *{width:auto;min-width:0;height:26px;border-radius:7px;padding:0 5px;margin:0;
+    display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;line-height:1;
+    overflow:hidden;white-space:nowrap;background:rgba(255,255,255,.16);color:#fff;border:0;gap:3px;flex:1 1 0}
   #hdricons #conn,#hdricons #drillToggle{display:none}   /* 훈련/실제 전환은 지도 좌상단으로 이동 */
 
-  #hdricons #lyrstoggle{position:static;width:auto;height:28px;border-radius:8px;
-    background:rgba(255,255,255,.16);color:#fff;border:0;box-shadow:none;font-size:11.5px}
+  #hdricons #lyrstoggle{position:static;width:auto;height:26px;border-radius:7px;
+    background:rgba(255,255,255,.16);color:#fff;border:0;box-shadow:none;font-size:10.5px}
   #hdricons #lyrstoggle.on{background:#2563eb}
   #statbtn{display:none}
   #statbtn2{display:flex}
   #searchbtn.on,#chatbtn.on{background:#2563eb}
 
-  /* 더보기 · 상황등록: 테마 옆에 배치 */
+  /* 더보기 · 상황등록 · 통행차단: 테마 옆에 배치 */
   #morebtn{background:rgba(255,255,255,.16)}
   #morebtn.on{background:#2563eb}
   #regbtn{background:#dc2626;font-weight:800}
@@ -878,8 +877,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <button id="chatbtn" onclick="openMobilePanel('chat')" title="대화" aria-label="대화창 열기">대화</button>
     <button id="lyrstoggle" onclick="toggleLyrs()" title="지도 설정" aria-label="지도 설정 열기" aria-expanded="false">테마</button>
     <button id="morebtn" onclick="togglePetalMenu()" title="더보기 메뉴" aria-label="더보기 메뉴 열기">더보기</button>
-    <button id="regbtn" onclick="startDisaster()" title="재난상황 등록" aria-label="재난상황 등록">🚨 상황등록</button>
-    <button id="closurebtn" onclick="startClosure()" title="통행차단 등록" aria-label="통행차단 등록">❌ 통행차단</button>
+    <button id="regbtn" onclick="startDisaster()" title="재난상황 등록" aria-label="재난상황 등록">상황등록</button>
+    <button id="closurebtn" onclick="startClosure()" title="통행차단 등록" aria-label="통행차단 등록">통행차단</button>
   </div>
   <div class="stats" id="statbox">
     <span class="kbox" id="kb_occur"><b id="st_occur">0</b><i>🔴 발생</i></span>
@@ -1030,11 +1029,22 @@ function syncHeaderHeight(){
   if(!hdr) return;
   document.documentElement.style.setProperty("--hdr-h", hdr.offsetHeight + "px");
 }
+// 특보 배너 실제 높이를 측정해 날씨 배너가 그 바로 위에 딱 붙게 한다
+function syncWarnHeight(){
+  var wb = document.getElementById("warnbanners");
+  if(!wb) return;
+  document.documentElement.style.setProperty("--warn-h", wb.offsetHeight + "px");
+}
 window.addEventListener("resize", syncHeaderHeight);
+window.addEventListener("resize", syncWarnHeight);
 window.addEventListener("load", syncHeaderHeight);
+window.addEventListener("load", syncWarnHeight);
 document.addEventListener("DOMContentLoaded", syncHeaderHeight);
+document.addEventListener("DOMContentLoaded", syncWarnHeight);
 setTimeout(syncHeaderHeight, 50);
+setTimeout(syncWarnHeight, 50);
 setTimeout(syncHeaderHeight, 300);
+setTimeout(syncWarnHeight, 300);
 // 사고 원인(기상 요인) — 재난 유형보다 상위 개념
 var DCAUSES = ["호우","강풍","대설","한파·결빙","폭염","태풍","지진","기타"];
 var DTYPES = ["침수","토사유출","산사태","낙석","강풍","수목 전도","전주 전도","결빙","포트홀","정전","단수","화재","산불","시설물 피해","기타"];
@@ -4326,6 +4336,7 @@ function renderWarnBanners(){
     none.innerHTML = '<span class="wtxt">현재 발령중인 기상특보 없음' +
       '<span class="wtime">' + esc(stamp) + '</span></span>';
     box.appendChild(none);
+    setTimeout(syncWarnHeight, 0);
     return;
   }
   sorted.forEach(function(w){
@@ -4343,6 +4354,7 @@ function renderWarnBanners(){
       (w.src === "kma" ? '' : '<span class="wdel" onclick="removeWarning(\'' + w.id + '\')" title="해제">✕</span>');
     box.appendChild(div);
   });
+  setTimeout(syncWarnHeight, 0);
 }
 function fmtWarnTime(s){
   if(!s) return "";
