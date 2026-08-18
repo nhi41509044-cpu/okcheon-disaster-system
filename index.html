@@ -4224,7 +4224,7 @@ function parseKmaWarnings(txt){
     var level = KMA_LVL[lvl] || lvl;
     var cmdTxt = KMA_CMD[cmd] || cmd;
     if(/해제/.test(cmdTxt)) return;                  // 해제된 특보는 표시하지 않음
-    out.push({type:name, level:level, time:f[5] || f[4], cmd:cmdTxt, raw:s, src:"kma"});
+    out.push({type:name, level:level, tmFc:f[4], tmEf:f[5], time:f[5] || f[4], cmd:cmdTxt, raw:s, src:"kma"});
   });
   return out;
 }
@@ -4348,13 +4348,14 @@ function renderWarnBanners(){
   sorted.forEach(function(w){
     var lv = warnLevelInfo(w.level);
     var emoji = warnEmoji(w.type);
-    var timeTxt = w.time ? fmtWarnTime(w.time) : "";
+    var fcTxt = w.tmFc ? fmtWarnTime(w.tmFc) : "";
+    var efTxt = w.tmEf ? fmtWarnTime(w.tmEf) : (w.time ? fmtWarnTime(w.time) : "");
     var div = document.createElement("div");
     div.className = "warnban " + lv.cls;
     div.innerHTML = '<span class="wemoji">' + emoji + '</span>' +
-      '<span class="wtxt">' + esc(w.type) + '<b class="wlv">' + esc(w.level) + '</b>' +
-      (w.src === "kma" ? '<span class="wsrc">기상청</span>' : '') +
-      (timeTxt ? '<span class="wtime">' + esc(timeTxt) + ' 발령</span>' : '') +
+      '<span class="wtxt">' + esc(w.type + w.level) +
+      (fcTxt ? '<span class="wtime">발표: ' + esc(fcTxt) + '</span>' : '') +
+      (efTxt ? '<span class="wtime">발효: ' + esc(efTxt) + '</span>' : '') +
       (w.note ? '<span class="wtime">' + esc(w.note) + '</span>' : '') +
       '</span>' +
       (w.src === "kma" ? '' : '<span class="wdel" onclick="removeWarning(\'' + w.id + '\')" title="해제">✕</span>');
@@ -4364,9 +4365,9 @@ function renderWarnBanners(){
 }
 function fmtWarnTime(s){
   if(!s) return "";
-  var m = s.match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  var m = String(s).match(/(\d{4})-?(\d{2})-?(\d{2})[ T]?(\d{2}):?(\d{2})/);
   if(!m) return s;
-  return parseInt(m[2],10) + "/" + parseInt(m[3],10) + " " + m[4] + ":" + m[5];
+  return m[1] + "년 " + parseInt(m[2],10) + "월 " + parseInt(m[3],10) + "일 " + m[4] + "시 " + m[5] + "분";
 }
 
 /* ---------- 엑셀 보고서 ---------- */
