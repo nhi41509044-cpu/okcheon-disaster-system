@@ -1832,7 +1832,12 @@ function saveItem(it){
   items = items.filter(function(x){ return x.id !== it.id; });
   items.push(it);
   persist();
-  if(itemsRef) itemsRef.child(it.id).set(it);
+  if(itemsRef){
+    itemsRef.child(it.id).set(it).catch(function(err){
+      console.error("Firebase 저장 실패:", err);
+      alert("⚠ 서버 저장에 실패했습니다 (네트워크 상태 또는 사진 용량 문제일 수 있습니다).\n이 화면에는 방금 입력한 내용이 보이지만, 다른 기기에는 반영되지 않았을 수 있습니다.\n네트워크가 안정된 곳에서 다시 저장해 주세요.\n\n오류 내용: " + (err && err.message ? err.message : err));
+    });
+  }
   renderAll();
 }
 function removeItem(id){
@@ -1842,7 +1847,7 @@ function removeItem(id){
   it.deleted = true;
   it.deletedAt = Date.now();
   persist();
-  if(itemsRef) itemsRef.child(id).set(it);
+  if(itemsRef) itemsRef.child(id).set(it).catch(function(err){ console.error("Firebase 삭제 반영 실패:", err); });
   map.closePopup();
   renderAll();
 }
@@ -1999,7 +2004,7 @@ function historyRestoreAll(){
       delete it.deleted;
       delete it.deletedAt;
       it.status = lastCoreStage(it);
-      if(itemsRef) itemsRef.child(it.id).set(it);
+      if(itemsRef) itemsRef.child(it.id).set(it).catch(function(err){ console.error("Firebase 복구 반영 실패:", err); });
     }
   });
   persist();
@@ -2742,12 +2747,15 @@ function compress(file){
     rd.onload = function(){
       var img = new Image();
       img.onload = function(){
-        var s = Math.min(1, 900 / Math.max(img.width, img.height));
+        // 최대 변 길이 720px, 품질 0.55 — Firebase 실시간 DB로 안전하게 전송되도록
+        // (기존 900px/0.6 설정은 사진 여러 장이 겹치면 저장 요청이 커져 네트워크가
+        //  느린 환경에서 조용히 실패하는 사례가 있었음)
+        var s = Math.min(1, 720 / Math.max(img.width, img.height));
         var c = document.createElement("canvas");
         c.width = Math.round(img.width * s);
         c.height = Math.round(img.height * s);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        res(c.toDataURL("image/jpeg", 0.6));
+        res(c.toDataURL("image/jpeg", 0.55));
       };
       img.src = rd.result;
     };
@@ -5639,7 +5647,7 @@ function openBulkDelete(){
       if(it){
         it.deleted = true;
         it.deletedAt = Date.now();
-        if(itemsRef) itemsRef.child(it.id).set(it);
+        if(itemsRef) itemsRef.child(it.id).set(it).catch(function(err){ console.error("Firebase 일괄삭제 반영 실패:", err); });
       }
     });
     persist();
