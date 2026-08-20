@@ -5171,12 +5171,13 @@ function setTrLoc(dataUrl){
   }
 }
 function clearTrLoc(){ setTrLoc(null); }
+// 위치도로 쓸 사진을 파일로 선택했을 때: 스마트폰 원본 사진(수 MB급)을 압축 없이 그대로 두면
+// 문서 생성 단계에서 디코딩이 무겁거나 실패하는 사례가 있어, 여기서도 등록 사진과 동일하게
+// 미리 압축(compress)을 거친 뒤 위치도로 사용한다.
 function pickTrLocFile(inp){
   var f = inp.files && inp.files[0];
   if(!f) return;
-  var r = new FileReader();
-  r.onload = function(){ setTrLoc(r.result); };
-  r.readAsDataURL(f);
+  compress(f).then(function(du){ setTrLoc(du); });
   inp.value = "";
 }
 // 붙여넣기 영역이 열려 있을 때 Ctrl+V로 클립보드 이미지 받기
@@ -5188,9 +5189,8 @@ document.addEventListener("paste", function(ev){
     if(items[i].type && items[i].type.indexOf("image") === 0){
       var f = items[i].getAsFile();
       if(!f) continue;
-      var r = new FileReader();
-      r.onload = function(){ setTrLoc(r.result); };
-      r.readAsDataURL(f);
+      // 클립보드로 붙여넣는 브이월드 화면 캡처 등도 같은 이유로 압축을 거친다
+      compress(f).then(function(du){ setTrLoc(du); });
       ev.preventDefault();
       return;
     }
