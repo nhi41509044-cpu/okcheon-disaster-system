@@ -148,7 +148,7 @@ body.drill-mode #drillBanner{display:block}
 .rlabel{background:none;border:0;box-shadow:none;font-size:11px;font-weight:700;color:#1e3a5f;text-shadow:0 0 3px #fff,0 0 3px #fff;white-space:nowrap}
 .hzlabel{background:none;border:0;box-shadow:none;font-size:10.5px;font-weight:700;color:#b91c1c;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;white-space:nowrap;text-align:center}
 #ovl{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;display:none;align-items:center;justify-content:center}
-#mdl{background:#fff;border-radius:10px;width:430px;max-width:94vw;max-height:90vh;display:flex;flex-direction:column}
+#mdl{background:#fff;border-radius:10px;width:15cm;height:12cm;max-width:94vw;max-height:90vh;display:flex;flex-direction:column}
 #mdl h3{padding:12px 16px;border-bottom:1px solid #e5e7eb;font-size:15px}
 #mbody{padding:12px 16px;overflow-y:auto}
 #dbovl{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2100;display:none;align-items:center;justify-content:center}
@@ -546,7 +546,7 @@ body.trendpick #map{cursor:crosshair}
   .litem{padding:13px 10px}
   /* 화면 밖으로 밀려나지 않도록 */
   #side,#chat{width:100%;max-width:100%}
-  #mdl{width:auto;max-width:calc(100vw - 20px)}
+  #mdl{width:auto;height:auto;max-width:calc(100vw - 20px)}
   .leaflet-popup-content{min-width:auto;max-width:calc(100vw - 60px)}
   /* 홈 인디케이터(아이폰 하단 바) 영역 확보 */
   #mtabs{padding-bottom:env(safe-area-inset-bottom)}
@@ -738,7 +738,7 @@ body.trendpick #map{cursor:crosshair}
   .litem{padding:13px 10px}
   /* 화면 밖으로 밀려나지 않도록 */
   #side,#chat{width:100%;max-width:100%}
-  #mdl{width:auto;max-width:calc(100vw - 20px)}
+  #mdl{width:auto;height:auto;max-width:calc(100vw - 20px)}
   .leaflet-popup-content{min-width:auto;max-width:calc(100vw - 60px)}
   /* 홈 인디케이터(아이폰 하단 바) 영역 확보 */
   #mtabs{padding-bottom:env(safe-area-inset-bottom)}
@@ -1091,6 +1091,8 @@ var chatRef = null, chatMode = "local", chatMsgs = [];
 var pinnedMsgId = null; // 우클릭으로 고정한 대화 메시지 id (모든 사용자에게 공유)
 var pinRef = null;
 var _photos = [];
+var _tlPhotos = [];   // 상황 수정 모달: 타임라인 단계별 사진 (인덱스가 it.timeline과 대응)
+var _tlRemoved = [];  // 상황 수정 모달: 삭제 표시된 단계 (인덱스가 it.timeline과 대응)
 var baseName = "osm", baseLayer = null, labelLayer = null;
 
 function nowInput(){
@@ -2778,6 +2780,58 @@ function renderThumbs(){
     th.appendChild(wrap);
   });
 }
+// 상황 수정 모달: 타임라인 단계별 사진 썸네일 다시 그리기 (삭제 버튼 포함)
+function renderTlThumbs(idx){
+  var th = document.getElementById("tlthumbs" + idx);
+  if(!th) return;
+  th.innerHTML = "";
+  (_tlPhotos[idx] || []).forEach(function(du, pidx){
+    var wrap = document.createElement("div");
+    wrap.className = "thumb-wrap";
+    var im = document.createElement("img");
+    im.src = du;
+    var del = document.createElement("button");
+    del.type = "button";
+    del.className = "thumb-del";
+    del.textContent = "✕";
+    del.onclick = function(){ _tlPhotos[idx].splice(pidx, 1); renderTlThumbs(idx); };
+    wrap.appendChild(im);
+    wrap.appendChild(del);
+    th.appendChild(wrap);
+  });
+}
+// 상황 수정 모달: 특정 단계에 사진 추가 (압축 후 해당 단계 배열에만 누적)
+function addTlPhotos(idx, inputEl){
+  var files = Array.prototype.slice.call(inputEl.files);
+  var chain = Promise.resolve();
+  files.forEach(function(file){
+    chain = chain.then(function(){
+      return compress(file).then(function(du){
+        if(!_tlPhotos[idx]) _tlPhotos[idx] = [];
+        _tlPhotos[idx].push(du);
+        renderTlThumbs(idx);
+      });
+    });
+  });
+  chain.then(function(){ inputEl.value = ""; });
+}
+// 상황 수정 모달: 단계 삭제 표시/해제 (실제 삭제는 저장 시 일괄 반영)
+function removeTlStage(idx){
+  var blk = document.getElementById("tlblk" + idx);
+  if(!blk) return;
+  _tlRemoved[idx] = !_tlRemoved[idx];
+  if(_tlRemoved[idx]){
+    blk.style.opacity = "0.4";
+    blk.style.background = "#fee2e2";
+    var btn = blk.querySelector("button");
+    if(btn) btn.textContent = "↩ 삭제 취소";
+  } else {
+    blk.style.opacity = "";
+    blk.style.background = "#f8fafc";
+    var btn2 = blk.querySelector("button");
+    if(btn2) btn2.textContent = "🗑 이 단계 삭제";
+  }
+}
 // 사진 input 이벤트 연결 (등록/수정 폼 공통)
 function bindPhotoInput(){
   var f = document.getElementById("f_photos");
@@ -3284,25 +3338,30 @@ function openEditForm(id){
       '<input type="text" id="e_vcact" placeholder="조치사항 (예: 충남대병원 이송)" value="' + esc(it.victimAction || "") + '" style="margin-top:6px">' +
       '<label>시설물피해</label><input type="text" id="e_fac" value="' + esc(it.facilityDamage || "") + '">';
   }
-  // 타임라인(경과 이력) 내용 수정
+  // 타임라인(경과 이력) 단계별 수정: 각 단계(발생/조치중/완료)마다 시각·담당자·내용·사진을 개별 수정,
+  // 잘못 기록된 단계는 삭제도 가능하게 한다.
+  _tlPhotos = (it.timeline || []).map(function(e){ return (e.photos || []).slice(); });
+  _tlRemoved = (it.timeline || []).map(function(){ return false; });
   if(it.timeline && it.timeline.length){
-    h += '<div style="margin-top:10px;font-weight:700;color:#1e3a5f;font-size:13px">📋 경과 이력 내용 수정</div>';
+    h += '<div style="margin-top:10px;font-weight:700;color:#1e3a5f;font-size:13px">📋 경과 이력 단계별 수정</div>';
     it.timeline.forEach(function(e, i){
       var stageName = STATNAMES[e.stage] || e.stage;
-      h += '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-top:6px;background:#f8fafc">' +
-        '<div style="font-size:12px;color:#6b7280;margin-bottom:4px"><b style="color:' + (STATCOLORS[e.stage] || "#374151") + '">' + stageName + '</b> · ' + fmt(e.time) + '</div>' +
+      h += '<div class="tlEditBlock" id="tlblk' + i + '" style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-top:6px;background:#f8fafc">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+        '<b style="color:' + (STATCOLORS[e.stage] || "#374151") + ';font-size:13px">' + stageName + '</b>' +
+        '<button type="button" class="pbtn" style="padding:3px 8px;font-size:12px;background:#fee2e2;color:#dc2626" onclick="removeTlStage(' + i + ')">🗑 이 단계 삭제</button>' +
+        '</div>' +
+        '<label style="font-size:12px">시각</label><input type="datetime-local" id="e_tltime' + i + '" value="' + esc(e.time || "") + '">' +
         '<label style="font-size:12px">내용</label><input type="text" id="e_tldesc' + i + '" value="' + esc(e.desc || "") + '">' +
         '<label style="font-size:12px">담당자</label><input type="text" id="e_tlmgr' + i + '" value="' + esc(e.manager || "") + '">' +
+        '<label style="font-size:12px">사진</label>' +
+        '<input type="file" id="e_tlphoto' + i + '" accept="image/*" multiple onchange="addTlPhotos(' + i + ', this)">' +
+        '<div id="tlthumbs' + i + '" class="thumbs"></div>' +
         '</div>';
     });
   }
-  h += '<div class="note">진행 상태를 바꾸면 지도 마커 색상과 통계가 함께 갱신됩니다. 경과 이력의 오타나 내용도 여기서 바로 고칠 수 있습니다.</div>';
+  h += '<div class="note">진행 상태를 바꾸면 지도 마커 색상과 통계가 함께 갱신됩니다. 각 단계의 시각·담당자·내용·사진을 여기서 바로 고칠 수 있고, 잘못된 단계는 삭제할 수 있습니다.</div>';
   h += '<div class="note">위치를 변경하면 새 주소 기준으로 지도상 위치가 자동 재배치됩니다.</div>';
-  h += '<div style="margin-top:10px;font-weight:700;color:#1e3a5f;font-size:13px">📷 사진 (추가·삭제 가능)</div>';
-  h += fieldPhotos();
-  // 기존 사진 모으기 (마지막 단계 기준)
-  var lastStage = it.timeline && it.timeline.length ? it.timeline[it.timeline.length-1] : null;
-  var existingPhotos = (lastStage && lastStage.photos) ? lastStage.photos.slice() : [];
   openModal("✏ 상황 정보 수정", h, function(){
     var newLoc = val("e_loc");
     var locChanged = newLoc !== (it.location || "");
@@ -3317,18 +3376,30 @@ function openEditForm(id){
       it.victimAddr = val("e_vcaddr"); it.victimAction = val("e_vcact");
       it.facilityDamage = val("e_fac");
     }
-    // 타임라인 내용 반영
+    // 타임라인 단계별 내용·시각·담당자·사진 반영 + 삭제 표시된 단계 제거
     if(it.timeline && it.timeline.length){
       it.timeline.forEach(function(e, i){
+        var t = document.getElementById("e_tltime" + i);
         var d = document.getElementById("e_tldesc" + i);
         var m = document.getElementById("e_tlmgr" + i);
+        if(t) e.time = t.value;
         if(d) e.desc = d.value.trim();
         if(m) e.manager = m.value.trim();
+        e.photos = (_tlPhotos[i] || []).slice();
       });
-    }
-    // 사진 반영: 마지막 단계에 저장 (없으면 새 단계 없이 마지막에)
-    if(it.timeline && it.timeline.length){
-      it.timeline[it.timeline.length-1].photos = _photos.slice();
+      it.timeline = it.timeline.filter(function(e, i){ return !_tlRemoved[i]; });
+      if(!it.timeline.length){
+        alert("모든 단계를 삭제할 수 없습니다. 최소 1개 단계는 남아있어야 합니다.");
+        return false;
+      }
+      // 진행 상태는 위쪽 "진행 상태" 선택값을 그대로 따른다. 다만 삭제로 인해
+      // 남은 마지막 단계와 선택한 상태가 어긋나면(예: '완료' 단계를 지웠는데 상태는 그대로 '완료') 알려준다.
+      var lastKept = it.timeline[it.timeline.length-1];
+      if(lastKept && lastKept.stage !== it.status){
+        if(!confirm("삭제 후 남은 마지막 기록은 '" + (STATNAMES[lastKept.stage] || lastKept.stage) + "' 단계인데, 진행 상태는 '" + (STATNAMES[it.status] || it.status) + "'로 저장하려고 합니다. 이대로 저장할까요?\\n(진행 상태를 맞추려면 위쪽 '진행 상태' 선택을 바꿔주세요)")){
+          return false;
+        }
+      }
     }
     if(locChanged && newLoc){
       var okBtn = document.getElementById("mok");
@@ -3345,7 +3416,9 @@ function openEditForm(id){
     }
     saveItem(it);
     setTimeout(function(){ openItemPopup(id); }, 50);
-  }, existingPhotos);
+  }, []);
+  // 모달 HTML이 삽입된 직후, 각 단계의 기존 사진 썸네일을 초기 표시한다
+  (it.timeline || []).forEach(function(e, i){ renderTlThumbs(i); });
 }
 
 /* ---------- AI 요약등록 ---------- */
