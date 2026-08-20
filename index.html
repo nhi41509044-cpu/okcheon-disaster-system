@@ -52,7 +52,7 @@ header h1{font-size:17px;white-space:nowrap}
 .hbtn{border:0;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .mmi{display:block;width:100%;border:0;background:#fff;text-align:left;padding:10px 14px;font-size:13px;cursor:pointer;color:#1f2937}
 .mmi:hover{background:#f1f5f9}
-.b-red{background:#dc2626;color:#fff}.b-x{background:#7f1d1d;color:#fff}.b-blue{background:#2563eb;color:#fff}.b-gray{background:#4b5563;color:#fff}.b-ai{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff}
+.b-red{background:#dc2626;color:#fff}.b-x{background:#7f1d1d;color:#fff}.b-blue{background:#4b5563;color:#fff}.b-gray{background:#4b5563;color:#fff}.b-ai{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff}
 .conn{font-size:12px;padding:5px 10px;border-radius:8px;background:#374151;color:#fff;white-space:nowrap;cursor:pointer;line-height:1;display:inline-flex;align-items:center}
 .conn.on{background:#16a34a}
 .conn:active{transform:scale(.94)}
@@ -459,6 +459,8 @@ body.fs-xl .msel-opt,body.fs-xl .tm-opt,body.fs-xl .note{font-size:16px}
 
 .hbtn{display:inline-flex;align-items:center;gap:5px}
 .xlsico{flex-shrink:0;vertical-align:middle}
+.xico{flex-shrink:0;vertical-align:middle}
+.kmaico{width:16px;height:14px;flex-shrink:0;vertical-align:middle;object-fit:contain}
 
 /* 특보 단계별 구분 강화 */
 .warn-watch{background:#f97316}
@@ -500,9 +502,9 @@ body.trendpick #map{cursor:crosshair}
 
 /* 모바일에서 크기 조정 */
 @media (max-width:860px){
-  #warnbanners{bottom:0;top:auto;right:0;left:0;max-width:none;align-items:stretch;gap:0;z-index:950;min-height:0;height:auto}
-  #warnbanners .warnban{width:100%;box-sizing:border-box;border-radius:0;min-height:0;height:auto;flex:0 0 auto;align-self:stretch}
-  .warnban{font-size:12px;padding:7px 10px;gap:6px;border-radius:9px;min-height:0;line-height:1.25}
+  #warnbanners{bottom:0;top:auto;right:0;left:0;max-width:none;flex-direction:row;flex-wrap:wrap;align-items:stretch;gap:1px;z-index:950;min-height:0;height:auto}
+  #warnbanners .warnban{width:calc(50% - 1px);box-sizing:border-box;border-radius:0;min-height:0;height:auto;flex:0 0 auto;align-self:stretch}
+  .warnban{flex-direction:column;align-items:flex-start;font-size:12px;padding:7px 10px;gap:3px;border-radius:9px;min-height:0;line-height:1.25}
   .warnban .wemoji{font-size:17px;line-height:1}
   .warnban .wtxt{line-height:1.25}
   .warnban .wtime{font-size:10px;margin-top:1px;line-height:1.2}
@@ -891,13 +893,15 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   </div>
   <div class="hbtns">
     <span class="glabel">등록</span>
-    <button class="hbtn b-red" onclick="startDisaster()">＋ 재난등록</button>
-    <button class="hbtn b-x" onclick="startClosure()">❌ 통행차단</button>
-    <button class="hbtn b-ai" onclick="openAIRegister()">🤖 요약</button>
+    <button class="hbtn b-blue" onclick="startDisaster()">＋ 재난등록</button>
+    <button class="hbtn b-blue" onclick="startClosure()"><svg class="xico" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 5L19 19M19 5L5 19" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg> 통행차단</button>
+    <button class="hbtn b-blue" onclick="openBulkDelete()" title="삭제 관리" aria-label="삭제 관리">🗑 삭제</button>
+    <button class="hbtn b-blue" onclick="openAIRegister()">요약</button>
     <span class="gsep"></span>
     <span class="glabel">보기</span>
+    <button class="hbtn b-blue" onclick="openWxLinks()" title="기상청 바로가기" aria-label="기상청 바로가기"><img class="kmaico" src="data:image/png;base64,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" alt=""> 기상청</button>
     <button class="hbtn b-blue" onclick="openDashboard()">📈 대시보드</button>
-    <button class="hbtn b-gray" onclick="openHistorySearch()">📅 날짜별 조회</button>
+    <button class="hbtn b-blue" onclick="openHistorySearch()">📅 날짜별 조회</button>
     <span class="gsep"></span>
     <span class="glabel">문서</span>
     <button class="hbtn b-blue" onclick="openReport()"><svg class="xlsico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="2" y="3" width="20" height="18" rx="2.5" fill="#1D6F42"/><rect x="4.5" y="6" width="15" height="12" rx="1" fill="#fff"/><rect x="4.5" y="6" width="15" height="2.6" fill="#9ed3b4"/><path d="M11.6 8.6v9.4M4.5 12.4h15" stroke="#1D6F42" stroke-width="1" opacity=".55"/><path d="M6.6 10.2l3.2 5.6M9.8 10.2l-3.2 5.6" stroke="#1D6F42" stroke-width="1.5" stroke-linecap="round"/></svg> 엑셀출력</button>
