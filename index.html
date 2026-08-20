@@ -5262,9 +5262,11 @@ function buildExtraPhotoRow(rowAddr, imgId1, imgId2, picId1, picId2){
   return row;
 }
 // XML 안에서 특정 이미지(binaryItemIDRef)를 참조하는 <hp:pic> 블록을 찾아
-// 그 안의 orgSz(원본 크기)를 실제 픽셀 크기 기준으로 바로잡는다.
-// 템플릿에는 사진을 처음 만들 때 쓰였던 사진의 고정 크기가 그대로 박혀 있어,
-// 실제로 들어가는 사진과 크기가 맞지 않으면 한글이 이미지를 훨씬 크게 인식해 문서가 무거워진다.
+// 그 안의 orgSz(원본 크기)를 실제 픽셀 크기 기준으로 바로잡고, 그 사진이 표시되는
+// 칸(curSz)의 가로세로 비율에 맞춰 imgClip(크롭 영역)도 중앙 기준으로 다시 계산한다.
+// 템플릿에는 서식을 처음 만들 때 쓰였던 견본 사진 기준의 크롭 값이 그대로 박혀 있어,
+// 실제 사용자 사진(비율이 제각각)을 그대로 넣으면 엉뚱한 부분이 잘리거나 찌그러져 보인다.
+// → 항상 "칸 비율 그대로, 사진 중앙을 채워서 자르기(object-fit: cover와 동일한 방식)"로 맞춘다.
 function trFixOrgSz(xml, imgId, px_w, px_h){
   if(!px_w || !px_h) return xml;
   var refTag = 'binaryItemIDRef="' + imgId + '"';
@@ -5279,8 +5281,35 @@ function trFixOrgSz(xml, imgId, px_w, px_h){
   var block = xml.slice(picStart, picEnd);
   var m = block.match(/<hp:orgSz width="(\d+)" height="(\d+)"\/>/);
   if(!m) return xml;
-  var hwp = hxOrgSz(px_w, px_h);
-  var newBlock = block.replace(m[0], '<hp:orgSz width="' + hwp.w + '" height="' + hwp.h + '"/>');
+  var hwp = hxOrgSz(px_w, px_h);   // 새 사진의 실제 크기(HWP 단위)
+
+  // 이 칸에 표시되는 목표 비율(curSz 기준, 없으면 sz로 대체)
+  var cm = block.match(/<hp:curSz width="(\d+)" height="(\d+)"\/>/);
+  var targetW = cm ? parseInt(cm[1], 10) : hwp.w;
+  var targetH = cm ? parseInt(cm[2], 10) : hwp.h;
+  var targetRatio = targetW / targetH;
+  var srcRatio = hwp.w / hwp.h;
+
+  // 중앙 기준 크롭 영역 계산: 사진 비율이 칸보다 넓으면 좌우를, 좁으면 상하를 잘라낸다
+  var clipL = 0, clipT = 0, clipR = hwp.w, clipB = hwp.h;
+  if(srcRatio > targetRatio){
+    var cropW = Math.round(hwp.h * targetRatio);
+    clipL = Math.round((hwp.w - cropW) / 2);
+    clipR = clipL + cropW;
+  } else if(srcRatio < targetRatio){
+    var cropH = Math.round(hwp.w / targetRatio);
+    clipT = Math.round((hwp.h - cropH) / 2);
+    clipB = clipT + cropH;
+  }
+
+  var newBlock = block
+    .replace(m[0], '<hp:orgSz width="' + hwp.w + '" height="' + hwp.h + '"/>')
+    .replace(/<hp:imgRect>.*?<\/hp:imgRect>/,
+      '<hp:imgRect><hc:pt0 x="0" y="0"/><hc:pt1 x="' + hwp.w + '" y="0"/><hc:pt2 x="' + hwp.w + '" y="' + hwp.h + '"/><hc:pt3 x="0" y="' + hwp.h + '"/></hp:imgRect>')
+    .replace(/<hp:imgClip left="\d+" right="\d+" top="\d+" bottom="\d+"\/>/,
+      '<hp:imgClip left="' + clipL + '" right="' + clipR + '" top="' + clipT + '" bottom="' + clipB + '"/>')
+    .replace(/<hp:imgDim dimwidth="\d+" dimheight="\d+"\/>/,
+      '<hp:imgDim dimwidth="' + (clipR - clipL) + '" dimheight="' + (clipB - clipT) + '"/>');
   return xml.slice(0, picStart) + newBlock + xml.slice(picEnd);
 }
 function makeTrendReport(it){
