@@ -5039,7 +5039,7 @@ function captureSatellite(lat, lng, zoom, w, h){
 }
 
 // 사진(dataURL)을 JPEG base64로 변환. 형식이 png든 뭐든 jpg로 통일해 서식과 맞춘다.
-function trPhotoB64(dataUrl, maxW){
+function trPhotoB64(dataUrl, maxW, targetRatio){
   return new Promise(function(res){
     if(!dataUrl){ res(null); return; }
     // HEIC/HEIF(아이폰 기본 사진 형식)는 대부분의 브라우저가 <img>로 디코딩하지 못해
@@ -5047,13 +5047,28 @@ function trPhotoB64(dataUrl, maxW){
     var isHeic = /^data:image\/hei[cf]/i.test(dataUrl);
     var img = new Image();
     img.onload = function(){
-      var s = Math.min(1, (maxW || 900) / img.width);
+      var srcW = img.width, srcH = img.height;
+      var sx = 0, sy = 0, sw = srcW, sh = srcH;
+      // 문서 칸(targetRatio)에 맞춰 사진 중앙을 미리 크롭한다 (object-fit: cover와 동일한 방식).
+      // 크롭까지 끝난 이미지를 만들어 두면, 문서에는 그 이미지를 있는 그대로(비율 그대로)
+      // 채워 넣기만 하면 되므로 한글 내부의 배율 계산 방식에 기대지 않고 항상 칸에 꽉 차게 나온다.
+      if(targetRatio){
+        var srcRatio = srcW / srcH;
+        if(srcRatio > targetRatio){
+          sw = Math.round(srcH * targetRatio);
+          sx = Math.round((srcW - sw) / 2);
+        } else if(srcRatio < targetRatio){
+          sh = Math.round(srcW / targetRatio);
+          sy = Math.round((srcH - sh) / 2);
+        }
+      }
+      var s = Math.min(1, (maxW || 900) / sw);
       var cv = document.createElement("canvas");
-      cv.width = Math.max(1, Math.round(img.width * s));
-      cv.height = Math.max(1, Math.round(img.height * s));
+      cv.width = Math.max(1, Math.round(sw * s));
+      cv.height = Math.max(1, Math.round(sh * s));
       var x = cv.getContext("2d");
       x.fillStyle = "#fff"; x.fillRect(0, 0, cv.width, cv.height);
-      x.drawImage(img, 0, 0, cv.width, cv.height);
+      x.drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
       try{
         var b64 = cv.toDataURL("image/jpeg", 0.8).split(",")[1];
         // 리사이즈된 실제 픽셀 크기도 함께 돌려준다 (문서에 원본 크기를 정확히 기록하기 위함 —
@@ -5262,16 +5277,11 @@ function buildExtraPhotoRow(rowAddr, imgId1, imgId2, picId1, picId2){
   return row;
 }
 // XML 안에서 특정 이미지(binaryItemIDRef)를 참조하는 <hp:pic> 블록을 찾아
-// 그 안의 orgSz(원본 크기)를 실제 픽셀 크기 기준으로 바로잡고, 그 사진이 표시되는
-// 칸(curSz)의 가로세로 비율에 맞춰 imgClip(크롭 영역)도 중앙 기준으로 다시 계산한다.
-// 템플릿에는 서식을 처음 만들 때 쓰였던 견본 사진 기준의 크롭 값이 그대로 박혀 있어,
-// 실제 사용자 사진(비율이 제각각)을 그대로 넣으면 엉뚱한 부분이 잘리거나 찌그러져 보인다.
-// → 항상 "칸 비율 그대로, 사진 중앙을 채워서 자르기(object-fit: cover와 동일한 방식)"로 맞춘다.
-//
-// 한글(HWP)은 화면에 그릴 때 orgSz·imgClip이 아니라 renderingInfo의 scaMatrix/transMatrix를
-// 실제 배율로 사용한다 (scaMatrix.e1 = curSz.width / orgSz.width, e5 = curSz.height / orgSz.height).
-// orgSz만 바꾸고 scaMatrix를 그대로 두면, 한글은 예전 배율로 그려서 사진이 칸 크기에 맞춰지지
-// 않고 원본 비율 그대로 작게(혹은 크게) 표시된다 — 반드시 scaMatrix도 함께 재계산해야 한다.
+// 그 안의 orgSz(원본 크기)를 실제 픽셀 크기 기준으로 바로잡는다.
+// 사진 자체는 trPhotoB64/trBlankB64/captureSatellite 단계에서 이미 그 칸의 비율에 맞춰
+// 중앙 크롭이 끝난 상태로 들어오므로, 여기서는 원본 크기 표시값만 정확히 맞추면 된다
+// (원본 크기가 실제와 다르면 한글이 이미지를 과도하게 큰 것으로 인식해 문서가 무거워진다).
+// imgClip/imgRect는 항상 "크롭 없이 이미지 전체"를 가리키도록 함께 맞춰준다.
 function trFixOrgSz(xml, imgId, px_w, px_h){
   if(!px_w || !px_h) return xml;
   var refTag = 'binaryItemIDRef="' + imgId + '"';
@@ -5286,42 +5296,24 @@ function trFixOrgSz(xml, imgId, px_w, px_h){
   var block = xml.slice(picStart, picEnd);
   var m = block.match(/<hp:orgSz width="(\d+)" height="(\d+)"\/>/);
   if(!m) return xml;
-  var hwp = hxOrgSz(px_w, px_h);   // 새 사진의 실제 크기(HWP 단위)
-
-  // 이 칸에 표시되는 목표 비율·크기(curSz 기준, 없으면 sz로 대체)
-  var cm = block.match(/<hp:curSz width="(\d+)" height="(\d+)"\/>/);
-  var targetW = cm ? parseInt(cm[1], 10) : hwp.w;
-  var targetH = cm ? parseInt(cm[2], 10) : hwp.h;
-  var targetRatio = targetW / targetH;
-  var srcRatio = hwp.w / hwp.h;
-
-  // 중앙 기준 크롭 영역 계산: 사진 비율이 칸보다 넓으면 좌우를, 좁으면 상하를 잘라낸다
-  var clipL = 0, clipT = 0, clipR = hwp.w, clipB = hwp.h;
-  if(srcRatio > targetRatio){
-    var cropW = Math.round(hwp.h * targetRatio);
-    clipL = Math.round((hwp.w - cropW) / 2);
-    clipR = clipL + cropW;
-  } else if(srcRatio < targetRatio){
-    var cropH = Math.round(hwp.w / targetRatio);
-    clipT = Math.round((hwp.h - cropH) / 2);
-    clipB = clipT + cropH;
-  }
-  // 한글이 실제로 사용하는 배율: 칸 크기 ÷ 크롭 영역 크기 (크롭 후 정확히 칸에 꽉 차도록)
-  var scaX = targetW / (clipR - clipL);
-  var scaY = targetH / (clipB - clipT);
+  var hwp = hxOrgSz(px_w, px_h);   // 새 사진의 실제 크기(HWP 단위) — 이미 칸 비율로 크롭됨
 
   var newBlock = block
     .replace(m[0], '<hp:orgSz width="' + hwp.w + '" height="' + hwp.h + '"/>')
     .replace(/<hc:transMatrix[^/]*\/>/,
       '<hc:transMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/>')
-    .replace(/<hc:scaMatrix[^/]*\/>/,
-      '<hc:scaMatrix e1="' + scaX + '" e2="0" e3="0" e4="0" e5="' + scaY + '" e6="0"/>')
+    .replace(/<hc:scaMatrix[^/]*\/>/, function(){
+      var cm = block.match(/<hp:curSz width="(\d+)" height="(\d+)"\/>/);
+      var scaX = cm ? (parseInt(cm[1], 10) / hwp.w) : 1;
+      var scaY = cm ? (parseInt(cm[2], 10) / hwp.h) : 1;
+      return '<hc:scaMatrix e1="' + scaX + '" e2="0" e3="0" e4="0" e5="' + scaY + '" e6="0"/>';
+    })
     .replace(/<hp:imgRect>.*?<\/hp:imgRect>/,
       '<hp:imgRect><hc:pt0 x="0" y="0"/><hc:pt1 x="' + hwp.w + '" y="0"/><hc:pt2 x="' + hwp.w + '" y="' + hwp.h + '"/><hc:pt3 x="0" y="' + hwp.h + '"/></hp:imgRect>')
     .replace(/<hp:imgClip left="\d+" right="\d+" top="\d+" bottom="\d+"\/>/,
-      '<hp:imgClip left="' + clipL + '" right="' + clipR + '" top="' + clipT + '" bottom="' + clipB + '"/>')
+      '<hp:imgClip left="0" right="' + hwp.w + '" top="0" bottom="' + hwp.h + '"/>')
     .replace(/<hp:imgDim dimwidth="\d+" dimheight="\d+"\/>/,
-      '<hp:imgDim dimwidth="' + (clipR - clipL) + '" dimheight="' + (clipB - clipT) + '"/>');
+      '<hp:imgDim dimwidth="' + hwp.w + '" dimheight="' + hwp.h + '"/>');
   return xml.slice(0, picStart) + newBlock + xml.slice(picEnd);
 }
 function makeTrendReport(it){
@@ -5378,12 +5370,18 @@ function makeTrendReport(it){
     });
   }
 
+  // 각 사진 칸의 목표 가로세로 비율 (템플릿의 curSz 기준) — 사진을 이 비율로 미리 중앙 크롭해서
+  // 넣어야 문서에서 항상 칸에 꽉 차게 나온다.
+  var TR_MAP_RATIO = 46211 / 25844;     // 위치도 칸
+  var TR_PHOTO_RATIO = 22654 / 26168;   // 사진 칸 1
+  var TR_PHOTO2_RATIO = 23058 / 25902;  // 사진 칸 2
+
   var locSrc = _trLocImg
     // 담당자가 붙여넣은 캡처가 있으면 그걸 그대로 사용 (브이월드 화면도 이 방법으로 가능)
-    ? trPhotoB64(_trLocImg, 1100)
-    // 없으면 대체 위성영상으로 자동 생성
+    ? trPhotoB64(_trLocImg, 1100, TR_MAP_RATIO)
+    // 없으면 대체 위성영상으로 자동 생성 — 캡처 자체를 처음부터 칸 비율로 만든다
     : Promise.race([
-        captureSatellite(pos[0], pos[1], zoom, 800, 560),
+        captureSatellite(pos[0], pos[1], zoom, 900, Math.round(900 / TR_MAP_RATIO)),
         new Promise(function(_, rj){ setTimeout(function(){ rj("위치도 생성 시간 초과"); }, 45000); })
       ]).catch(function(err){
         console.warn("위치도 캡처 실패:", err);
@@ -5392,13 +5390,13 @@ function makeTrendReport(it){
       });
 
   // 추가 사진들의 base64도 함께 준비
-  var extraPhotoPromises = extraPhotos.map(function(p){ return trPhotoB64(p, 900); });
+  var extraPhotoPromises = extraPhotos.map(function(p){ return trPhotoB64(p, 900, TR_PHOTO_RATIO); });
 
-  Promise.all([locSrc, trPhotoB64(photos[0], 900), trPhotoB64(photos[1], 900)].concat(extraPhotoPromises))
+  Promise.all([locSrc, trPhotoB64(photos[0], 900, TR_PHOTO_RATIO), trPhotoB64(photos[1], 900, TR_PHOTO2_RATIO)].concat(extraPhotoPromises))
     .then(function(imgs){
-      var mapImg = imgs[0] || trBlankB64(800, 560);   // 위치도 실패 시에도 견본 대신 흰 여백
-      var p1Img = imgs[1] || trBlankB64(600, 700);
-      var p2Img = imgs[2] || trBlankB64(600, 700);
+      var mapImg = imgs[0] || trBlankB64(900, Math.round(900 / TR_MAP_RATIO));   // 위치도 실패 시에도 견본 대신 흰 여백
+      var p1Img = imgs[1] || trBlankB64(600, Math.round(600 / TR_PHOTO_RATIO));
+      var p2Img = imgs[2] || trBlankB64(600, Math.round(600 / TR_PHOTO2_RATIO));
       var mapB64 = mapImg && mapImg.b64, p1 = p1Img && p1Img.b64, p2 = p2Img && p2Img.b64;
       var extraImgs = imgs.slice(3);   // extraPhotos와 같은 순서
       return JSZip.loadAsync(buf).then(function(zip){
@@ -5422,8 +5420,8 @@ function makeTrendReport(it){
       if(extraRows.length){
         var newRowsXml = extraRows.map(function(r, i){
           var row = buildExtraPhotoRow(r.rowAddr, r.imgId1, r.imgId2, r.picId1, r.picId2);
-          var im1 = extraImgs[i*2] || trBlankB64(600, 700);
-          var im2 = extraImgs[i*2+1] || trBlankB64(600, 700);
+          var im1 = extraImgs[i*2] || trBlankB64(600, Math.round(600 / TR_PHOTO_RATIO));
+          var im2 = extraImgs[i*2+1] || trBlankB64(600, Math.round(600 / TR_PHOTO2_RATIO));
           row = trFixOrgSz(row, r.imgId1, im1.w, im1.h);
           row = trFixOrgSz(row, r.imgId2, im2.w, im2.h);
           return row;
