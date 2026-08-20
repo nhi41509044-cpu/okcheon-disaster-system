@@ -5048,27 +5048,34 @@ function trPhotoB64(dataUrl, maxW, targetRatio){
     var img = new Image();
     img.onload = function(){
       var srcW = img.width, srcH = img.height;
-      var sx = 0, sy = 0, sw = srcW, sh = srcH;
-      // 문서 칸(targetRatio)에 맞춰 사진 중앙을 미리 크롭한다 (object-fit: cover와 동일한 방식).
-      // 크롭까지 끝난 이미지를 만들어 두면, 문서에는 그 이미지를 있는 그대로(비율 그대로)
-      // 채워 넣기만 하면 되므로 한글 내부의 배율 계산 방식에 기대지 않고 항상 칸에 꽉 차게 나온다.
-      if(targetRatio){
-        var srcRatio = srcW / srcH;
-        if(srcRatio > targetRatio){
-          sw = Math.round(srcH * targetRatio);
-          sx = Math.round((srcW - sw) / 2);
-        } else if(srcRatio < targetRatio){
-          sh = Math.round(srcW / targetRatio);
-          sy = Math.round((srcH - sh) / 2);
-        }
-      }
-      var s = Math.min(1, (maxW || 900) / sw);
       var cv = document.createElement("canvas");
-      cv.width = Math.max(1, Math.round(sw * s));
-      cv.height = Math.max(1, Math.round(sh * s));
-      var x = cv.getContext("2d");
-      x.fillStyle = "#fff"; x.fillRect(0, 0, cv.width, cv.height);
-      x.drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+      var x;
+      if(targetRatio){
+        // 문서 칸(targetRatio) 비율의 캔버스를 만들고, 사진 전체가 잘리지 않도록 안에 맞춰
+        // 넣는다(object-fit: contain과 동일한 방식). 칸을 다 채우지 못하는 남는 영역은
+        // 흰 여백으로 둔다 — 사진의 어느 부분도 잘려나가지 않는 것을 우선한다.
+        var canvasW = Math.min(maxW || 900, srcW);
+        var canvasH = Math.round(canvasW / targetRatio);
+        cv.width = canvasW; cv.height = canvasH;
+        x = cv.getContext("2d");
+        x.fillStyle = "#fff"; x.fillRect(0, 0, cv.width, cv.height);
+        var srcRatio = srcW / srcH;
+        var dw, dh;
+        if(srcRatio > targetRatio){
+          dw = canvasW; dh = Math.round(canvasW / srcRatio);
+        } else {
+          dh = canvasH; dw = Math.round(canvasH * srcRatio);
+        }
+        var dx = Math.round((canvasW - dw) / 2), dy = Math.round((canvasH - dh) / 2);
+        x.drawImage(img, 0, 0, srcW, srcH, dx, dy, dw, dh);
+      } else {
+        var s = Math.min(1, (maxW || 900) / srcW);
+        cv.width = Math.max(1, Math.round(srcW * s));
+        cv.height = Math.max(1, Math.round(srcH * s));
+        x = cv.getContext("2d");
+        x.fillStyle = "#fff"; x.fillRect(0, 0, cv.width, cv.height);
+        x.drawImage(img, 0, 0, cv.width, cv.height);
+      }
       try{
         var b64 = cv.toDataURL("image/jpeg", 0.8).split(",")[1];
         // 리사이즈된 실제 픽셀 크기도 함께 돌려준다 (문서에 원본 크기를 정확히 기록하기 위함 —
