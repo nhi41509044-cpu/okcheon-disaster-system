@@ -210,6 +210,9 @@ body.drill-mode #drillBanner{display:block}
 #alarmkwadd{display:flex;gap:6px}
 #alarmkwadd input{flex:1;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:12.5px}
 #alarmkwadd button{border:0;background:#1e3a5f;color:#fff;font-weight:700;font-size:12.5px;border-radius:6px;padding:8px 14px;cursor:pointer}
+#alarmregionlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.regionchip{border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:14px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.regionchip.on{background:#1e3a5f;color:#fff;border-color:#1e3a5f}
 @media (max-width:860px){
   #alarmovl{padding:0;align-items:flex-end}
   #alarmmdl{width:100%;max-width:100%;max-height:85dvh;border-radius:16px 16px 0 0}
@@ -1091,6 +1094,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <input id="alarmkwinput" type="text" placeholder="키워드 입력 (예: 인명피해, 산사태)" onkeydown="if(event.key==='Enter') addAlarmKeyword()">
     <button onclick="addAlarmKeyword()">추가</button>
   </div>
+  <div class="note" style="margin-top:12px">읍면 담당 구역 빠른 추가</div>
+  <div id="alarmregionlist"></div>
 </div></div>
 <div id="dbovl"><div id="dbmdl"><div id="dbhead"><h3>📈 재난상황 대시보드</h3><button onclick="closeDashboard()">✕ 닫기</button></div><div id="dbbody"></div></div></div>
 <div id="bigimg" onclick="this.style.display='none'">
@@ -2742,14 +2747,28 @@ function closeItemPopup(){
   document.getElementById("itemovl").style.display = "none";
 }
 
-/* ---------- 키워드 알림 (Notification API, 탭이 열려있을 때만 동작) ---------- */
+/* ---------- 키워드 알림 (Notification API + Service Worker) ---------- */
 var ALARM_KW_KEY = "okc6_alarm_keywords";
 var alarmKeywords = [];
+var alarmSWReg = null;
 function loadAlarmKeywords(){
   try{ alarmKeywords = JSON.parse(localStorage.getItem(ALARM_KW_KEY) || "[]"); }catch(e){ alarmKeywords = []; }
 }
 function saveAlarmKeywords(){
   try{ localStorage.setItem(ALARM_KW_KEY, JSON.stringify(alarmKeywords)); }catch(e){}
+}
+// 서비스워커 등록: 모바일 브라우저(특히 안드로이드 크롬)는 registration.showNotification()으로만
+// 알림을 표시할 수 있고, new Notification() 생성자를 지원하지 않거나 무시한다.
+function initAlarmServiceWorker(){
+  if(!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("sw.js").then(function(reg){
+    alarmSWReg = reg;
+  }).catch(function(e){ /* SW 등록 실패 시 new Notification()로 폴백 */ });
+  navigator.serviceWorker.addEventListener("message", function(event){
+    if(event.data && event.data.type === "open-item" && event.data.id){
+      openItemPopup(event.data.id);
+    }
+  });
 }
 function updateAlarmBtnState(){
   var btn = document.getElementById("alarmbtn");
@@ -2761,6 +2780,7 @@ function updateAlarmBtnState(){
 function openAlarmSettings(){
   renderAlarmPermBox();
   renderAlarmKwList();
+  renderAlarmRegionList();
   document.getElementById("alarmovl").style.display = "flex";
 }
 function closeAlarmSettings(){
@@ -2795,9 +2815,13 @@ function renderAlarmPermBox(){
 }
 function requestAlarmPermission(){
   if(!("Notification" in window)){ alert("이 브라우저는 알림 기능을 지원하지 않습니다."); return; }
-  Notification.requestPermission().then(function(){
+  Notification.requestPermission().then(function(perm){
     renderAlarmPermBox();
     updateAlarmBtnState();
+    if(perm === "granted"){
+      // 테스트 알림으로 정상 동작 확인 (특히 모바일에서 실제로 뜨는지 바로 확인 가능)
+      showAlarmNotification("🔔 알림이 설정되었습니다", { body: "이제부터 등록한 키워드가 포함된 상황이 등록되면 알림이 옵니다." });
+    }
   });
 }
 function renderAlarmKwList(){
@@ -2819,35 +2843,63 @@ function addAlarmKeyword(){
   saveAlarmKeywords();
   input.value = "";
   renderAlarmKwList();
+  renderAlarmRegionList();
   updateAlarmBtnState();
 }
 function removeAlarmKeyword(i){
   alarmKeywords.splice(i, 1);
   saveAlarmKeywords();
   renderAlarmKwList();
+  renderAlarmRegionList();
   updateAlarmBtnState();
+}
+function renderAlarmRegionList(){
+  var box = document.getElementById("alarmregionlist");
+  if(!box) return;
+  box.innerHTML = REGIONS.map(function(r){
+    var name = r[0];
+    var on = alarmKeywords.indexOf(name) !== -1;
+    return '<button class="regionchip' + (on ? ' on' : '') + '" onclick="toggleAlarmRegion(\'' + name + '\')">' + esc(name) + '</button>';
+  }).join("");
+}
+function toggleAlarmRegion(name){
+  var i = alarmKeywords.indexOf(name);
+  if(i === -1){ alarmKeywords.push(name); } else { alarmKeywords.splice(i, 1); }
+  saveAlarmKeywords();
+  renderAlarmKwList();
+  renderAlarmRegionList();
+  updateAlarmBtnState();
+}
+// 알림 표시: 서비스워커가 준비되어 있으면 showNotification (모바일 포함 안정적으로 동작),
+// 아니면 new Notification()으로 폴백 (구형 데스크탑 브라우저 대응)
+function showAlarmNotification(title, opts){
+  opts = opts || {};
+  if(alarmSWReg && alarmSWReg.showNotification){
+    alarmSWReg.showNotification(title, opts).catch(function(){
+      try{ new Notification(title, opts); }catch(e){}
+    });
+  } else if("Notification" in window){
+    try{ new Notification(title, opts); }catch(e){}
+  }
 }
 // 상황 텍스트에 등록된 키워드가 포함되어 있는지 검사 후 알림 발송
 function checkAlarmForItem(it){
   if(!("Notification" in window) || Notification.permission !== "granted") return;
   if(!alarmKeywords.length) return;
+  var pos = itemPos(it);
+  var regionName = "";
+  try{ if(pos && pos[0] != null && pos[1] != null) regionName = regionOf(pos[0], pos[1]); }catch(e){}
   var hay = [
-    it.type, it.location, it.victimAction, it.facilityDamage,
+    it.type, it.location, it.victimAction, it.facilityDamage, regionName,
     (it.timeline || []).map(function(e){ return e.desc; }).join(" ")
   ].filter(Boolean).join(" ");
   var matched = alarmKeywords.filter(function(kw){ return hay.indexOf(kw) !== -1; });
   if(!matched.length) return;
-  try{
-    var n = new Notification("🚨 " + (it.kind === "closure" ? "통행차단" : "재난상황") + " · " + (it.type || ""), {
-      body: (it.location || "") + "\n키워드: " + matched.join(", "),
-      tag: "okc-item-" + it.id
-    });
-    n.onclick = function(){
-      window.focus();
-      openItemPopup(it.id);
-      n.close();
-    };
-  }catch(e){}
+  showAlarmNotification("🚨 " + (it.kind === "closure" ? "통행차단" : "재난상황") + " · " + (it.type || ""), {
+    body: (it.location || "") + "\n키워드: " + matched.join(", "),
+    tag: "okc-item-" + it.id,
+    data: { itemId: it.id }
+  });
 }
 // items 스냅샷 비교로 신규 등록 건만 감지 (최초 로드시는 알림 skip)
 var _alarmSeenIds = null;
@@ -6092,6 +6144,7 @@ setBase("vw", true);
 loadLocal();
 loadWarningsLocal();
 loadAlarmKeywords();
+initAlarmServiceWorker();
 updateAlarmBtnState();
 applyLogo();
 renderAll();
