@@ -2647,14 +2647,14 @@ function openItemPopup(id){
     '<span class="badge" style="background:' + STATCOLORS[it.status] + '">' + STATNAMES[it.status] + "</span></h4>" +
     '<div style="font-size:11.5px;color:#6b7280">' + esc(it.location || "") + "</div>";
   if(it.kind === "disaster" && ((it.peopleDamage && it.peopleDamage !== "0") || it.facilityDamage)){
-    h += '<div style="font-size:11.5px;color:#b91c1c;margin-top:3px">피해규모 · 인명 ' + esc(it.peopleDamage || "0") + '명' + (it.facilityDamage ? " · 시설물 " + esc(it.facilityDamage) : "") + "</div>";
+    h += '<div style="font-size:11.5px;color:#b91c1c;margin-top:3px">피해규모: 인명 ' + esc(it.peopleDamage || "0") + '명' + (it.facilityDamage ? " · 시설물 " + esc(it.facilityDamage) : "") + "</div>";
   }
   if(it.reporterName || it.reporterTel){
-    h += '<div style="font-size:11.5px;color:#374151;margin-top:3px">신고자 · ' + esc(it.reporterName || "") + (it.reporterTel ? " ☏" + esc(it.reporterTel) : "") + "</div>";
+    h += '<div style="font-size:11.5px;color:#374151;margin-top:3px">신고자: ' + esc(it.reporterName || "") + (it.reporterTel ? " ☏" + esc(it.reporterTel) : "") + "</div>";
   }
   if(it.victimName || it.victimTel || it.victimAddr || it.victimAction){
-    h += '<div style="font-size:11.5px;color:#b91c1c;margin-top:3px">피해자 · ' + esc(it.victimName || "") + (it.victimTel ? " ☏" + esc(it.victimTel) : "") +
-      (it.victimAddr ? "<br>　" + esc(it.victimAddr) : "") + (it.victimAction ? "<br>　조치: " + esc(it.victimAction) : "") + "</div>";
+    h += '<div style="font-size:11.5px;color:#b91c1c;margin-top:3px">피해자: ' + esc(it.victimName || "") + (it.victimTel ? " ☏" + esc(it.victimTel) : "") +
+      (it.victimAddr ? " · " + esc(it.victimAddr) : "") + (it.victimAction ? "<br>　조치: " + esc(it.victimAction) : "") + "</div>";
   }
   if(it.deleted){
     h += '<div class="note" style="color:#b91c1c">🗑 삭제된 기록입니다' + (it.deletedAt ? " (" + fmt(new Date(it.deletedAt).toISOString()) + " 삭제)" : "") + '</div>';
