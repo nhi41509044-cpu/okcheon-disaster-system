@@ -178,6 +178,17 @@ body.drill-mode #drillBanner{display:block}
 .dbpredict b{color:#c2410c}
 .dbnote{font-size:11px;color:#9ca3af;margin-top:8px}
 @media (max-width:860px){ #dbmdl{width:100%;height:100%;max-height:100dvh;border-radius:0} .dbcard,.dbkpibox{min-width:100%} }
+
+/* 상황 상세 팝업: 화면 중앙 고정, 상하 스크롤, 외곽 클릭 시 닫기 */
+#itemovl{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2200;display:none;align-items:center;justify-content:center;padding:20px}
+#itemmdl{position:relative;background:#fff;border-radius:12px;width:480px;max-width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+#itembody{padding:18px 20px 20px}
+#itemclose{position:sticky;top:8px;float:right;margin:8px 8px 0 0;width:32px;height:32px;border-radius:50%;border:0;background:rgba(0,0,0,.08);color:#374151;font-size:16px;cursor:pointer;z-index:1;display:flex;align-items:center;justify-content:center}
+#itemclose:hover{background:rgba(0,0,0,.16)}
+@media (max-width:860px){
+  #itemovl{padding:0;align-items:flex-end}
+  #itemmdl{width:100%;max-width:100%;max-height:85dvh;border-radius:16px 16px 0 0}
+}
 #mbody label{display:block;font-size:12px;color:#374151;font-weight:700;margin:9px 0 3px}
 #mbody input[type=text],#mbody input[type=datetime-local],#mbody input[type=date],#mbody select,#mbody textarea{width:100%;border:1px solid #d1d5db;border-radius:6px;padding:7px;font-size:12.5px;font-family:inherit}
 #mbody textarea{height:64px;resize:vertical}
@@ -511,23 +522,30 @@ body.trendpick #map{cursor:crosshair}
   .warn-none .wtxt{font-size:11.5px;font-weight:700}
   .warnban .wsrc{font-size:9px;padding:1px 5px}
 
-  /* 특보가 1개일 때: 가로 전체 폭, 높이를 키운 한 줄 배치 */
+  /* 모바일 특보 배너: 눈이 편한 옅은 색 톤으로 완화 */
+  .warn-alert{background:#fca5a5;color:#7f1d1d;box-shadow:none}
+  .warn-watch{background:#fdba74;color:#7c2d12}
+  .warn-pre{background:#fde68a;color:#713f12}
+  .warn-alert .wlv{background:rgba(127,29,29,.12);color:#7f1d1d}
+  .warn-watch .wlv{background:rgba(124,45,18,.12)}
+
+  /* 특보가 1개일 때: 날씨바와 같은 높이의 한 줄 배치, 옅은 톤 */
   #warnbanners .warnban:only-child{
     flex-direction:row;align-items:center;justify-content:flex-start;
-    min-height:64px;padding:12px 16px;gap:12px}
-  #warnbanners .warnban:only-child .wemoji{font-size:32px}
-  #warnbanners .warnban:only-child .wtxt{align-items:flex-start;text-align:left}
-  #warnbanners .warnban:only-child .wttl{font-size:17px}
-  #warnbanners .warnban:only-child .wtime{font-size:11.5px}
+    min-height:0;padding:6px 10px;gap:8px;font-weight:600}
+  #warnbanners .warnban:only-child .wemoji{font-size:16px}
+  #warnbanners .warnban:only-child .wtxt{align-items:flex-start;text-align:left;flex-direction:row;gap:8px;flex-wrap:wrap}
+  #warnbanners .warnban:only-child .wttl{font-size:12px;font-weight:700;margin-bottom:0}
+  #warnbanners .warnban:only-child .wtime{font-size:10px;margin-top:0}
 
   /* 특보가 2개 이상일 때: 좌우로 나란히, 이모티콘은 위/글자는 아래 */
   #warnbanners .warnban:not(:only-child){
     flex-direction:column;align-items:center;justify-content:center;
-    text-align:center;min-height:56px;padding:7px 6px;gap:2px}
-  #warnbanners .warnban:not(:only-child) .wemoji{font-size:19px;margin-bottom:1px}
+    text-align:center;min-height:48px;padding:6px 6px;gap:2px;font-weight:600}
+  #warnbanners .warnban:not(:only-child) .wemoji{font-size:16px;margin-bottom:1px}
   #warnbanners .warnban:not(:only-child) .wtxt{align-items:center;text-align:center}
-  #warnbanners .warnban:not(:only-child) .wttl{font-size:12.5px;margin-bottom:0}
-  #warnbanners .warnban:not(:only-child) .wtime{font-size:9.5px}
+  #warnbanners .warnban:not(:only-child) .wttl{font-size:11.5px;font-weight:700;margin-bottom:0}
+  #warnbanners .warnban:not(:only-child) .wtime{font-size:9px}
   #warnbanners .warnban:not(:only-child) .wdel{position:absolute;top:2px;right:4px}
   #warnbanners .warnban:not(:only-child){position:relative}
 
@@ -1031,6 +1049,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   <button id="mtab_chat" onclick="setMobileTab('chat')"><span style="font-size:18px;display:block">💬</span>대화</button>
 </div>
 <div id="ovl"><div id="mdl"><h3 id="mtitle"></h3><div id="mbody"></div><div id="mfoot"><button style="background:#e5e7eb" onclick="closeModal()">취소</button><button style="background:#1e3a5f;color:#fff" id="mok">저장</button></div></div></div>
+<div id="itemovl" onclick="if(event.target===this) closeItemPopup()"><div id="itemmdl"><button id="itemclose" onclick="closeItemPopup()">✕</button><div id="itembody"></div></div></div>
 <div id="dbovl"><div id="dbmdl"><div id="dbhead"><h3>📈 재난상황 대시보드</h3><button onclick="closeDashboard()">✕ 닫기</button></div><div id="dbbody"></div></div></div>
 <div id="bigimg" onclick="this.style.display='none'">
   <button id="bigprev" onclick="viewerNav(-1, event)">‹</button>
@@ -2659,7 +2678,7 @@ function openItemPopup(id){
   h += "</div><div class='pbtns'>";
   if(it.deleted){
     h += '<button class="pbtn" style="background:#16a34a;color:#fff" onclick="restoreItem(\'' + it.id + '\')">🔄 이 상황 복구</button></div></div>';
-    L.popup({maxWidth:290}).setLatLng(itemPos(it)).setContent(h).openOn(map);
+    showItemPopup(h);
     return;
   }
   if(it.kind === "disaster"){
@@ -2670,7 +2689,14 @@ function openItemPopup(id){
   }
   h += '<button class="pbtn" style="background:#dbeafe;color:#1e3a5f" onclick="openEditForm(\'' + it.id + '\')">✏ 수정</button>';
   h += '<button class="pbtn" style="background:#e5e7eb" onclick="removeItem(\'' + it.id + '\')">삭제</button></div></div>';
-  L.popup({maxWidth:290}).setLatLng(itemPos(it)).setContent(h).openOn(map);
+  showItemPopup(h);
+}
+function showItemPopup(html){
+  document.getElementById("itembody").innerHTML = html;
+  document.getElementById("itemovl").style.display = "flex";
+}
+function closeItemPopup(){
+  document.getElementById("itemovl").style.display = "none";
 }
 function smsShare(text){
   // 문자앱으로 열기 시도
