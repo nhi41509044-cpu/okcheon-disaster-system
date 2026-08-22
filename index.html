@@ -42,6 +42,9 @@ header h1{font-size:17px;white-space:nowrap}
 #statbtn{background:#2563eb;font-weight:700}
 #statbtn:active,#searchbtn:active,#chatbtn:active{transform:scale(.94)}
 #searchbtn,#chatbtn{display:none}
+#alarmbtn{border:0;background:rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:700;border-radius:8px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+#alarmbtn:active{transform:scale(.94)}
+#alarmbtn.on{background:#16a34a}
 .stats{display:none;gap:6px;flex-wrap:wrap;position:absolute;top:46px;right:12px;background:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.2);z-index:2500;align-items:center;max-width:calc(100vw - 24px)}
 .stats.open{display:flex}
 .stats .stat{background:#f1f5f9;color:#1e3a5f;border-radius:6px;padding:5px 11px;font-size:13px;white-space:nowrap;font-weight:600}
@@ -188,6 +191,28 @@ body.drill-mode #drillBanner{display:block}
 @media (max-width:860px){
   #itemovl{padding:0;align-items:flex-end}
   #itemmdl{width:100%;max-width:100%;max-height:85dvh;border-radius:16px 16px 0 0}
+}
+
+/* 키워드 알림 설정 모달 */
+#alarmovl{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2200;display:none;align-items:center;justify-content:center;padding:20px}
+#alarmmdl{position:relative;background:#fff;border-radius:12px;width:400px;max-width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.3);padding:20px}
+#alarmmdl h3{font-size:15px;margin-bottom:12px;color:#1e3a5f}
+#alarmclose{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(0,0,0,.08);color:#374151;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#alarmclose:hover{background:rgba(0,0,0,.16)}
+#alarmpermbox{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f1f5f9;border-radius:8px;padding:10px 12px;font-size:12px;color:#374151}
+#alarmpermtext{flex:1;line-height:1.5}
+#alarmpermbtn{border:0;background:#2563eb;color:#fff;font-weight:700;font-size:12px;border-radius:6px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+#alarmpermbtn.granted{background:#16a34a;cursor:default}
+#alarmpermbtn.denied{background:#9ca3af;cursor:default}
+#alarmkwlist{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:24px}
+.kwchip{display:inline-flex;align-items:center;gap:5px;background:#dbeafe;color:#1e3a5f;border-radius:14px;padding:4px 8px 4px 12px;font-size:12px;font-weight:600}
+.kwchip button{border:0;background:rgba(30,58,95,.15);color:#1e3a5f;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+#alarmkwadd{display:flex;gap:6px}
+#alarmkwadd input{flex:1;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:12.5px}
+#alarmkwadd button{border:0;background:#1e3a5f;color:#fff;font-weight:700;font-size:12.5px;border-radius:6px;padding:8px 14px;cursor:pointer}
+@media (max-width:860px){
+  #alarmovl{padding:0;align-items:flex-end}
+  #alarmmdl{width:100%;max-width:100%;max-height:85dvh;border-radius:16px 16px 0 0}
 }
 #mbody label{display:block;font-size:12px;color:#374151;font-weight:700;margin:9px 0 3px}
 #mbody input[type=text],#mbody input[type=datetime-local],#mbody input[type=date],#mbody select,#mbody textarea{width:100%;border:1px solid #d1d5db;border-radius:6px;padding:7px;font-size:12.5px;font-family:inherit}
@@ -718,6 +743,8 @@ body.trendpick #map{cursor:crosshair}
   /* 더보기 · 상황등록 · 통행차단: 테마 옆에 배치 */
   #morebtn{background:rgba(255,255,255,.16)}
   #morebtn.on{background:#2563eb}
+  #alarmbtn{background:rgba(255,255,255,.16)}
+  #alarmbtn.on{background:#16a34a}
   #regbtn{background:#dc2626;font-weight:800}
   #closurebtn{background:#7f1d1d;font-weight:800}
 
@@ -918,6 +945,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <button id="chatbtn" onclick="openMobilePanel('chat')" title="대화" aria-label="대화창 열기">대화</button>
     <button id="lyrstoggle" onclick="toggleLyrs()" title="지도 설정" aria-label="지도 설정 열기" aria-expanded="false">테마</button>
     <button id="morebtn" onclick="togglePetalMenu()" title="더보기 메뉴" aria-label="더보기 메뉴 열기">더보기</button>
+    <button id="alarmbtn" onclick="openAlarmSettings()" title="키워드 알림 설정" aria-label="키워드 알림 설정 열기">🔔 알림</button>
     <button id="regbtn" onclick="startDisaster()" title="재난상황 등록" aria-label="재난상황 등록">상황등록</button>
     <button id="closurebtn" onclick="startClosure()" title="통행차단 등록" aria-label="통행차단 등록">통행차단</button>
   </div>
@@ -1050,6 +1078,20 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </div>
 <div id="ovl"><div id="mdl"><h3 id="mtitle"></h3><div id="mbody"></div><div id="mfoot"><button style="background:#e5e7eb" onclick="closeModal()">취소</button><button style="background:#1e3a5f;color:#fff" id="mok">저장</button></div></div></div>
 <div id="itemovl" onclick="if(event.target===this) closeItemPopup()"><div id="itemmdl"><button id="itemclose" onclick="closeItemPopup()">✕</button><div id="itembody"></div></div></div>
+<div id="alarmovl" onclick="if(event.target===this) closeAlarmSettings()"><div id="alarmmdl">
+  <button id="alarmclose" onclick="closeAlarmSettings()">✕</button>
+  <h3>🔔 키워드 알림 설정</h3>
+  <div id="alarmpermbox">
+    <div id="alarmpermtext"></div>
+    <button id="alarmpermbtn" onclick="requestAlarmPermission()">알림 권한 허용</button>
+  </div>
+  <div class="note" style="margin:10px 0 6px">새 상황이 등록될 때 아래 키워드가 포함되어 있으면 브라우저 알림을 띄웁니다.<br>이 <b>탭(창)이 열려 있을 때만</b> 동작합니다.</div>
+  <div id="alarmkwlist"></div>
+  <div id="alarmkwadd">
+    <input id="alarmkwinput" type="text" placeholder="키워드 입력 (예: 인명피해, 산사태)" onkeydown="if(event.key==='Enter') addAlarmKeyword()">
+    <button onclick="addAlarmKeyword()">추가</button>
+  </div>
+</div></div>
 <div id="dbovl"><div id="dbmdl"><div id="dbhead"><h3>📈 재난상황 대시보드</h3><button onclick="closeDashboard()">✕ 닫기</button></div><div id="dbbody"></div></div></div>
 <div id="bigimg" onclick="this.style.display='none'">
   <button id="bigprev" onclick="viewerNav(-1, event)">‹</button>
@@ -2100,6 +2142,7 @@ function initFirebase(){
       if(v){ items = Object.values(v); persist(); }
       migrateTreeTypes();   // 기존 "수목전도" 건들을 새 명칭으로 1회 정리
       renderAll();
+      checkNewItemsForAlarm(items);
     });
     chatRef = db.ref("okc_chat_v6");
     chatMode = "fb";
@@ -2698,6 +2741,132 @@ function showItemPopup(html){
 function closeItemPopup(){
   document.getElementById("itemovl").style.display = "none";
 }
+
+/* ---------- 키워드 알림 (Notification API, 탭이 열려있을 때만 동작) ---------- */
+var ALARM_KW_KEY = "okc6_alarm_keywords";
+var alarmKeywords = [];
+function loadAlarmKeywords(){
+  try{ alarmKeywords = JSON.parse(localStorage.getItem(ALARM_KW_KEY) || "[]"); }catch(e){ alarmKeywords = []; }
+}
+function saveAlarmKeywords(){
+  try{ localStorage.setItem(ALARM_KW_KEY, JSON.stringify(alarmKeywords)); }catch(e){}
+}
+function updateAlarmBtnState(){
+  var btn = document.getElementById("alarmbtn");
+  if(!btn) return;
+  var supported = ("Notification" in window);
+  var on = supported && Notification.permission === "granted" && alarmKeywords.length > 0;
+  btn.classList.toggle("on", on);
+}
+function openAlarmSettings(){
+  renderAlarmPermBox();
+  renderAlarmKwList();
+  document.getElementById("alarmovl").style.display = "flex";
+}
+function closeAlarmSettings(){
+  document.getElementById("alarmovl").style.display = "none";
+  updateAlarmBtnState();
+}
+function renderAlarmPermBox(){
+  var box = document.getElementById("alarmpermtext");
+  var btn = document.getElementById("alarmpermbtn");
+  if(!("Notification" in window)){
+    box.textContent = "이 브라우저는 알림 기능을 지원하지 않습니다.";
+    btn.style.display = "none";
+    return;
+  }
+  var p = Notification.permission;
+  if(p === "granted"){
+    box.textContent = "알림 권한이 허용되어 있습니다. 이 탭(창)이 열려 있는 동안 알림을 받을 수 있습니다.";
+    btn.textContent = "허용됨";
+    btn.className = "granted";
+    btn.disabled = true;
+  } else if(p === "denied"){
+    box.textContent = "알림 권한이 차단되어 있습니다. 브라우저 주소창 옆 자물쇠(사이트 정보) 아이콘에서 알림 권한을 다시 허용해 주세요.";
+    btn.textContent = "차단됨";
+    btn.className = "denied";
+    btn.disabled = true;
+  } else {
+    box.textContent = "새 상황 등록 시 키워드 알림을 받으려면 알림 권한을 허용해 주세요.";
+    btn.textContent = "알림 권한 허용";
+    btn.className = "";
+    btn.disabled = false;
+  }
+}
+function requestAlarmPermission(){
+  if(!("Notification" in window)){ alert("이 브라우저는 알림 기능을 지원하지 않습니다."); return; }
+  Notification.requestPermission().then(function(){
+    renderAlarmPermBox();
+    updateAlarmBtnState();
+  });
+}
+function renderAlarmKwList(){
+  var box = document.getElementById("alarmkwlist");
+  if(!alarmKeywords.length){
+    box.innerHTML = '<span class="note">등록된 키워드가 없습니다. 아래에서 추가해 주세요.</span>';
+    return;
+  }
+  box.innerHTML = alarmKeywords.map(function(kw, i){
+    return '<span class="kwchip">' + esc(kw) + '<button onclick="removeAlarmKeyword(' + i + ')" title="삭제">✕</button></span>';
+  }).join("");
+}
+function addAlarmKeyword(){
+  var input = document.getElementById("alarmkwinput");
+  var kw = (input.value || "").trim();
+  if(!kw) return;
+  if(alarmKeywords.indexOf(kw) !== -1){ input.value = ""; return; }
+  alarmKeywords.push(kw);
+  saveAlarmKeywords();
+  input.value = "";
+  renderAlarmKwList();
+  updateAlarmBtnState();
+}
+function removeAlarmKeyword(i){
+  alarmKeywords.splice(i, 1);
+  saveAlarmKeywords();
+  renderAlarmKwList();
+  updateAlarmBtnState();
+}
+// 상황 텍스트에 등록된 키워드가 포함되어 있는지 검사 후 알림 발송
+function checkAlarmForItem(it){
+  if(!("Notification" in window) || Notification.permission !== "granted") return;
+  if(!alarmKeywords.length) return;
+  var hay = [
+    it.type, it.location, it.victimAction, it.facilityDamage,
+    (it.timeline || []).map(function(e){ return e.desc; }).join(" ")
+  ].filter(Boolean).join(" ");
+  var matched = alarmKeywords.filter(function(kw){ return hay.indexOf(kw) !== -1; });
+  if(!matched.length) return;
+  try{
+    var n = new Notification("🚨 " + (it.kind === "closure" ? "통행차단" : "재난상황") + " · " + (it.type || ""), {
+      body: (it.location || "") + "\n키워드: " + matched.join(", "),
+      tag: "okc-item-" + it.id
+    });
+    n.onclick = function(){
+      window.focus();
+      openItemPopup(it.id);
+      n.close();
+    };
+  }catch(e){}
+}
+// items 스냅샷 비교로 신규 등록 건만 감지 (최초 로드시는 알림 skip)
+var _alarmSeenIds = null;
+function checkNewItemsForAlarm(newItems){
+  var ids = {};
+  newItems.forEach(function(it){ ids[it.id] = true; });
+  if(_alarmSeenIds === null){
+    // 최초 로드: 기존 건들은 모두 "이미 본 것"으로 처리, 알림 없음
+    _alarmSeenIds = ids;
+    return;
+  }
+  newItems.forEach(function(it){
+    if(!_alarmSeenIds[it.id] && !it.deleted){
+      checkAlarmForItem(it);
+    }
+  });
+  _alarmSeenIds = ids;
+}
+
 function smsShare(text){
   // 문자앱으로 열기 시도
   var ua = navigator.userAgent || "";
@@ -5922,6 +6091,8 @@ setMobileTab("map");
 setBase("vw", true);
 loadLocal();
 loadWarningsLocal();
+loadAlarmKeywords();
+updateAlarmBtnState();
 applyLogo();
 renderAll();
 renderWarnBanners();
