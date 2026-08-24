@@ -2920,11 +2920,13 @@ function toggleAlarmRegion(name){
 }
 // 알림 표시: 서비스워커가 준비되어 있으면 showNotification (모바일 포함 안정적으로 동작),
 // 아니면 new Notification()으로 폴백 (구형 데스크탑 브라우저 대응)
-function showAlarmNotification(title, opts){
+function showAlarmNotification(title, opts, _waited){
   opts = opts || {};
-  // 서비스워커가 아직 등록 중이면 최대 3초 기다렸다가 시도한다 (초기 로드 직후 클릭 시 경쟁조건 방지)
-  if(alarmSWStatus === "registering" && !alarmSWReg){
-    setTimeout(function(){ showAlarmNotification(title, opts); }, 300);
+  _waited = _waited || 0;
+  // 서비스워커가 아직 등록 중이면 잠깐 기다렸다가 재시도한다 (초기 로드 직후 클릭 시 경쟁조건 방지)
+  // 단, 최대 3초까지만 기다리고 그 이후엔 무조건 폴백으로 넘어가 무한 대기를 막는다
+  if(alarmSWStatus === "registering" && !alarmSWReg && _waited < 3000){
+    setTimeout(function(){ showAlarmNotification(title, opts, _waited + 300); }, 300);
     return;
   }
   if(alarmSWReg && alarmSWReg.showNotification){
@@ -2937,14 +2939,11 @@ function showAlarmNotification(title, opts){
 }
 // 알림이 실제로 화면에 뜨는지 진단하기 위한 테스트 함수: 서비스워커 상태를 함께 보여준다
 function testAlarmNotification(){
-  var swInfo = "서비스워커 상태: " + alarmSWStatus + (alarmSWReg ? " (등록됨)" : " (미등록)");
-  showAlarmNotification("🔔 테스트 알림", { body: "이 알림이 보이면 정상 동작 중입니다.\n" + swInfo, tag: "okc-test-" + Date.now() });
-  // 3초 후에도 여전히 등록 안 됐으면 안내
-  setTimeout(function(){
-    if(!alarmSWReg){
-      alert("서비스워커 등록에 실패했거나 아직 준비되지 않았습니다.\n상태: " + alarmSWStatus + "\n\nsw.js 파일이 index.html과 같은 위치(저장소 루트)에 정상 업로드되어 있는지 확인해 주세요.");
-    }
-  }, 3000);
+  // 진단 정보를 먼저 alert로 즉시 보여준다 (showAlarmNotification이 브라우저 정책으로 조용히
+  // 실패하더라도, 최소한 이 alert만큼은 뜨므로 "버튼이 눌리긴 했는지" 확인할 수 있다)
+  var perm = ("Notification" in window) ? Notification.permission : "미지원";
+  alert("진단 정보\n권한 상태: " + perm + "\n서비스워커 상태: " + alarmSWStatus + "\n서비스워커 등록: " + (alarmSWReg ? "예" : "아니오") + "\n\n확인을 누르면 실제 알림을 시도합니다.");
+  showAlarmNotification("🔔 테스트 알림", { body: "이 알림이 보이면 정상 동작 중입니다.", tag: "okc-test-" + Date.now() });
 }
 // 상황 텍스트에 등록된 키워드가 포함되어 있는지 검사 후 알림 발송
 function checkAlarmForItem(it){
