@@ -562,9 +562,10 @@ body.trendpick #map{cursor:crosshair}
     flex-direction:row;align-items:center;justify-content:flex-start;
     min-height:0;padding:6px 10px;gap:8px;font-weight:600}
   #warnbanners .warnban:only-child .wemoji{font-size:16px}
-  #warnbanners .warnban:only-child .wtxt{align-items:flex-start;text-align:left;flex-direction:row;gap:8px;flex-wrap:wrap}
-  #warnbanners .warnban:only-child .wttl{font-size:12px;font-weight:700;margin-bottom:0}
-  #warnbanners .warnban:only-child .wtime{font-size:10px;margin-top:0}
+  #warnbanners .warnban:only-child .wtxt{align-items:flex-start;text-align:left;flex-direction:column;gap:0}
+  #warnbanners .warnban:only-child .wttl{font-size:12px;font-weight:700;margin-bottom:1px}
+  #warnbanners .warnban:only-child .wtime{font-size:10px;margin-top:0;display:flex}
+  #warnbanners .warnban:only-child .wtime b{display:inline-block;width:30px;flex:0 0 auto;font-weight:600}
 
   /* 특보가 2개 이상일 때: 좌우로 나란히, 이모티콘은 위/글자는 아래 */
   #warnbanners .warnban:not(:only-child){
@@ -4638,8 +4639,8 @@ function renderWarnBanners(){
     div.className = "warnban " + lv.cls;
     div.innerHTML = '<span class="wemoji">' + emoji + '</span>' +
       '<span class="wtxt"><b class="wttl">' + esc(w.type + w.level) + '</b>' +
-      (fcTxt ? '<span class="wtime">발표: ' + esc(fcTxt) + '</span>' : '') +
-      (efTxt ? '<span class="wtime">발효: ' + esc(efTxt) + '</span>' : '') +
+      (fcTxt ? '<span class="wtime"><b>발표:</b> ' + esc(fcTxt) + '</span>' : '') +
+      (efTxt ? '<span class="wtime"><b>발효:</b> ' + esc(efTxt) + '</span>' : '') +
       (w.note ? '<span class="wtime">' + esc(w.note) + '</span>' : '') +
       '</span>' +
       (w.src === "kma" ? '' : '<span class="wdel" onclick="removeWarning(\'' + w.id + '\')" title="해제">✕</span>');
