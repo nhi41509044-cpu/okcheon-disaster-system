@@ -154,6 +154,26 @@ body.drill-mode #drillBanner{display:block}
 #mdl{background:#fff;border-radius:10px;width:15cm;height:12cm;max-width:94vw;max-height:90vh;display:flex;flex-direction:column}
 #mdl h3{padding:12px 16px;border-bottom:1px solid #e5e7eb;font-size:15px}
 #mbody{padding:12px 16px;overflow-y:auto}
+/* 데스크탑: 모달을 화면 높이에 맞춰 키우고, 폼 항목을 2단으로 배치해 스크롤을 최소화한다 */
+@media (min-width:861px){
+  #mdl{width:min(26cm,94vw);height:min(80vh,15cm);}
+  #mdl.mdl-wide{width:min(30cm,96vw);height:min(92vh,26cm)}
+  #mbody.mbody-2col{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;align-content:start}
+  #mbody.mbody-2col>.note:first-child,
+  #mbody.mbody-2col>.full{grid-column:1 / -1}
+  #mbody.mbody-2col>.fitem{min-width:0}
+  #mbody.mbody-2col>.fitem.full{grid-column:1 / -1}
+  /* 라벨 상단 여백을 살짝 줄여 항목이 많은 폼의 전체 세로 길이를 압축한다 */
+  #mbody.mbody-2col label{margin-top:6px}
+  #mbody.mbody-2col textarea{height:46px}
+  /* 체크박스 묶음(사고원인·재난유형)은 좁은 폭에서 줄바꿈이 많아 세로로 길어지므로,
+     넓어진 모달 폭을 활용해 한 줄에 최대한 많이 들어가게 한다 */
+  #mbody.mbody-2col .cmulti,
+  #mbody.mbody-2col .tmulti{display:flex;flex-wrap:wrap;gap:4px 7px;max-height:none;overflow:visible;border:1px solid #d7dee7;border-radius:8px;padding:6px;background:#fff}
+  #mbody.mbody-2col .c-opt,
+  #mbody.mbody-2col .tm-opt{margin:0;padding:4px 8px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc}
+}
+
 #dbovl{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2100;display:none;align-items:center;justify-content:center}
 #dbmdl{background:#f3f4f6;border-radius:12px;width:960px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
 #dbhead{background:#1e3a5f;color:#fff;padding:12px 18px;display:flex;align-items:center;justify-content:between;gap:12px}
@@ -3002,10 +3022,12 @@ document.addEventListener("keydown", function(e){
 });
 
 /* ---------- 모달 ---------- */
-function openModal(title, body, onOk, initPhotos){
+function openModal(title, body, onOk, initPhotos, wide){
   document.getElementById("mtitle").textContent = title;
   document.getElementById("mbody").innerHTML = body;
   document.getElementById("ovl").style.display = "flex";
+  document.getElementById("mdl").classList.toggle("mdl-wide", !!wide);
+  document.getElementById("mbody").classList.toggle("mbody-2col", !!wide);
   _photos = Array.isArray(initPhotos) ? initPhotos.slice() : [];
   bindPhotoInput();
   document.getElementById("mok").onclick = function(){
@@ -3250,20 +3272,24 @@ function startDisaster(){
 function openDisasterFormDirect(){
   openModal("🔴 재난상황 등록",
     '<div class="note">📍 위치(주소·지번)를 입력하면 지도에 자동으로 표시됩니다. 지도에서 직접 찍고 싶으면 취소 후 지도를 우클릭하세요.</div>' +
+    '<div class="full">' +
     "<label>사고 원인</label>" + causeHtml("f_cause") +
     "<label>재난 유형 <span class='note' style='font-weight:400'>(여러 개 선택 가능)</span></label>" + typeMultiHtml("f_type") +
-    '<label>발생 시각</label><input type="datetime-local" id="f_time" value="' + nowInput() + '">' +
-    '<label>위치 (주소·지번)</label><input type="text" id="f_loc" placeholder="예: 옥천읍 금구리 123, 옥천읍 성왕로 ○○">' +
-    '<label>신고자 <span class="note" style="font-weight:400">(선택)</span></label>' +
-    '<div class="frow2"><input type="text" id="f_rpname" placeholder="성함"><input type="text" id="f_rptel" placeholder="연락처"></div>' +
-    '<label>인명피해(명)</label><input type="text" id="f_ppl" value="0" inputmode="numeric" pattern="[0-9]*">' +
-    '<label>피해자 인적사항 <span class="note" style="font-weight:400">(인명피해 발생 시)</span></label>' +
-    '<div class="frow2"><input type="text" id="f_vcname" placeholder="성함"><input type="text" id="f_vctel" placeholder="연락처"></div>' +
-    '<input type="text" id="f_vcaddr" placeholder="주소" style="margin-top:6px">' +
-    '<input type="text" id="f_vcact" placeholder="조치사항 (예: 충남대병원 이송, 응급실 이동)" style="margin-top:6px">' +
-    '<label>시설물피해</label><input type="text" id="f_fac" placeholder="예: 주택 침수 2동, 축대 붕괴 등">' +
-    '<label>상황 내용</label><textarea id="f_desc" placeholder="어떤 상황이 전개되었는지 기록"></textarea>' +
-    '<label>등록자(담당자)</label><input type="text" id="f_mgr">' + fieldPhotos(),
+    '</div>' +
+    '<div class="fitem"><label>발생 시각</label><input type="datetime-local" id="f_time" value="' + nowInput() + '"></div>' +
+    '<div class="fitem"><label>위치 (주소·지번)</label><input type="text" id="f_loc" placeholder="예: 옥천읍 금구리 123, 옥천읍 성왕로 ○○"></div>' +
+    '<div class="fitem"><label>신고자 <span class="note" style="font-weight:400">(선택)</span></label>' +
+    '<div class="frow2"><input type="text" id="f_rpname" placeholder="성함"><input type="text" id="f_rptel" placeholder="연락처"></div></div>' +
+    '<div class="fitem"><label>인명피해(명)</label><input type="text" id="f_ppl" value="0" inputmode="numeric" pattern="[0-9]*"></div>' +
+    '<div class="fitem"><label>피해자 인적사항 <span class="note" style="font-weight:400">(인명피해 발생 시)</span></label>' +
+    '<div class="frow2"><input type="text" id="f_vcname" placeholder="성함"><input type="text" id="f_vctel" placeholder="연락처"></div></div>' +
+    '<div class="fitem"><label>피해자 주소·조치사항</label>' +
+    '<input type="text" id="f_vcaddr" placeholder="주소">' +
+    '<input type="text" id="f_vcact" placeholder="조치사항 (예: 충남대병원 이송)" style="margin-top:6px"></div>' +
+    '<div class="fitem"><label>시설물피해</label><input type="text" id="f_fac" placeholder="예: 주택 침수 2동, 축대 붕괴 등"></div>' +
+    '<div class="fitem"><label>등록자(담당자)</label><input type="text" id="f_mgr"></div>' +
+    '<div class="full"><label>상황 내용</label><textarea id="f_desc" placeholder="어떤 상황이 전개되었는지 기록"></textarea></div>' +
+    '<div class="full">' + fieldPhotos() + '</div>',
     function(){
       var t = val("f_time");
       if(!t){ alert("발생 시각을 입력하세요."); return false; }
@@ -3288,7 +3314,7 @@ function openDisasterFormDirect(){
         else { alert("입력한 주소의 정확한 위치를 찾지 못해 옥천읍 중심에 표시했습니다. 지도에서 마커를 확인하고, 필요하면 수정에서 위치를 다시 입력해 주세요."); }
       });
       return false; // 비동기 저장이므로 수동으로 닫음
-    });
+    }, null, true);
 }
 function startClosure(){
   drawMode = "closure";
@@ -3497,20 +3523,24 @@ function openDisasterForm(ll, preLoc){
   var reg = preLoc || regionOf(ll[0], ll[1]);
   openModal("🔴 재난상황 등록",
     '<div class="note">📍 위치는 클릭 지점의 지번으로 자동 입력됩니다. 직접 수정도 가능합니다.</div>' +
+    '<div class="full">' +
     "<label>사고 원인</label>" + causeHtml("f_cause") +
     "<label>재난 유형 <span class='note' style='font-weight:400'>(여러 개 선택 가능)</span></label>" + typeMultiHtml("f_type") +
-    '<label>발생 시각</label><input type="datetime-local" id="f_time" value="' + nowInput() + '">' +
-    '<label>위치</label><input type="text" id="f_loc" value="' + esc(reg) + '" placeholder="예: 옥천읍 금구리 앞 도로">' +
-    '<label>신고자 <span class="note" style="font-weight:400">(선택)</span></label>' +
-    '<div class="frow2"><input type="text" id="f_rpname" placeholder="성함"><input type="text" id="f_rptel" placeholder="연락처"></div>' +
-    '<label>인명피해(명)</label><input type="text" id="f_ppl" value="0" inputmode="numeric" pattern="[0-9]*">' +
-    '<label>피해자 인적사항 <span class="note" style="font-weight:400">(인명피해 발생 시)</span></label>' +
-    '<div class="frow2"><input type="text" id="f_vcname" placeholder="성함"><input type="text" id="f_vctel" placeholder="연락처"></div>' +
-    '<input type="text" id="f_vcaddr" placeholder="주소" style="margin-top:6px">' +
-    '<input type="text" id="f_vcact" placeholder="조치사항 (예: 충남대병원 이송, 응급실 이동)" style="margin-top:6px">' +
-    '<label>시설물피해</label><input type="text" id="f_fac" placeholder="예: 주택 침수 2동, 축대 붕괴 등">' +
-    '<label>상황 내용</label><textarea id="f_desc" placeholder="어떤 상황이 전개되었는지 기록"></textarea>' +
-    '<label>등록자(담당자)</label><input type="text" id="f_mgr">' + fieldPhotos(),
+    '</div>' +
+    '<div class="fitem"><label>발생 시각</label><input type="datetime-local" id="f_time" value="' + nowInput() + '"></div>' +
+    '<div class="fitem"><label>위치</label><input type="text" id="f_loc" value="' + esc(reg) + '" placeholder="예: 옥천읍 금구리 앞 도로"></div>' +
+    '<div class="fitem"><label>신고자 <span class="note" style="font-weight:400">(선택)</span></label>' +
+    '<div class="frow2"><input type="text" id="f_rpname" placeholder="성함"><input type="text" id="f_rptel" placeholder="연락처"></div></div>' +
+    '<div class="fitem"><label>인명피해(명)</label><input type="text" id="f_ppl" value="0" inputmode="numeric" pattern="[0-9]*"></div>' +
+    '<div class="fitem"><label>피해자 인적사항 <span class="note" style="font-weight:400">(인명피해 발생 시)</span></label>' +
+    '<div class="frow2"><input type="text" id="f_vcname" placeholder="성함"><input type="text" id="f_vctel" placeholder="연락처"></div></div>' +
+    '<div class="fitem"><label>피해자 주소·조치사항</label>' +
+    '<input type="text" id="f_vcaddr" placeholder="주소">' +
+    '<input type="text" id="f_vcact" placeholder="조치사항 (예: 충남대병원 이송)" style="margin-top:6px"></div>' +
+    '<div class="fitem"><label>시설물피해</label><input type="text" id="f_fac" placeholder="예: 주택 침수 2동, 축대 붕괴 등"></div>' +
+    '<div class="fitem"><label>등록자(담당자)</label><input type="text" id="f_mgr"></div>' +
+    '<div class="full"><label>상황 내용</label><textarea id="f_desc" placeholder="어떤 상황이 전개되었는지 기록"></textarea></div>' +
+    '<div class="full">' + fieldPhotos() + '</div>',
     function(){
       var t = val("f_time");
       if(!t){ alert("발생 시각을 입력하세요."); return false; }
@@ -3521,7 +3551,7 @@ function openDisasterForm(ll, preLoc){
           location:val("f_loc"), peopleDamage:val("f_ppl") || "0", reporterName:val("f_rpname"), reporterTel:val("f_rptel"), victimName:val("f_vcname"), victimTel:val("f_vctel"), victimAddr:val("f_vcaddr"), victimAction:val("f_vcact"), facilityDamage:val("f_fac"), t0:t, createdAt:Date.now(),
           timeline:[{stage:"occur", time:t, desc:val("f_desc"), manager:val("f_mgr"), photos:_photos.slice()}]});
       });
-    });
+    }, null, true);
   if(!preLoc) autoFillLocation(ll[0], ll[1], "f_loc", reg);
 }
 function openClosureForm(pts, preLoc){
