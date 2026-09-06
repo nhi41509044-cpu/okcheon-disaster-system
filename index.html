@@ -1982,12 +1982,11 @@ function findParcelRingsAt(lat, lng){
       }
     }
   }
-  return (nearest && nearestDist < 0.000008) ? nearest : null;
+  return (nearest && nearestDist < 0.00003) ? nearest : null;   // 약 60m 이내면 그 필지로 본다
 }
 
 // 원형 마커를 해당 필지 음영으로 교체 (지적도 데이터가 있을 때만)
 function upgradeRiskToParcel(layer, marker, pos, color, popupHtml){
-  if(!layer._map) return;
   var apply = function(){
     var p = findParcelRingsAt(pos.lat, pos.lng);
     if(!p || !layer.hasLayer(marker)) return;
@@ -2000,8 +1999,7 @@ function upgradeRiskToParcel(layer, marker, pos, color, popupHtml){
     layer.removeLayer(marker);
     layer.addLayer(poly);
   };
-  if(CAD_DATA && findParcelRingsAt(pos.lat, pos.lng)){ apply(); return; }
-  ensureCadastral(pos.lat, pos.lng, pos.lat, pos.lng).then(apply).catch(function(){});
+  ensureCadastral(pos.lat, pos.lng, pos.lat, pos.lng).then(apply).catch(apply);
 }
 
 function addRiskMarker(layer, pos, color, label, addr){
