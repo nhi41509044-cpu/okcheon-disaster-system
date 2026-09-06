@@ -1877,6 +1877,17 @@ function toggleCadastral(){
 var steepLayer = L.layerGroup();
 var landslideLayer = L.layerGroup();
 var geocodeCache = {};
+var parcelCache = {};   // 주소 → {r:[링...], j:지번}
+function loadParcelCache(){
+  try{ parcelCache = JSON.parse(localStorage.getItem("okc6_parcelgeom") || "{}"); }catch(e){ parcelCache = {}; }
+}
+var _pcSaveT = null;
+function saveParcelCache(){
+  clearTimeout(_pcSaveT);
+  _pcSaveT = setTimeout(function(){
+    try{ localStorage.setItem("okc6_parcelgeom", JSON.stringify(parcelCache)); }catch(e){}
+  }, 400);
+}
 function loadGeocodeCache(){
   try{ geocodeCache = JSON.parse(localStorage.getItem("okc6_geocache") || "{}"); }catch(e){ geocodeCache = {}; }
 }
@@ -1943,6 +1954,12 @@ function toggleLandslide(on){
 }
 function renderRiskLayer(kind, addrs, layer, color, label){
   var st = document.getElementById("geocode_status");
+  // 이미 그려둔 레이어면 지도에 붙이기만 한다
+  if(layer._builtCount && layer.getLayers().length === layer._builtCount){
+    if(!map.hasLayer(layer)) layer.addTo(map);
+    if(st) st.textContent = label + " " + layer._builtCount + "곳 표시완료";
+    return;
+  }
   layer.clearLayers();
   // 캐시된 것 먼저 그리기
   var cached = addrs.filter(function(a){ return geocodeCache[a]; });
@@ -1951,6 +1968,7 @@ function renderRiskLayer(kind, addrs, layer, color, label){
   if(!map.hasLayer(layer)) layer.addTo(map);
 
   if(uncached.length === 0){
+    layer._builtCount = layer.getLayers().length;
     if(st) st.textContent = label + " " + cached.length + "곳 표시완료";
     return;
   }
@@ -1961,6 +1979,7 @@ function renderRiskLayer(kind, addrs, layer, color, label){
     results.forEach(function(r){ addRiskMarker(layer, r, color, label, r.addr); });
   
     var total = addrs.filter(function(a){ return geocodeCache[a]; }).length;
+    layer._builtCount = layer.getLayers().length;
     if(st) st.textContent = label + " " + total + "곳 표시완료 (조회실패 " + (addrs.length - total) + "곳)";
     // Firebase 공유
     if(typeof riskRef !== "undefined" && riskRef){ riskRef.child(kind).set(geocodeCache); }
@@ -1970,7 +1989,10 @@ function renderRiskLayer(kind, addrs, layer, color, label){
 function findParcelRingsAt(lat, lng){
   if(!CAD_DATA) return null;
   var nearest = null, nearestDist = 1e9;
-  for(var eup in CAD_DATA){
+  var scope = eupsForBox(lat, lng, lat, lng).filter(function(e){ return CAD_DATA[e]; });
+  if(!scope.length) scope = Object.keys(CAD_DATA);
+  for(var si=0; si<scope.length; si++){
+    var eup = scope[si];
     var arr = CAD_DATA[eup];
     for(var i=0;i<arr.length;i++){
       var coords = arr[i][1];
@@ -1985,21 +2007,37 @@ function findParcelRingsAt(lat, lng){
   return (nearest && nearestDist < 0.00003) ? nearest : null;   // 약 60m 이내면 그 필지로 본다
 }
 
-// 원형 마커를 해당 필지 음영으로 교체 (지적도 데이터가 있을 때만)
-function upgradeRiskToParcel(layer, marker, pos, color, popupHtml){
-  var apply = function(){
+// 필지 음영 폴리곤 만들기
+function makeParcelPoly(rings, jibun, color, popupHtml){
+  var poly = L.polygon(rings, {color:color, weight:2, fillColor:color, fillOpacity:0.42,
+    opacity:0.95, lineJoin:"round", smoothFactor:0.3});
+  poly.bindPopup(popupHtml + (jibun ? '<br><span style="color:#5b6b7d">필지 ' + esc(String(jibun)) + '</span>' : ''));
+  return poly;
+}
+
+// 필지 탐색 대기열: 화면이 멈추지 않도록 조금씩 처리한다
+var _parcelQ = [], _parcelBusy = false;
+function queueParcelUpgrade(job){ _parcelQ.push(job); if(!_parcelBusy) runParcelQueue(); }
+function runParcelQueue(){
+  if(!_parcelQ.length){ _parcelBusy = false; return; }
+  _parcelBusy = true;
+  var job = _parcelQ.shift();
+  var pos = job.pos;
+  var done = function(){ setTimeout(runParcelQueue, 0); };
+  if(!job.layer.hasLayer(job.marker)){ done(); return; }
+  ensureCadastral(pos.lat, pos.lng, pos.lat, pos.lng).catch(function(){}).then(function(){
     var p = findParcelRingsAt(pos.lat, pos.lng);
-    if(!p || !layer.hasLayer(marker)) return;
-    var latlngs = p.coords.map(function(ring){
-      return ring.map(function(pt){ return [pt[1], pt[0]]; });
-    });
-    var poly = L.polygon(latlngs, {color:color, weight:2, fillColor:color, fillOpacity:0.42,
-      opacity:0.95, lineJoin:"round", smoothFactor:0.3});
-    poly.bindPopup(popupHtml + (p.jibun ? '<br><span style="color:#5b6b7d">필지 ' + esc(String(p.jibun)) + '</span>' : ''));
-    layer.removeLayer(marker);
-    layer.addLayer(poly);
-  };
-  ensureCadastral(pos.lat, pos.lng, pos.lat, pos.lng).then(apply).catch(apply);
+    if(p && job.layer.hasLayer(job.marker)){
+      var rings = p.coords.map(function(ring){
+        return ring.map(function(pt){ return [pt[1], pt[0]]; });
+      });
+      parcelCache[job.addr] = {r:rings, j:p.jibun};
+      saveParcelCache();
+      job.layer.removeLayer(job.marker);
+      job.layer.addLayer(makeParcelPoly(rings, p.jibun, job.color, job.popupHtml));
+    }
+    done();
+  });
 }
 
 function addRiskMarker(layer, pos, color, label, addr){
@@ -2011,9 +2049,11 @@ function addRiskMarker(layer, pos, color, label, addr){
   }
   var title = '<b style="color:' + color + '">⚠ ' + label + (name ? ' / ' + esc(name) : '') + '</b>';
   var popupHtml = title + '<br>' + esc(addr || "");
+  var pc = parcelCache[addr];
+  if(pc && pc.r){ layer.addLayer(makeParcelPoly(pc.r, pc.j, color, popupHtml)); return; }
   c.bindPopup(popupHtml);
   layer.addLayer(c);
-  upgradeRiskToParcel(layer, c, pos, color, popupHtml);
+  queueParcelUpgrade({layer:layer, marker:c, pos:pos, color:color, popupHtml:popupHtml, addr:addr});
 }
 
 var riskRef = null;
@@ -6664,6 +6704,7 @@ initFontSize();
 if(getKmaRelay() || getKey("kmakey")){ loadKmaWarnings(false); setInterval(function(){ loadKmaWarnings(false); }, 10*60*1000); }
 renderChat();
 loadGeocodeCache();
+loadParcelCache();
 loadWeather();
 setInterval(loadWeather, 10 * 60 * 1000);
 setMobileTab("map");
