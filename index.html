@@ -1196,6 +1196,117 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #lyrs .lyrsgrid label:has(input:checked){background:#0f2540;border-color:#0f2540;color:#fff}
   #lyrs .lyrsgrid label input{width:14px;height:14px;margin:0;accent-color:#1d4ed8}
 }
+
+/* ===================== 1a 모바일 최적화 ===================== */
+@media (max-width:860px){
+  body{background:#eef1f5}
+  /* 헤더: 1행 + 상태 배지, 남색 통일 */
+  header{background:#0f2540;padding:8px 10px;gap:8px;flex-wrap:nowrap;justify-content:flex-start}
+  header h1{width:auto;flex:1 1 auto;min-width:0;font-size:14.5px;font-weight:800;letter-spacing:-.02em;
+    text-align:left;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* 아이콘 전용 44x44 정사각 버튼: 라벨은 aria-label 로만 남긴다 */
+  #hdricons{width:auto;flex:0 0 auto;margin-left:auto;gap:5px;justify-content:flex-end;flex-wrap:nowrap}
+  #hdricons > *{flex:0 0 auto;width:44px;height:44px;min-width:44px;padding:0;border-radius:12px;
+    font-size:0;line-height:0;background:rgba(255,255,255,.12);color:#fff;border:0;
+    display:flex;align-items:center;justify-content:center}
+  #hdricons > *::before{font-size:19px;line-height:1;font-weight:400}
+  #searchbtn::before{content:"🔍"}
+  #chatbtn::before{content:"💬"}
+  #lyrstoggle::before{content:"🗺"}
+  #morebtn::before{content:"⋯";font-size:26px;font-weight:800}
+  #alarmbtn::before{content:"🔔"}
+  #regbtn::before{content:"＋";font-size:24px;font-weight:800}
+  #closurebtn::before{content:"⛔"}
+  #hdricons #regbtn{background:#d92d20}
+  #hdricons #closurebtn{background:#b42318}
+  #hdricons #alarmbtn.on{background:#12805c}
+  #hdricons #searchbtn.on,#hdricons #chatbtn.on,#hdricons #morebtn.on,#hdricons #lyrstoggle.on{background:#2f6fc4}
+  #statbtn,#statbtn2{display:none}
+  #hdricons{flex:0 0 auto;order:1}
+  header h1{order:0}
+
+  /* 집계 스트립: 헤더의 두 번째 행으로 상시 노출 */
+  header{flex-wrap:wrap}
+  .stats#statbox{display:flex;position:static;inset:auto;flex:0 0 100%;order:2;width:100%;
+    flex-wrap:nowrap;gap:5px;margin-top:8px;
+    background:transparent;border:0;border-radius:0;box-shadow:none;padding:0;max-width:none;overflow-x:auto}
+  body.panel-open .stats#statbox{display:none}
+  .stats#statbox .kbox{flex:1 1 0;min-width:0;background:rgba(255,255,255,.09);border:0;border-radius:10px;
+    padding:7px 4px;display:flex;flex-direction:column;align-items:center;gap:1px}
+  .stats#statbox .kbox b{font-size:16px;letter-spacing:-.02em;margin:0}
+  .stats#statbox .kbox i{font-size:10px;font-style:normal;font-weight:700;color:#a9bbcf;display:block}
+  .stats#statbox #nowclock{display:none}
+
+  /* 좌측 패널 = 하단 시트 느낌 */
+  #side{background:#fff}
+  #side .sbox{border:0;border-bottom:1px solid #eef2f6;border-radius:0;margin:0;padding:12px 14px;background:#fff}
+  #side .sbox h3{font-size:11px;font-weight:800;letter-spacing:.05em;color:#5b6b7d;margin-bottom:9px}
+  #side .sbox:last-child{border-bottom:0;padding:10px 10px 84px}
+  .chip{min-height:44px;padding:11px 14px;border-radius:999px;font-size:13px;font-weight:700;
+    border:1px solid #dbe2ea;background:#fff;color:#43536a}
+  .chip.on{background:#0f2540;border-color:#0f2540;color:#fff}
+  .facc-h{min-height:44px;font-size:12.5px;border-radius:10px;border-color:#dbe2ea}
+  .facc-h.open{background:#0f2540;border-color:#0f2540;color:#fff}
+  #ilist,#blist{display:flex;flex-direction:column;gap:9px}
+  .litem{margin:0;padding:13px 14px;border:1px solid #e3e9f0;border-left-width:4px;border-radius:12px;background:#fff}
+  .litem .ltop b{font-size:15px;letter-spacing:-.02em}
+  .litem .laddr{font-size:13px}
+  .sbadge{border-radius:999px;font-size:11.5px;font-weight:800}
+
+  #panelclose{background:#0f2540;border-radius:999px;padding:13px 26px;font-size:14px;font-weight:800;
+    box-shadow:0 8px 24px rgba(15,37,64,.35);min-height:46px}
+
+  /* FAB: 1a 색 + 터치 크기 */
+  #mfab{right:14px;bottom:calc(128px + env(safe-area-inset-bottom));gap:12px}
+  .fab{width:52px;height:52px;box-shadow:0 8px 22px rgba(15,37,64,.32)}
+  .fab-main{background:#d92d20}
+  .fab-menu{background:#0f2540}
+  .fablbl{background:rgba(15,37,64,.9);font-size:10.5px;padding:2px 8px}
+  .petal{background:#0f2540;width:60px;height:60px;margin-left:-30px;margin-top:-30px}
+  .petal-center{background:#1c3f68}
+
+  /* 지도 테마 패널: 원형 대신 3열 칩 카드 */
+  #lyrs{position:absolute;top:10px;left:10px;right:10px;width:auto;max-width:none;
+    background:#fff;border:1px solid #e3e9f0;border-radius:14px;padding:8px;gap:6px;
+    box-shadow:0 10px 28px rgba(15,37,64,.22);display:none;
+    grid-template-columns:repeat(3,minmax(0,1fr));justify-content:stretch}
+  #lyrs.open{display:grid}
+  #lyrs .lyrsttl{display:none}
+  #lyrs .lyb,#lyrs label{position:relative;width:auto;height:auto;min-height:46px;border-radius:11px;
+    padding:9px 8px;font-size:12.5px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;min-width:0;
+    background:#f6f8fb;border:1px solid #e6ebf2;color:#33465c;
+    display:flex;align-items:center;justify-content:center;gap:6px}
+  #lyrs .lyb.on,#lyrs label:has(input:checked){background:#0f2540;border-color:#0f2540;color:#fff}
+  #lyrs #ovlbtn,#lyrs #cadbtn,#lyrs #gpsbtn{font-size:12.5px}
+  #lyrs #ovlbtn::before,#lyrs #cadbtn::before,#lyrs #gpsbtn::before{content:none}
+  #lyrs label input{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0}
+
+  /* 위험지역 패널: 테마 패널 아래 폭 맞춤 */
+  #ovlpanel{top:auto;left:10px;right:10px;width:auto;background:#fff;border:1px solid #e3e9f0;
+    border-radius:14px;padding:12px;box-shadow:0 10px 28px rgba(15,37,64,.22);z-index:1450}
+  #ovlpanel label{font-size:14px;padding:9px 0;color:#33465c;font-weight:600}
+  #ovlpanel .ovladd{min-height:44px;border-color:#0f2540;background:#0f2540;border-radius:11px;font-weight:800}
+
+  /* 날씨 · 특보: 하단 고정 카드 (겹침 없이 쌓기) */
+  #wxbar{background:#fff;border:0;border-top:1px solid #e3e9f0;color:#43536a;padding:9px 12px;
+    font-size:12.5px;box-shadow:0 -4px 16px rgba(15,37,64,.12)}
+  #wxbar .wxtemp{font-size:17px;font-weight:800;color:#0f2540;letter-spacing:-.03em}
+  #wxbar .wxwarn{background:#fdeceb;color:#b42318;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800}
+  .warnban{background:#fff;border:0;border-left:4px solid #f0a93c;border-top:1px solid #f0e0c4;
+    color:#8a5411;padding:10px 12px;border-radius:0;box-shadow:none;gap:9px}
+  .warnban .wemoji{width:30px;height:30px;border-radius:9px;background:#fff7ea;font-size:17px}
+  .warnban .wttl{font-size:13.5px}
+  .warnban .wtime{color:#6f5a3d}
+  .warn-alert{border-left-color:#d92d20;border-top-color:#f6d6d2;color:#9a2318}
+  .warn-alert .wemoji{background:#fdeceb}
+
+  /* 접속자 배지 */
+  #connfab{left:12px;bottom:calc(84px + env(safe-area-inset-bottom));width:48px;height:48px;
+    border:1px solid #dbe2ea;box-shadow:0 8px 22px rgba(15,37,64,.24)}
+
+  /* 지점 팝업 버튼 터치 크기 */
+  .pbtn{min-height:44px;font-size:13.5px}
+}
 </style>
 <script>/*!
 
