@@ -1185,7 +1185,7 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     background:#fff;border:1px solid #e3e9f0;border-radius:14px;padding:8px;gap:0;
     box-shadow:0 8px 24px rgba(15,37,64,.16)}
   #lyrs .lyrsttl{display:none}
-  #lyrs .lyrsgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%}
+  #lyrs .lyrsgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;width:100%}
   #lyrs .lyrsgrid .lyb,#lyrs .lyrsgrid label{min-height:38px;padding:9px 10px;border-radius:10px;
     border:1px solid #e6ebf2;background:#f6f8fb;color:#33465c;font-size:12.5px;font-weight:800;
     letter-spacing:-.02em;white-space:nowrap;min-width:0;display:flex;align-items:center;justify-content:center;
@@ -1326,7 +1326,7 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     letter-spacing:-.03em;white-space:nowrap;background:#f2f5f8;border:1px solid #e3e9f0;color:#33465c}
   #hdricons #lyrstoggle::before,#hdricons #alarmbtn::before,#hdricons #closurebtn::before{content:none}
   #hdricons #lyrstoggle{font-size:0}
-  #hdricons #lyrstoggle::after{content:"지도";font-size:12px}
+  #hdricons #lyrstoggle::after{content:"테마";font-size:12px}
   #hdricons #alarmbtn{font-size:0}
   #hdricons #alarmbtn::after{content:"알림";font-size:12px}
   #hdricons #closurebtn{font-size:0;background:#fdeceb;border-color:#f6d6d2;color:#9a2318}
@@ -1346,12 +1346,12 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   header #drillToggle.on{background:#fef4e4;color:#b54708}
 
   /* 집계: 지도 위 흰 카드 */
-  .stats#statbox{display:flex;position:absolute;top:calc(var(--hdr-h,54px) + 10px);left:10px;right:10px;
+  .stats#statbox{display:flex;position:absolute;top:10px;left:62px;right:10px;
     z-index:1200;flex:none;width:auto;margin:0;background:#fff;border:1px solid #e3e9f0;border-radius:14px;
     padding:9px 12px;gap:6px;box-shadow:0 6px 18px rgba(15,37,64,.18);overflow:hidden}
   body.stat-off .stats#statbox{display:none}
-  #stattoggle{position:absolute;z-index:1201;right:10px;top:calc(var(--hdr-h,54px) + 10px);
-    width:34px;height:34px;border:1px solid #e3e9f0;border-radius:11px;background:#fff;
+  #stattoggle{position:absolute;z-index:1201;left:10px;right:auto;top:10px;
+    width:42px;height:42px;border:1px solid #e3e9f0;border-radius:11px;background:#fff;
     box-shadow:0 6px 18px rgba(15,37,64,.18);font-size:14px;color:#43536a;cursor:pointer;display:none}
   body.stat-off #stattoggle{display:block}
   .stats#statbox .stx{position:absolute;right:6px;top:6px;width:22px;height:22px;border:0;background:transparent;
@@ -1379,14 +1379,42 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #mtabs #dock_reg{background:#d92d20;color:#fff}
   #mtabs #dock_reg span{font-size:21px;font-weight:800}
   #panelclose{bottom:calc(66px + env(safe-area-inset-bottom))}
+  /* 등록 유형 선택 시트 */
+  #regpick{position:fixed;inset:0;z-index:2300;display:none}
+  #regpick.open{display:block}
+  #regpick .rpbd{position:absolute;inset:0;background:rgba(15,37,64,.42)}
+  #regpick .rpsheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 0 0;
+    padding:10px 12px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(15,37,64,.3)}
+  #regpick .rphandle{display:block;width:40px;height:4px;border-radius:2px;background:#cdd6e0;margin:0 auto 12px}
+  #regpick h4{font-size:13px;font-weight:800;color:#0f2540;letter-spacing:-.02em;margin:0 2px 9px}
+  #regpick .rpb{display:flex;align-items:center;gap:11px;width:100%;min-height:58px;margin-bottom:7px;
+    border:1px solid #e6ebf2;border-radius:13px;background:#fff;padding:10px 13px;cursor:pointer;
+    font-family:inherit;text-align:left}
+  #regpick .rpb b{display:block;font-size:14px;color:#0f2540;letter-spacing:-.02em}
+  #regpick .rpb i{display:block;font-style:normal;font-size:11.5px;color:#5b6b7d;margin-top:1px}
+  #regpick .rpb span{font-size:21px;width:34px;height:34px;flex:none;border-radius:11px;background:#f2f5f8;
+    display:flex;align-items:center;justify-content:center}
+  #regpick .rp-dis{border-color:#f0c9c5}
+  #regpick .rp-dis span{background:#fdeceb}
+  #regpick .rp-blk{border-color:#c9d7f6}
+  #regpick .rp-blk span{background:#e7eefc}
   /* 도크 높이만큼 지도 오버레이 띄우기 */
+  /* 지도 위 하단 현위치 버튼 */
+  #gpsfab{position:absolute;z-index:1250;right:10px;bottom:calc(126px + env(safe-area-inset-bottom));
+    display:flex;align-items:center;gap:6px;height:42px;padding:0 13px;border:1px solid #e3e9f0;
+    border-radius:999px;background:#fff;color:#0f2540;font-family:inherit;font-size:12.5px;font-weight:800;
+    letter-spacing:-.03em;box-shadow:0 8px 22px rgba(15,37,64,.24);cursor:pointer}
+  body.panel-open #gpsfab{display:none}
+
   /* 날씨와 특보를 한 줄로: 왼쪽 날씨, 오른쪽 특보 */
-  #wxbar{left:10px;right:auto;width:36%;bottom:calc(66px + env(safe-area-inset-bottom));
+  #wxbar{left:10px;right:auto;width:auto;max-width:44%;bottom:calc(66px + env(safe-area-inset-bottom));
     border-radius:12px;border:1px solid #e3e9f0;box-shadow:0 6px 18px rgba(15,37,64,.18);
-    padding:8px 10px;gap:5px;overflow:hidden;white-space:nowrap}
-  #wxbar .wxtemp{font-size:15px}
+    padding:9px 11px;gap:6px;overflow:hidden;white-space:nowrap;cursor:pointer;
+    display:flex;align-items:center;flex-wrap:nowrap}
+  #wxbar .wxtemp{font-size:15px;flex:none}
+  #wxbar > span{flex:none}
   #wxbar .wxupd,#wxbar .wxlink{display:none}
-  #warnbanners{left:calc(36% + 16px);right:10px;width:auto;max-width:none;
+  #warnbanners{left:auto;right:10px;width:auto;max-width:52%;
     bottom:calc(66px + env(safe-area-inset-bottom))}
   .warnban{border-radius:12px;border:1px solid #f0e0c4;border-left:4px solid #f0a93c;
     box-shadow:0 6px 18px rgba(15,37,64,.18);padding:8px 10px;gap:8px}
@@ -1526,10 +1554,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div class="lyrsgrid">
       <button class="lyb" id="ly_osm" onclick="setBase('osm')">일반</button>
       <button class="lyb on" id="ly_vw" onclick="setBase('vw')" ondblclick="setBase('esri')" title="더블클릭: 대체 위성영상">위성</button>
-      <label class="lblwrap"><input type="checkbox" id="lblchk" onchange="updLabels()"> 지명</label>
-      <button class="lyb" id="ovlbtn" onclick="toggleOvlPanel()">위험구역</button>
       <button class="lyb" id="cadbtn" onclick="toggleCadastral()">지적도</button>
-      <button class="lyb" id="gpsbtn" onclick="goMyLocation()">현위치</button>
+      <button class="lyb" id="ovlbtn" onclick="toggleOvlPanel()">위험구역</button>
+      <label class="lblwrap" style="display:none"><input type="checkbox" id="lblchk" onchange="updLabels()"> 지명</label>
+      <button class="lyb" id="gpsbtn" onclick="goMyLocation()" style="display:none">현위치</button>
     </div>
     <button class="lyb hidden-slot" id="ly_esri" onclick="setBase('esri')" style="display:none"></button>
   </div>
@@ -1556,7 +1584,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <button class="petal" style="--i:2" onclick="petalRun(openReport)"><span>📊</span>엑셀출력</button>
     <button class="petal" style="--i:3" onclick="petalRun(startTrendPick)"><span>📄</span>동향보고</button>
     <button class="petal" style="--i:4" onclick="petalRun(openHistorySearch)"><span>📅</span>날짜조회</button>
-    <button class="petal" style="--i:5" onclick="petalRun(openWxLinks)"><span>🌤</span>기상청</button>
+    <button class="petal" style="--i:5" onclick="petalRun(openWxLinks)"><span class="kmapetal"></span>기상청</button>
     <button class="petal" style="--i:6" onclick="petalRun(openBulkDelete)"><span>🗑</span>삭제관리</button>
     <button class="petal petal-center" onclick="togglePetalMenu()">닫기</button>
   </div>
@@ -1587,7 +1615,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <div id="mtabs">
   <button id="mtab_map" onclick="setMobileTab('map')"><span>🗺</span>지도</button>
   <button id="mtab_side" onclick="setMobileTab('side')"><span>📋</span>목록</button>
-  <button id="dock_reg" onclick="startDisaster()" aria-label="재난상황 등록"><span>＋</span>등록</button>
+  <button id="dock_reg" onclick="openRegPick()" aria-label="등록 유형 선택"><span>＋</span>등록</button>
   <button id="mtab_chat" onclick="setMobileTab('chat')"><span>💬</span>대화</button>
   <button id="dock_more" onclick="togglePetalMenu()" aria-label="더보기 메뉴"><span>⋯</span>더보기</button>
 </div>
@@ -4050,7 +4078,7 @@ var _gpsMarker = null;
 var _gpsAccCircle = null;
 function goMyLocation(){
   if(!navigator.geolocation){ alert("이 기기/브라우저는 위치 기능을 지원하지 않습니다."); return; }
-  var btn = document.getElementById("gpsbtn");
+  var btn = document.getElementById("gpsfab") || document.getElementById("gpsbtn");
   if(btn){ btn.textContent = "📍 찾는중…"; btn.disabled = true; }
 
   function success(pos){
@@ -7149,9 +7177,63 @@ function headerSearch(){
   t.id = "stattoggle";
   t.type = "button";
   t.setAttribute("aria-label", "현황 보기");
-  t.textContent = "📊";
+  t.textContent = "🚨";
   t.onclick = function(){ document.body.classList.remove("stat-off"); };
   (document.getElementById("mapwrap") || document.body).appendChild(t);
+})();
+</script>
+<div id="regpick">
+  <div class="rpbd" onclick="closeRegPick()"></div>
+  <div class="rpsheet">
+    <span class="rphandle"></span>
+    <h4>어떤 상황을 등록할까요?</h4>
+    <button class="rpb rp-dis" onclick="regPick('disaster')"><span>🚨</span><span style="background:none;width:auto;height:auto;display:block"><b>일반 재난상황</b><i>침수·산사태·화재 등</i></span></button>
+    <button class="rpb rp-blk" onclick="regPick('closure')"><span>⛔</span><span style="background:none;width:auto;height:auto;display:block"><b>통행차단</b><i>도로 구간을 지도에 그려 등록</i></span></button>
+    <button class="rpb" onclick="regPick('ai')"><span>🤖</span><span style="background:none;width:auto;height:auto;display:block"><b>요약 등록</b><i>문자·보고 원문을 붙여넣어 자동 작성</i></span></button>
+  </div>
+</div>
+<script>
+/* ---------- 등록 유형 선택 시트 ---------- */
+function openRegPick(){ document.getElementById("regpick").classList.add("open"); }
+function closeRegPick(){ document.getElementById("regpick").classList.remove("open"); }
+function regPick(kind){
+  closeRegPick();
+  setTimeout(function(){
+    try{
+      if(kind === "disaster") startDisaster();
+      else if(kind === "closure") startClosure();
+      else openAIRegister();
+    }catch(e){}
+  }, 140);
+}
+/* ---------- 현위치 버튼 · 기상청 로고 · 날씨 링크 ---------- */
+(function(){
+  var wrap = document.getElementById("mapwrap");
+  if(wrap && !document.getElementById("gpsfab")){
+    var b = document.createElement("button");
+    b.id = "gpsfab";
+    b.type = "button";
+    b.innerHTML = "📍 현위치";
+    b.onclick = function(){ try{ goMyLocation(); }catch(e){} };
+    wrap.appendChild(b);
+  }
+  var src = document.querySelector("header .kmaico") || document.querySelector(".kmaico");
+  var slot = document.querySelector(".kmapetal");
+  if(slot){
+    if(src){
+      var img = src.cloneNode(true);
+      img.className = "kmapetal-img";
+      img.style.cssText = "width:22px;height:22px;object-fit:contain;display:block";
+      slot.replaceWith(img);
+    } else { slot.textContent = "🌤"; }
+  }
+  var bar = document.getElementById("wxbar");
+  if(bar){
+    bar.addEventListener("click", function(ev){
+      if(ev.target.closest("a")) return;
+      window.open("https://search.naver.com/search.naver?query=%EC%98%A5%EC%B2%9C%EA%B5%B0%20%EC%98%A5%EC%B2%9C%EC%9D%8D%20%EB%82%A0%EC%94%A8", "_blank", "noopener");
+    });
+  }
 })();
 </script>
 </body>
