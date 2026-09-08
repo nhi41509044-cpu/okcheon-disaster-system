@@ -1319,14 +1319,21 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #hdricons{gap:6px}
   #hdricons #searchbtn,#hdricons #chatbtn,#hdricons #morebtn,#hdricons #regbtn,#hdricons #statbtn2,#hdricons #statbtn{display:none}
   #hdricons #lyrstoggle,#hdricons #alarmbtn,#hdricons #closurebtn{display:flex;align-items:center;justify-content:center;
-    width:40px;height:40px;min-width:40px;padding:0;border-radius:12px;font-size:0;line-height:0;
-    background:#f2f5f8;border:1px solid #e3e9f0;color:#0f2540}
-  #hdricons #lyrstoggle::before{content:"🗺";font-size:18px;line-height:1}
-  #hdricons #alarmbtn::before{content:"🔔";font-size:18px;line-height:1}
-  #hdricons #closurebtn{background:#fdeceb;border-color:#f6d6d2}
-  #hdricons #closurebtn::before{content:"⛔";font-size:18px;line-height:1}
-  #hdricons #lyrstoggle.on{background:#0f2540;border-color:#0f2540}
-  #hdricons #alarmbtn.on{background:#e7f6ef;border-color:#c9e9db}
+    width:auto;height:36px;min-width:0;padding:0 11px;border-radius:10px;font-size:12px;font-weight:800;
+    letter-spacing:-.03em;white-space:nowrap;background:#f2f5f8;border:1px solid #e3e9f0;color:#33465c}
+  #hdricons #lyrstoggle::before,#hdricons #alarmbtn::before,#hdricons #closurebtn::before{content:none}
+  #hdricons #lyrstoggle{font-size:0}
+  #hdricons #lyrstoggle::after{content:"지도";font-size:12px}
+  #hdricons #alarmbtn{font-size:0}
+  #hdricons #alarmbtn::after{content:"알림";font-size:12px}
+  #hdricons #closurebtn{font-size:0;background:#fdeceb;border-color:#f6d6d2;color:#9a2318}
+  #hdricons #closurebtn::after{content:"차단";font-size:12px}
+  #hdricons #lyrstoggle.on{background:#0f2540;border-color:#0f2540;color:#fff}
+  #hdricons #alarmbtn.on{background:#e7f6ef;border-color:#c9e9db;color:#0b6b4f}
+  /* 제목이 잘리지 않게 로고를 줄이고 자간을 좁힌다 */
+  header h1{font-size:13.5px;letter-spacing:-.04em}
+  header h1 .hlogo{width:22px;height:22px}
+  header #drillToggle{height:36px;padding:0 11px;font-size:11.5px}
   header .hbtns{display:flex;flex:0 0 auto;order:3;margin-left:auto;gap:6px;align-items:center}
   header .hbtns > *{display:none}
   header #drillToggle{display:inline-flex;align-items:center;width:auto;height:34px;min-width:0;
@@ -1349,20 +1356,20 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #ovlpanel{z-index:1450}
 
   /* 플로팅 도크 */
-  #mtabs{left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));width:auto;
-    background:#0f2540;border:0;border-radius:999px;padding:7px;gap:3px;
-    box-shadow:0 12px 30px rgba(15,37,64,.42);display:flex;align-items:center}
-  #mtabs button{flex:1 1 0;min-width:0;min-height:48px;border:0;border-radius:999px;background:transparent;
-    color:#9db2c9;font-family:inherit;font-size:10.5px;font-weight:800;letter-spacing:-.03em;cursor:pointer;
+  #mtabs{position:fixed;z-index:1500;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));width:auto;
+    background:#fff;border:1px solid #e3e9f0;border-radius:18px;padding:5px;gap:2px;
+    box-shadow:0 10px 26px rgba(15,37,64,.2);display:flex;align-items:center}
+  #mtabs button{flex:1 1 0;min-width:0;min-height:48px;border:0;border-radius:14px;background:transparent;
+    color:#8493a6;font-family:inherit;font-size:10.5px;font-weight:800;letter-spacing:-.03em;cursor:pointer;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:5px 2px}
   #mtabs button span{font-size:17px;line-height:1}
-  #mtabs button.on{background:rgba(255,255,255,.16);color:#fff}
+  #mtabs button.on{background:#eef2f7;color:#0f2540}
   #mtabs #dock_reg{background:#d92d20;color:#fff}
   #mtabs #dock_reg span{font-size:21px;font-weight:800}
   #panelclose{bottom:calc(80px + env(safe-area-inset-bottom))}
   /* 도크 높이만큼 지도 오버레이 띄우기 */
-  #wxbar{bottom:calc(var(--warn-h,0px) + 82px)}
-  #warnbanners{bottom:82px}
+  #warnbanners{bottom:calc(78px + env(safe-area-inset-bottom))}   /* 도크 68px + 여백 10px */
+  #wxbar{bottom:calc(var(--warn-h,0px) + 78px + env(safe-area-inset-bottom))}
   #connfab{bottom:calc(92px + env(safe-area-inset-bottom))}
   #mfab{bottom:calc(148px + env(safe-area-inset-bottom))}
 }
