@@ -1310,16 +1310,19 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ============ E안: 흰 헤더 + 플로팅 도크 ============ */
 @media (max-width:860px){
-  header{background:#fff;color:#0f2540;padding:10px 13px;gap:9px;flex-wrap:nowrap;
-    border-bottom:1px solid #dbe2ea}
-  header h1{flex:1 1 auto;font-size:14.5px;font-weight:800;color:#0f2540;letter-spacing:-.03em;text-align:left}
+  header{background:#fff;color:#0f2540;padding:9px 12px 10px;gap:8px;flex-wrap:wrap;
+    border-bottom:1px solid #dbe2ea;align-items:center}
+  header h1{flex:1 1 100%;order:0;width:100%;font-size:15px;font-weight:800;color:#0f2540;
+    letter-spacing:-.03em;text-align:left;white-space:nowrap;overflow:visible;text-overflow:clip;
+    display:flex;align-items:center;gap:7px}
   header h1 .hlogo{filter:none}
   #hdricons{margin-left:auto;flex:0 0 auto;gap:6px}
   /* 도크에 있는 항목만 숨기고, 없는 기능은 헤더 아이콘으로 남긴다 */
-  #hdricons{gap:6px}
+  #hdricons{flex:1 1 100%;order:1;width:100%;margin:0;gap:6px;justify-content:flex-start;flex-wrap:nowrap}
+  header .hbtns{flex:0 0 auto;order:2;margin-left:auto}
   #hdricons #searchbtn,#hdricons #chatbtn,#hdricons #morebtn,#hdricons #regbtn,#hdricons #statbtn2,#hdricons #statbtn{display:none}
   #hdricons #lyrstoggle,#hdricons #alarmbtn,#hdricons #closurebtn{display:flex;align-items:center;justify-content:center;
-    width:auto;height:36px;min-width:0;padding:0 11px;border-radius:10px;font-size:12px;font-weight:800;
+    flex:1 1 0;width:auto;height:38px;min-width:0;padding:0 10px;border-radius:10px;font-size:12px;font-weight:800;
     letter-spacing:-.03em;white-space:nowrap;background:#f2f5f8;border:1px solid #e3e9f0;color:#33465c}
   #hdricons #lyrstoggle::before,#hdricons #alarmbtn::before,#hdricons #closurebtn::before{content:none}
   #hdricons #lyrstoggle{font-size:0}
@@ -1333,8 +1336,8 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* 제목이 잘리지 않게 로고를 줄이고 자간을 좁힌다 */
   header h1{font-size:13.5px;letter-spacing:-.04em}
   header h1 .hlogo{width:22px;height:22px}
-  header #drillToggle{height:36px;padding:0 11px;font-size:11.5px}
-  header .hbtns{display:flex;flex:0 0 auto;order:3;margin-left:auto;gap:6px;align-items:center}
+  header #drillToggle{height:38px;padding:0 12px;font-size:11.5px}
+  header .hbtns{display:flex;gap:6px;align-items:center}
   header .hbtns > *{display:none}
   header #drillToggle{display:inline-flex;align-items:center;width:auto;height:34px;min-width:0;
     padding:0 13px;border-radius:999px;font-size:11.5px;font-weight:800;background:#fdeceb;color:#b42318;
@@ -1343,9 +1346,17 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   header #drillToggle.on{background:#fef4e4;color:#b54708}
 
   /* 집계: 지도 위 흰 카드 */
-  .stats#statbox{display:flex;position:absolute;top:calc(var(--hdr-h,54px) + 12px);left:12px;right:12px;
+  .stats#statbox{display:flex;position:absolute;top:calc(var(--hdr-h,54px) + 10px);left:10px;right:10px;
     z-index:1200;flex:none;width:auto;margin:0;background:#fff;border:1px solid #e3e9f0;border-radius:14px;
-    padding:10px 12px;gap:6px;box-shadow:0 6px 18px rgba(15,37,64,.18);overflow:hidden}
+    padding:9px 12px;gap:6px;box-shadow:0 6px 18px rgba(15,37,64,.18);overflow:hidden}
+  body.stat-off .stats#statbox{display:none}
+  #stattoggle{position:absolute;z-index:1201;right:10px;top:calc(var(--hdr-h,54px) + 10px);
+    width:34px;height:34px;border:1px solid #e3e9f0;border-radius:11px;background:#fff;
+    box-shadow:0 6px 18px rgba(15,37,64,.18);font-size:14px;color:#43536a;cursor:pointer;display:none}
+  body.stat-off #stattoggle{display:block}
+  .stats#statbox .stx{position:absolute;right:6px;top:6px;width:22px;height:22px;border:0;background:transparent;
+    color:#8493a6;font-size:13px;cursor:pointer;line-height:1}
+  body.panel-open #stattoggle{display:none}
   .stats#statbox .kbox{flex:1 1 0;min-width:0;background:transparent;border:0;padding:0;
     display:flex;flex-direction:column;align-items:center;gap:1px}
   .stats#statbox .kbox b{font-size:16px;letter-spacing:-.02em;margin:0}
@@ -1356,22 +1367,34 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #ovlpanel{z-index:1450}
 
   /* 플로팅 도크 */
-  #mtabs{position:fixed;z-index:1500;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));width:auto;
-    background:#fff;border:1px solid #e3e9f0;border-radius:18px;padding:5px;gap:2px;
-    box-shadow:0 10px 26px rgba(15,37,64,.2);display:flex;align-items:center}
-  #mtabs button{flex:1 1 0;min-width:0;min-height:48px;border:0;border-radius:14px;background:transparent;
+  #mtabs{position:fixed;z-index:1500;left:0;right:0;bottom:0;width:auto;
+    background:#fff;border:0;border-top:1px solid #e3e9f0;border-radius:0;
+    padding:4px 6px calc(4px + env(safe-area-inset-bottom));gap:2px;
+    box-shadow:0 -6px 20px rgba(15,37,64,.14);display:flex;align-items:center}
+  #mtabs button{flex:1 1 0;min-width:0;min-height:46px;border:0;border-radius:12px;background:transparent;
     color:#8493a6;font-family:inherit;font-size:10.5px;font-weight:800;letter-spacing:-.03em;cursor:pointer;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:5px 2px}
   #mtabs button span{font-size:17px;line-height:1}
   #mtabs button.on{background:#eef2f7;color:#0f2540}
   #mtabs #dock_reg{background:#d92d20;color:#fff}
   #mtabs #dock_reg span{font-size:21px;font-weight:800}
-  #panelclose{bottom:calc(80px + env(safe-area-inset-bottom))}
+  #panelclose{bottom:calc(66px + env(safe-area-inset-bottom))}
   /* 도크 높이만큼 지도 오버레이 띄우기 */
-  #warnbanners{bottom:calc(78px + env(safe-area-inset-bottom))}   /* 도크 68px + 여백 10px */
-  #wxbar{bottom:calc(var(--warn-h,0px) + 78px + env(safe-area-inset-bottom))}
-  #connfab{bottom:calc(92px + env(safe-area-inset-bottom))}
-  #mfab{bottom:calc(148px + env(safe-area-inset-bottom))}
+  /* 날씨와 특보를 한 줄로: 왼쪽 날씨, 오른쪽 특보 */
+  #wxbar{left:10px;right:auto;width:36%;bottom:calc(66px + env(safe-area-inset-bottom));
+    border-radius:12px;border:1px solid #e3e9f0;box-shadow:0 6px 18px rgba(15,37,64,.18);
+    padding:8px 10px;gap:5px;overflow:hidden;white-space:nowrap}
+  #wxbar .wxtemp{font-size:15px}
+  #wxbar .wxupd,#wxbar .wxlink{display:none}
+  #warnbanners{left:calc(36% + 16px);right:10px;width:auto;max-width:none;
+    bottom:calc(66px + env(safe-area-inset-bottom))}
+  .warnban{border-radius:12px;border:1px solid #f0e0c4;border-left:4px solid #f0a93c;
+    box-shadow:0 6px 18px rgba(15,37,64,.18);padding:8px 10px;gap:8px}
+  .warnban .wemoji{width:26px;height:26px;font-size:15px}
+  .warnban .wttl{font-size:12.5px}
+  .warnban .wtime{font-size:10px}
+  #connfab{bottom:calc(124px + env(safe-area-inset-bottom))}
+  #mfab{bottom:calc(180px + env(safe-area-inset-bottom))}
 }
 </style>
 <script>/*!
@@ -7109,6 +7132,27 @@ function headerSearch(){
   railMark("railb_list");
   if(typeof doSearch === "function") doSearch();
 }
+</script>
+<script>
+/* ---------- E안: 집계 카드 접기 ---------- */
+(function(){
+  var sb = document.getElementById("statbox");
+  if(!sb) return;
+  var x = document.createElement("button");
+  x.className = "stx";
+  x.type = "button";
+  x.setAttribute("aria-label", "현황 접기");
+  x.textContent = "✕";
+  x.onclick = function(ev){ ev.stopPropagation(); document.body.classList.add("stat-off"); };
+  sb.appendChild(x);
+  var t = document.createElement("button");
+  t.id = "stattoggle";
+  t.type = "button";
+  t.setAttribute("aria-label", "현황 보기");
+  t.textContent = "📊";
+  t.onclick = function(){ document.body.classList.remove("stat-off"); };
+  (document.getElementById("mapwrap") || document.body).appendChild(t);
+})();
 </script>
 </body>
 </html>
