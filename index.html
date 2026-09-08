@@ -1319,17 +1319,18 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   header{background:#fff;color:#0f2540;padding:9px 12px 10px;gap:8px;flex-wrap:wrap;
     border-bottom:1px solid #dbe2ea;align-items:center}
   header h1{flex:1 1 100%;order:0;width:100%;font-size:15px;font-weight:800;color:#0f2540;
-    letter-spacing:-.03em;text-align:left;white-space:nowrap;overflow:visible;text-overflow:clip;
-    display:flex;align-items:center;gap:7px}
+    letter-spacing:-.03em;white-space:nowrap;overflow:visible;text-overflow:clip;
+    display:flex;align-items:center;justify-content:center;gap:8px}
   header h1 .hlogo{filter:none}
   #hdricons{margin-left:auto;flex:0 0 auto;gap:6px}
   /* 도크에 있는 항목만 숨기고, 없는 기능은 헤더 아이콘으로 남긴다 */
-  #hdricons{flex:1 1 0;order:1;width:auto;margin:0;gap:6px;justify-content:flex-start;flex-wrap:nowrap}
+  #hdricons{flex:1 1 auto;order:1;width:auto;margin:0;gap:6px;justify-content:center;flex-wrap:nowrap}
   header .hbtns{flex:0 0 auto;order:2;margin-left:0}
   #hdricons #searchbtn,#hdricons #chatbtn,#hdricons #morebtn,#hdricons #regbtn,#hdricons #statbtn2,#hdricons #statbtn,#hdricons #closurebtn{display:none}
-  #hdricons #lyrstoggle,#hdricons #alarmbtn{display:flex;align-items:center;justify-content:center;
-    flex:1 1 0;width:auto;height:38px;min-width:0;padding:0 10px;border-radius:10px;font-size:12px;font-weight:800;
-    letter-spacing:-.03em;white-space:nowrap;background:#f2f5f8;border:1px solid #e3e9f0;color:#33465c}
+  #hdricons #lyrstoggle,#hdricons #alarmbtn{display:inline-flex;align-items:center;justify-content:center;
+    flex:0 0 auto;width:auto;height:34px;min-width:0;padding:0 14px;border-radius:999px;
+    font-size:12.5px;font-weight:800;letter-spacing:-.03em;white-space:nowrap;
+    background:#f2f5f8;border:1px solid #e6ebf2;color:#33465c}
   #hdricons #lyrstoggle::before,#hdricons #alarmbtn::before{content:none}
   #hdricons #lyrstoggle{font-size:0}
   #hdricons #lyrstoggle::after{content:"테마";font-size:12px}
@@ -1337,10 +1338,11 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #hdricons #alarmbtn::after{content:"알림";font-size:12px}
   #hdricons #lyrstoggle.on{background:#0f2540;border-color:#0f2540;color:#fff}
   #hdricons #alarmbtn.on{background:#e7f6ef;border-color:#c9e9db;color:#0b6b4f}
+  #hdricons{align-items:center}
   /* 제목이 잘리지 않게 로고를 줄이고 자간을 좁힌다 */
   header h1{font-size:13.5px;letter-spacing:-.04em}
   header h1 .hlogo{width:22px;height:22px}
-  header #drillToggle{height:38px;padding:0 12px;font-size:11.5px}
+  header #drillToggle{height:34px;padding:0 14px;font-size:12.5px;border-radius:999px}
   header .hbtns{display:flex;gap:6px;align-items:center}
   header .hbtns > *{display:none}
   header #drillToggle{display:inline-flex;align-items:center;width:auto;height:34px;min-width:0;
@@ -1355,7 +1357,8 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     padding:9px 12px;gap:6px;box-shadow:0 6px 18px rgba(15,37,64,.18);overflow:hidden}
   body.stat-off .stats#statbox{display:none}
   /* 현황 카드는 지도 하단, 통합 배너 바로 위 (어떤 메뉴도 가리지 않음) */
-  .stats#statbox{top:auto !important;bottom:calc(var(--wxdock-h, 96px) + 18px)}
+  .stats#statbox{position:fixed;z-index:1540;top:auto !important;
+    bottom:calc(var(--wxdock-h, 96px) + 76px + env(safe-area-inset-bottom))}
   #stattoggle{position:absolute;z-index:1201;left:10px;right:auto;top:10px;
     width:42px;height:42px;border:1px solid #e3e9f0;border-radius:11px;background:#fff;
     box-shadow:0 6px 18px rgba(15,37,64,.18);font-size:14px;color:#43536a;cursor:pointer;display:none}
@@ -1406,15 +1409,15 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #regpick .rp-blk span{background:#e7eefc}
   /* 도크 높이만큼 지도 오버레이 띄우기 */
   /* 지도 위 하단 현위치 버튼 */
-  #gpsfab{position:absolute;z-index:1250;right:10px;bottom:calc(140px + env(safe-area-inset-bottom));
-    display:flex;align-items:center;gap:6px;height:42px;padding:0 13px;border:1px solid #e3e9f0;
-    border-radius:999px;background:#fff;color:#0f2540;font-family:inherit;font-size:12.5px;font-weight:800;
-    letter-spacing:-.03em;box-shadow:0 8px 22px rgba(15,37,64,.24);cursor:pointer}
-  body.panel-open #gpsfab{display:none}
+  /* 현위치: 헤더 '알림' 오른쪽 칩 */
+  #gpsfab{position:static;display:inline-flex;align-items:center;justify-content:center;gap:5px;
+    flex:0 0 auto;height:34px;padding:0 13px;border:1px solid #e6ebf2;border-radius:999px;
+    background:#f2f5f8;color:#33465c;font-family:inherit;font-size:12.5px;font-weight:800;
+    letter-spacing:-.03em;box-shadow:none;cursor:pointer;white-space:nowrap}
 
   /* 날씨와 특보를 한 줄로: 왼쪽 날씨, 오른쪽 특보 */
   /* 날씨 + 특보를 하나의 배너로 합친다 */
-  #wxdock{position:absolute;z-index:1150;left:10px;right:10px;bottom:10px;
+  #wxdock{position:fixed;z-index:1550;left:10px;right:10px;bottom:calc(66px + env(safe-area-inset-bottom));
     background:#fff;border:1px solid #e3e9f0;border-radius:14px;overflow:hidden;
     box-shadow:0 8px 22px rgba(15,37,64,.2)}
   body.panel-open #wxdock{display:none}
@@ -7241,14 +7244,16 @@ function regPick(kind){
 
 /* ---------- 현위치 버튼 · 기상청 로고 · 날씨 링크 ---------- */
 (function(){
-  var wrap = document.getElementById("mapwrap");
-  if(wrap && !document.getElementById("gpsfab")){
+  var host = document.getElementById("hdricons") || document.getElementById("mapwrap");
+  if(host && !document.getElementById("gpsfab")){
     var b = document.createElement("button");
     b.id = "gpsfab";
     b.type = "button";
     b.innerHTML = "📍 현위치";
     b.onclick = function(){ try{ goMyLocation(); }catch(e){} };
-    wrap.appendChild(b);
+    var alarm = document.getElementById("alarmbtn");
+    if(alarm && alarm.parentNode === host) host.insertBefore(b, alarm.nextSibling);
+    else host.appendChild(b);
   }
   var src = document.querySelector("header .kmaico") || document.querySelector(".kmaico");
   var slot = document.querySelector(".kmapetal");
