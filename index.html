@@ -1186,7 +1186,7 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     box-shadow:0 8px 24px rgba(15,37,64,.16)}
   #lyrs .lyrsttl{display:none}
   #lyrs .lyrsgrid{display:flex !important;flex-direction:column !important;flex-wrap:nowrap !important;
-    grid-template-columns:none !important;gap:8px;width:auto;align-items:flex-start}
+    grid-template-columns:none !important;gap:8px;width:auto;align-items:flex-end}
   #lyrs .lyrsgrid .lyb{flex:0 0 auto;width:56px;height:56px;min-height:0;padding:0;border-radius:50%;
     font-size:11.5px;font-weight:800;letter-spacing:-.04em;line-height:1.1;text-align:center;
     background:#fff;border:1px solid #e3e9f0;color:#33465c;
@@ -1273,7 +1273,7 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   /* 지도 테마 패널: 원형 대신 3열 칩 카드 */
   /* 테마: 사이렌 버튼 오른쪽에 세로 원형 버튼으로 펼침 */
-  #lyrs{position:absolute;top:10px;left:62px;right:auto;width:auto;max-width:none;
+  #lyrs{position:absolute;top:10px;right:10px;left:auto;width:auto;max-width:none;
     background:transparent;border:0;border-radius:0;padding:0;gap:0;box-shadow:none;display:none}
   #lyrs.open{display:block}
   #lyrs .lyrsttl{display:none}
@@ -1421,18 +1421,22 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* 날씨 + 특보를 하나의 배너로 합친다 */
   #wxdock{position:fixed;z-index:1550;left:10px;right:10px;bottom:calc(var(--dock-h, 62px) + 10px + env(safe-area-inset-bottom));
     background:#fff;border:1px solid #e3e9f0;border-radius:14px;overflow:hidden;
-    box-shadow:0 8px 22px rgba(15,37,64,.2)}
+    box-shadow:0 8px 22px rgba(15,37,64,.2);display:flex;align-items:stretch}
   body.panel-open #wxdock{display:none}
-  #wxdock #wxbar{position:static;left:auto;right:auto;bottom:auto;width:auto;max-width:none;
-    border:0;border-radius:0;box-shadow:none;background:#fff;padding:9px 12px;gap:7px;
-    display:flex;align-items:center;flex-wrap:nowrap;white-space:nowrap;overflow:hidden;cursor:pointer}
+  #wxdock #wxbar{position:static;left:auto;right:auto;bottom:auto;flex:0 0 auto;max-width:52%;
+    border:0;border-right:1px solid #eef2f6;border-radius:0;box-shadow:none;background:#fff;
+    padding:10px 12px;gap:7px;display:flex;align-items:center;flex-wrap:nowrap;
+    white-space:nowrap;overflow:hidden;cursor:pointer}
   #wxdock #wxbar .wxtemp{font-size:16px;flex:none}
   #wxdock #wxbar > span{flex:none}
   #wxdock #wxbar .wxupd,#wxdock #wxbar .wxlink{display:none}
-  #wxdock #warnbanners{position:static;left:auto;right:auto;bottom:auto;width:auto;max-width:none;
-    display:flex;flex-direction:column;gap:0}
-  #wxdock .warnban{border:0;border-top:1px solid #eef2f6;border-left:4px solid #f0a93c;border-radius:0;
-    box-shadow:none;padding:8px 12px;gap:9px;background:#fff}
+  #wxdock .warnban .wtime,#wxdock .warnban .wsrc{display:none}
+  #wxdock #warnbanners{position:static;left:auto;right:auto;bottom:auto;flex:1 1 0;min-width:0;
+    display:flex;flex-direction:column;justify-content:center;gap:0}
+  #wxdock .warnban{border:0;border-left:4px solid #f0a93c;border-radius:0;
+    box-shadow:none;padding:8px 11px;gap:8px;background:#fff;min-width:0}
+  #wxdock .warnban .wtxt{min-width:0;overflow:hidden}
+  #wxdock .warnban .wttl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #wxdock .warnban .wemoji{width:26px;height:26px;font-size:15px}
   #wxdock .warnban .wttl{font-size:12.5px}
   #wxdock .warnban .wtime{font-size:10.5px}
