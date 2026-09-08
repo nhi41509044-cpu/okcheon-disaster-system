@@ -1185,8 +1185,12 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     background:#fff;border:1px solid #e3e9f0;border-radius:14px;padding:8px;gap:0;
     box-shadow:0 8px 24px rgba(15,37,64,.16)}
   #lyrs .lyrsttl{display:none}
-  #lyrs .lyrsgrid{display:flex;flex-wrap:nowrap;gap:5px;width:auto}
-  #lyrs .lyrsgrid .lyb{flex:0 0 auto;min-height:38px;padding:0 13px;border-radius:10px;font-size:12.5px}
+  #lyrs .lyrsgrid{display:flex;flex-direction:column;flex-wrap:nowrap;gap:8px;width:auto;align-items:flex-start}
+  #lyrs .lyrsgrid .lyb{flex:0 0 auto;width:56px;height:56px;min-height:0;padding:0;border-radius:50%;
+    font-size:11.5px;font-weight:800;letter-spacing:-.04em;line-height:1.1;text-align:center;
+    background:#fff;border:1px solid #e3e9f0;color:#33465c;
+    box-shadow:0 6px 18px rgba(15,37,64,.22);display:flex;align-items:center;justify-content:center}
+  #lyrs .lyrsgrid .lyb.on{background:#0f2540;border-color:#0f2540;color:#fff}
   #lyrs .lyrsgrid .lyb,#lyrs .lyrsgrid label{min-height:38px;padding:9px 10px;border-radius:10px;
     border:1px solid #e6ebf2;background:#f6f8fb;color:#33465c;font-size:12.5px;font-weight:800;
     letter-spacing:-.02em;white-space:nowrap;min-width:0;display:flex;align-items:center;justify-content:center;
@@ -1267,13 +1271,14 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .petal-center{background:#1c3f68}
 
   /* 지도 테마 패널: 원형 대신 3열 칩 카드 */
-  #lyrs{position:absolute;top:62px;left:10px;right:auto;width:auto;max-width:calc(100% - 20px);
-    background:#fff;border:1px solid #e3e9f0;border-radius:14px;padding:7px;gap:0;
-    box-shadow:0 10px 28px rgba(15,37,64,.22);display:none}
+  /* 테마: 사이렌 버튼 오른쪽에 세로 원형 버튼으로 펼침 */
+  #lyrs{position:absolute;top:10px;left:62px;right:auto;width:auto;max-width:none;
+    background:transparent;border:0;border-radius:0;padding:0;gap:0;box-shadow:none;display:none}
   #lyrs.open{display:block}
   #lyrs .lyrsttl{display:none}
-  #lyrs .lyb,#lyrs label{position:relative;width:auto;height:auto;min-height:38px;border-radius:10px;
-    padding:0 13px;font-size:12.5px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;min-width:0;
+  #lyrs .lyrsttl{display:none}
+  #lyrs .lyb,#lyrs label{position:relative;width:auto;height:auto;min-height:38px;border-radius:50%;
+    padding:0;font-size:12.5px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;min-width:0;
     background:#f6f8fb;border:1px solid #e6ebf2;color:#33465c;
     display:flex;align-items:center;justify-content:center;gap:6px}
   #lyrs .lyb.on,#lyrs label:has(input:checked){background:#0f2540;border-color:#0f2540;color:#fff}
@@ -1344,7 +1349,7 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   header #drillToggle.on{background:#fef4e4;color:#b54708}
 
   /* 집계: 지도 위 흰 카드 */
-  .stats#statbox{display:flex;position:absolute;top:62px;left:10px;right:10px;
+  .stats#statbox{display:flex;position:absolute;top:10px;left:62px;right:10px;
     z-index:1200;flex:none;width:auto;margin:0;background:#fff;border:1px solid #e3e9f0;border-radius:14px;
     padding:9px 12px;gap:6px;box-shadow:0 6px 18px rgba(15,37,64,.18);overflow:hidden}
   body.stat-off .stats#statbox{display:none}
