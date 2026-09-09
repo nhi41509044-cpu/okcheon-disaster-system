@@ -1046,13 +1046,13 @@ header{padding:8px 14px;gap:10px;flex-wrap:nowrap}
 #lyrs .lyrsgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%}
 #lyrs .lyrsgrid>*{min-width:0}
 /* 폭 배분: 사이드·대화는 고정, 지도만 늘어난다 */
-#side:not(.collapsed){flex:none;width:330px}
+#side:not(.collapsed){flex:0 1 330px;width:330px;min-width:210px}
 #side.collapsed{flex:0 0 0px;width:0;min-width:0;border-right:0;overflow:hidden}
-#chat:not(.collapsed){flex:none;width:300px;min-width:0}
+#chat:not(.collapsed){flex:0 1 300px;width:300px;min-width:220px}
 #chat.collapsed{flex:0 0 0px;width:0;min-width:0;border-left:0;overflow:hidden}
-#mapwrap{flex:1 1 auto;min-width:0}
+#mapwrap{flex:1 1 auto;min-width:360px}
 /* 지도 오버레이 배치 분리: 날씨바(좌)와 테마패널(우)이 겹치지 않게 */
-#wxbar{max-width:calc(100% - 250px)}
+#wxbar{max-width:min(272px,calc(100% - 28px))}
 /* 레일과 중복되는 헤더 버튼은 CSS로 숨긴다 */
 @media (min-width:861px){ #alarmbtn,#statbtn2{display:none !important} }
 /* 특보 배너 애니메이션 최종 프레임 고정 */
@@ -1108,7 +1108,7 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* ===== 1a: 날씨 카드 · 특보 카드 · 지도 테마 패널 ===== */
 @media (min-width:861px){
   /* 지도 테마 패널을 좌상단으로 (1a 배치) */
-  #lyrs{top:14px;left:14px;right:auto;width:min(220px,calc(100% - 260px));max-width:238px;background:#fff;border:1px solid #dbe2ea;
+  #lyrs{top:14px;left:14px;right:auto;width:min(220px,calc(100% - 28px));max-width:238px;background:#fff;border:1px solid #dbe2ea;
     border-radius:12px;padding:8px;box-shadow:0 6px 20px rgba(15,37,64,.14);gap:7px}
   .lyrsttl{font-size:10px;font-weight:800;letter-spacing:.06em;color:#5b6b7d;padding:0 2px}
   .lyrsgrid{gap:4px}
@@ -1118,6 +1118,12 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lyb.on{background:#0f2540;border-color:#0f2540;color:#fff}
   #lyrs>button,#lyrs .lybtn{border-radius:8px}
 
+  /* 지도 폭이 좁을 땐 날씨바를 테마 패널 아래로 내린다 */
+  @media (max-width:1180px){
+    #wxbar{top:79px !important;right:14px !important;left:auto !important;
+      width:auto !important;max-width:calc(100% - 28px) !important}
+    #lyrs{max-width:calc(100% - 28px) !important}
+  }
   /* 날씨 카드를 우상단으로 (1a 배치) */
   #wxbar{top:14px;right:14px;left:auto;width:272px;max-width:272px;background:#fff;border:1px solid #dbe2ea;
     border-radius:12px;padding:12px 14px;box-shadow:0 6px 20px rgba(15,37,64,.14);
@@ -1164,7 +1170,7 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 @media (min-width:861px){
   /* 위험구역 패널: 테마 패널 바로 아래 좌측 정렬 */
-  #ovlpanel{top:auto;right:auto;left:14px;z-index:1250;width:min(228px,calc(100% - 312px));
+  #ovlpanel{top:auto;right:auto;left:14px;z-index:1250;width:min(228px,calc(100% - 28px));
     background:#fff;border:1px solid #e3e9f0;border-radius:14px;padding:11px 12px;
     box-shadow:0 8px 24px rgba(15,37,64,.16);max-height:calc(100% - 130px);overflow-y:auto}
   #ovlpanel.show{display:block}
@@ -1181,7 +1187,7 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ===== 지도 테마 패널: 2행 3열, 흰 카드 (스크린샷 3) ===== */
 @media (min-width:861px){
-  #lyrs{top:14px;left:14px;right:auto;width:min(228px,calc(100% - 312px));max-width:228px;flex-direction:column;align-items:stretch;
+  #lyrs{top:14px;left:14px;right:auto;width:min(228px,calc(100% - 28px));max-width:228px;flex-direction:column;align-items:stretch;
     background:#fff;border:1px solid #e3e9f0;border-radius:14px;padding:8px;gap:0;
     box-shadow:0 8px 24px rgba(15,37,64,.16)}
   #lyrs .lyrsttl{display:none}
@@ -1317,8 +1323,32 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pbtn{min-height:44px;font-size:13.5px}
 }
 
+/* 등록 유형 선택 시트 — 전 화면폭 공통(데스크탑에서 문서 흐름에 노출되지 않도록) */
+#regpick{position:fixed;inset:0;z-index:2300;display:none}
+#regpick.open{display:block}
+#regpick .rpbd{position:absolute;inset:0;background:rgba(15,37,64,.42)}
+#regpick .rpsheet{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100% - 32px));
+  background:#fff;border-radius:16px;padding:14px 16px 16px;box-shadow:0 18px 50px rgba(15,37,64,.34)}
+#regpick .rphandle{display:none}
+#regpick h4{font-size:14px;font-weight:800;color:#0f2540;letter-spacing:-.02em;margin:0 2px 10px}
+#regpick .rpb{display:flex;align-items:center;gap:11px;width:100%;min-height:58px;margin-bottom:7px;
+  border:1px solid #e6ebf2;border-radius:13px;background:#fff;padding:10px 13px;cursor:pointer;
+  font-family:inherit;text-align:left}
+#regpick .rpb:hover{border-color:#0f2540}
+#regpick .rpb b{display:block;font-size:14px;color:#0f2540;letter-spacing:-.02em}
+#regpick .rpb i{display:block;font-style:normal;font-size:11.5px;color:#5b6b7d;margin-top:1px}
+#regpick .rpb>span:first-child{font-size:21px;width:34px;height:34px;flex:none;border-radius:11px;background:#f2f5f8;
+  display:flex;align-items:center;justify-content:center}
+#regpick .rp-dis{border-color:#f0c9c5}
+#regpick .rp-dis>span:first-child{background:#fdeceb}
+#regpick .rp-blk{border-color:#c9d7f6}
+#regpick .rp-blk>span:first-child{background:#e7eefc}
+
 /* ============ E안: 흰 헤더 + 플로팅 도크 ============ */
 @media (max-width:860px){
+  #regpick .rpsheet{left:0;right:0;top:auto;bottom:0;transform:none;width:auto;border-radius:20px 20px 0 0;
+    padding:10px 12px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(15,37,64,.3)}
+  #regpick .rphandle{display:block;width:40px;height:4px;border-radius:2px;background:#cdd6e0;margin:0 auto 12px}
   header{background:#fff;color:#0f2540;padding:9px 12px 10px;gap:8px;flex-wrap:wrap;
     border-bottom:1px solid #dbe2ea;align-items:center}
   header h1{flex:1 1 100%;order:0;width:100%;font-size:15px;font-weight:800;color:#0f2540;
