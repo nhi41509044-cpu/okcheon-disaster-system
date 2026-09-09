@@ -1450,6 +1450,24 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #connfab{bottom:calc(124px + env(safe-area-inset-bottom))}
   #mfab{bottom:calc(180px + env(safe-area-inset-bottom))}
 }
+
+/* 모바일 테마 바: 상단 메뉴바 바로 아래, 4개 한 줄 */
+@media (max-width:860px){
+  #lyrs{position:absolute !important;top:6px !important;left:8px !important;right:8px !important;
+    bottom:auto !important;width:auto !important;max-width:none !important;
+    background:transparent !important;border:0 !important;padding:0 !important;box-shadow:none !important;
+    z-index:1300}
+  #lyrs .lyrsgrid{display:grid !important;grid-template-columns:repeat(4,1fr) !important;
+    grid-auto-flow:row !important;flex-wrap:nowrap !important;gap:6px !important;width:100% !important}
+  #lyrs .lyrsgrid>*{min-width:0}
+  #lyrs .lyrsgrid .lyb{min-height:38px;padding:0 6px;font-size:12px;letter-spacing:-.05em;
+    white-space:nowrap;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid #e6ebf2;
+    color:#33465c;font-weight:800;box-shadow:0 2px 8px rgba(15,37,64,.12);
+    display:flex;align-items:center;justify-content:center}
+  #lyrs .lyrsgrid .lyb.on{background:#0f2540;border-color:#0f2540;color:#fff}
+  #lyrs .lyrsgrid label[style*="none"]{display:none !important}
+  #ovlpanel{top:54px}
+}
 </style>
 <script>/*!
 
