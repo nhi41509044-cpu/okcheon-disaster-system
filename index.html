@@ -39,6 +39,12 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;height:100vh;h
 header{background:#1e3a5f;color:#fff;padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 header h1{font-size:17px;white-space:nowrap}
 #hdricons{display:flex;gap:5px;align-items:center}
+/* 비상벨(현황)·내 위치: 배경 없는 헤더 칩 */
+#stattoggle,#gpsfab{background:transparent;border:0;box-shadow:none;padding:4px 6px;border-radius:8px;
+  color:#fff;font-family:inherit;font-size:15px;font-weight:700;line-height:1;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;-webkit-appearance:none;appearance:none}
+#gpsfab{font-size:12.5px;letter-spacing:-.02em}
+#stattoggle:hover,#gpsfab:hover{background:rgba(255,255,255,.14)}
 #statbtn,#searchbtn,#chatbtn{border:0;background:rgba(255,255,255,.15);color:#fff;font-size:16px;border-radius:8px;padding:4px 10px;cursor:pointer;line-height:1}
 #statbtn{background:#2563eb;font-weight:700}
 #statbtn:active,#searchbtn:active,#chatbtn:active{transform:scale(.94)}
@@ -1563,8 +1569,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   </div>
   <div class="hbtns">
     <span class="glabel">등록</span>
-    <button class="hbtn b-blue" onclick="startDisaster()">＋ 재난등록</button>
-    <button class="hbtn b-blue" onclick="startClosure()"><svg class="xico" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 5L19 19M19 5L5 19" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg> 통행차단</button>
+    <button class="hbtn b-blue" onclick="openRegPick()">＋ 재난등록</button>
     <button class="hbtn b-blue" onclick="openBulkDelete()" title="삭제 관리" aria-label="삭제 관리">🗑 삭제</button>
     <button class="hbtn b-blue" onclick="openAIRegister()">요약</button>
     <span class="gsep"></span>
@@ -7144,14 +7149,14 @@ function railify(btn){
     if(!prev || !next) sep.remove();
   });
   // 동접자·훈련모드를 등록 버튼 왼쪽으로 옮긴다
-  var regBtn = hb.querySelector('.hbtn[onclick*="startDisaster"]');
+  var regBtn = hb.querySelector('.hbtn[onclick*="openRegPick"]');
   ["drillToggle","conn"].forEach(function(id){
     var el = document.getElementById(id);
     if(el && regBtn) hb.insertBefore(el, regBtn);
   });
   var closure = hb.querySelector('.hbtn[onclick*="startClosure"]');
   if(closure){ closure.classList.remove("b-blue"); closure.classList.add("b-x2"); }
-  var reg = hb.querySelector('.hbtn[onclick*="startDisaster"]');
+  var reg = hb.querySelector('.hbtn[onclick*="openRegPick"]');
   if(reg){ reg.classList.remove("b-blue"); reg.classList.add("b-red"); }
 })();
 function toggleHMore(e){
