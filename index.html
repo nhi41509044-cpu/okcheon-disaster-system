@@ -999,22 +999,22 @@ header h1{font-size:15px;letter-spacing:-.02em}
 #dbhead{background:#0f2540}
 
 /* ===== 1a 구조: 아이콘 레일 · 헤더 압축 ===== */
-/* 요청에 따라 기존 대비 약 30% 확대 (68→88px, 56→73px, 아이콘 16→21px, 글자 9.5→12.5px) */
-#rail{width:88px;flex:none;background:#0f2540;display:flex;flex-direction:column;align-items:center;
-  padding:15px 0 18px;gap:4px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;
+/* 기존 대비 약 30% 확대 후, 다시 5% 축소 (68→88→84px, 56→73→70px, 아이콘 16→21→20px, 글자 9.5→12.5→12px) */
+#rail{width:84px;flex:none;background:#0f2540;display:flex;flex-direction:column;align-items:center;
+  padding:14px 0 17px;gap:4px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;
   scrollbar-color:rgba(255,255,255,.22) transparent}
 #rail::-webkit-scrollbar{width:5px}
 #rail::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:3px}
 #railmenu{display:contents}
 #hmorep{display:contents}
-.railgl{width:100%;font-size:13px;font-weight:800;letter-spacing:.05em;color:#9db2c9;
-  text-align:center;padding:10px 0 3px;border-top:1px solid rgba(255,255,255,.1);margin-top:6px}
+.railgl{width:100%;font-size:12.5px;font-weight:800;letter-spacing:.05em;color:#9db2c9;
+  text-align:center;padding:9px 0 3px;border-top:1px solid rgba(255,255,255,.1);margin-top:6px}
 .railgl:first-child{border-top:0;margin-top:3px}
-.railb-txt{font-size:13.5px;font-weight:700}
-.railb .railico{width:22px;height:22px;display:block;margin:0 auto;object-fit:contain;flex:none}
-#raillogo{width:44px;height:44px;background:#fff;border-radius:12px;padding:4px;margin-bottom:10px;object-fit:contain}
-.railb{width:73px;min-height:60px;flex:none;padding:7px 3px;line-height:1.15;text-align:center;border:0;border-radius:15px;background:transparent;color:#9db2c9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-size:12.5px;font-weight:700;letter-spacing:-.02em;font-family:inherit}
-.railb span{font-size:21px;line-height:1}
+.railb-txt{font-size:13px;font-weight:700}
+.railb .railico{width:21px;height:21px;display:block;margin:0 auto;object-fit:contain;flex:none}
+#raillogo{width:42px;height:42px;background:#fff;border-radius:11px;padding:4px;margin-bottom:9px;object-fit:contain}
+.railb{width:70px;min-height:57px;flex:none;padding:6px 3px;line-height:1.15;text-align:center;border:0;border-radius:14px;background:transparent;color:#9db2c9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:-.02em;font-family:inherit}
+.railb span{font-size:20px;line-height:1}
 .railb{background:transparent!important;border:0!important;color:#9db2c9!important;box-shadow:none!important}
 .railb:hover{background:rgba(255,255,255,.08)!important;color:#fff!important}
 .railb.on{background:rgba(255,255,255,.14)!important;color:#fff!important}
@@ -1065,12 +1065,11 @@ header{padding:8px 14px;gap:10px;flex-wrap:nowrap}
 #wxbar{max-width:min(272px,calc(100% - 28px))}
 /* 레일과 중복되는 헤더 버튼은 CSS로 숨긴다 */
 @media (min-width:861px){ #alarmbtn,#statbtn2{display:none !important} }
-/* PC(861px 이상): 현황 집계칩은 상시 노출이므로 사이렌 버튼은 숨기되,
-   혹시 모를 좁은 데스크톱 창에서도 항상 접근 가능하도록 남겨둔다 */
+/* PC(861px 이상): 사이렌 버튼으로 상단 현황 집계칩을 열고 닫을 수 있게 한다 */
 @media (min-width:861px){
   #stattoggle{display:inline-flex;align-items:center;justify-content:center;
     width:34px;height:34px;border-radius:999px;font-size:15px;margin-right:4px;
-    background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;cursor:pointer}
+    background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;cursor:pointer;flex:none}
   #stattoggle.on{background:#dc2626;border-color:#dc2626;color:#fff}
   body:not(.stat-off) #stattoggle{background:#dc2626;border-color:#dc2626;color:#fff}
 }
@@ -1098,10 +1097,11 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #side .sbox:last-child{border-bottom:0;padding:10px 10px 14px}
   #ilist,#blist{display:flex;flex-direction:column;gap:8px}
   #ilist .litem,#blist .litem{margin:0}
-  /* 헤더 집계 스트립: 1a처럼 상시 노출 */
+  /* 헤더 집계 스트립: 1a처럼 상시 노출 (단, 사이렌 버튼으로 끌 수 있음) */
   #statbtn{display:none !important}
-  .stats#statbox{display:flex !important;position:static;top:auto;right:auto;background:#f2f5f8;border:1px solid rgba(255,255,255,.14);
+  .stats#statbox{display:flex;position:static;top:auto;right:auto;background:#f2f5f8;border:1px solid rgba(255,255,255,.14);
     padding:3px;border-radius:9px;box-shadow:none;gap:2px;flex-wrap:nowrap;flex:0 1 auto;min-width:0;overflow:hidden}
+  body.stat-off .stats#statbox{display:none}
   .stats#statbox .kbox{background:transparent;border:0;min-width:0;padding:3px 9px;border-radius:6px;
     display:flex;align-items:center;gap:5px;flex-direction:row}
   .stats#statbox .kbox b{font-size:14px;letter-spacing:-.02em;margin:0}
@@ -1114,10 +1114,11 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .stats#statbox .kbox{padding:3px 7px}
 }
 @media (min-width:861px) and (max-width:1059px){
-  .stats#statbox{display:none !important}
-  #statbtn{display:inline-flex !important}
-  .stats#statbox.open{display:flex !important;position:absolute;top:46px;right:12px;background:#fff;
+  .stats#statbox{display:none}
+  body:not(.stat-off) #statbtn{display:inline-flex !important}
+  .stats#statbox.open{display:flex;position:absolute;top:46px;right:12px;background:#fff;
     border:1px solid #dbe2ea;padding:10px 12px;box-shadow:0 6px 18px rgba(15,37,64,.22);z-index:2500}
+  body.stat-off .stats#statbox.open{display:none}
   .stats#statbox.open .kbox i{display:block}
 }
 /* 모바일 FAB 꽃잎메뉴는 데스크탑에서 렌더하지 않는다 */
@@ -2763,6 +2764,7 @@ function removeItem(id){
   persist();
   if(itemsRef) itemsRef.child(id).set(it).catch(function(err){ console.error("Firebase 삭제 반영 실패:", err); });
   map.closePopup();
+  closeItemPopup();
   renderAll();
 }
 function restoreItem(id){
@@ -2773,6 +2775,7 @@ function restoreItem(id){
   delete it.deletedAt;
   saveItem(it);
   map.closePopup();
+  closeItemPopup();
   renderAll();
 }
 
@@ -4445,6 +4448,7 @@ function openClosureForm(pts, preLoc){
 }
 function openActionForm(id){
   map.closePopup();
+  closeItemPopup();
   openModal("🟡 현장출동·조치중 전환",
     '<label>조치 시각</label><input type="datetime-local" id="f_time" value="' + nowInput() + '">' +
     '<label>담당자</label><input type="text" id="f_mgr">' +
@@ -4459,6 +4463,7 @@ function openActionForm(id){
 }
 function openDoneForm(id){
   map.closePopup();
+  closeItemPopup();
   openModal("🟢 조치완료 처리",
     '<div class="note" style="background:#f0fdf4;border-color:#16a34a;color:#15803d">완료 처리 후에는 상태를 되돌리기 어려우니, 처리 내용을 꼼꼼히 기록해 주세요.</div>' +
     '<label>완료 시각</label><input type="datetime-local" id="f_time" value="' + nowInput() + '">' +
@@ -4484,6 +4489,7 @@ function openDoneForm(id){
 }
 function openReopenForm(id){
   map.closePopup();
+  closeItemPopup();
   openModal("🔵 통행재개 처리",
     '<label>재개 시각</label><input type="datetime-local" id="f_time" value="' + nowInput() + '">' +
     '<label>담당자</label><input type="text" id="f_mgr">' +
@@ -4499,6 +4505,7 @@ function openReopenForm(id){
 
 function openEditForm(id){
   map.closePopup();
+  closeItemPopup();
   var it = getItem(id);
   if(!it) return;
   var typeArr = it.kind === "disaster" ? DTYPES : CREASONS;
@@ -7414,7 +7421,7 @@ function headerSearch(){
 }
 </script>
 <script>
-/* ---------- E안: 집계 카드 접기 ---------- */
+/* ---------- E안: 집계 카드 접기 (사이렌 버튼으로 열고 닫기) ---------- */
 (function(){
   var sb = document.getElementById("statbox");
   if(!sb) return;
@@ -7423,7 +7430,12 @@ function headerSearch(){
   x.type = "button";
   x.setAttribute("aria-label", "현황 접기");
   x.textContent = "✕";
-  x.onclick = function(ev){ ev.stopPropagation(); document.body.classList.add("stat-off"); };
+  x.onclick = function(ev){
+    ev.stopPropagation();
+    document.body.classList.add("stat-off");
+    var t = document.getElementById("stattoggle");
+    if(t) t.classList.remove("on");
+  };
   sb.appendChild(x);
   var t = document.createElement("button");
   t.id = "stattoggle";
@@ -7437,7 +7449,12 @@ function headerSearch(){
   };
   var host = document.getElementById("hdricons") || document.getElementById("mapwrap") || document.body;
   host.insertBefore(t, host.firstChild);
-  document.body.classList.add("stat-off");
+  // 모바일(860px 이하)은 기본으로 접어 두고, PC는 기존처럼 상시 노출로 시작한다
+  if(window.innerWidth <= 860){
+    document.body.classList.add("stat-off");
+  } else {
+    t.classList.add("on");
+  }
 })();
 </script>
 <div id="regpick">
