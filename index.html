@@ -1897,6 +1897,8 @@ var STATCOLORS = {occur:"#dc2626", action:"#eab308", done:"#16a34a", blocked:"#1
 
 var items = [];
 var filters = {status:new Set(["occur","action","done","blocked","reopened"]), type:new Set(DTYPES), eupmyeon:new Set(REGIONS.map(function(r){ return r[0]; })), manager:new Set()};
+// 공유 모드에서는 공유 항목만, 나만보기 모드에서는 나만보기 항목만 보인다
+function inMode(it){ return !!it.private === !shareOn; }
 var shareOn = true; // 공유 모드: true면 이 기기에서 등록하는 상황이 Firebase로 전체 공유됨, false면 이 기기에만 저장(나만 보기)
 var drawMode = null, drawPts = [], tempLine = null;
 // 클릭한 점들을 부드러운 곡선으로 보간 (Catmull-Rom spline)
@@ -2932,6 +2934,7 @@ function runHistorySearch(){
   function norm(s){ return (s || "").replace(" ", "T").slice(0, 16); }
   var fromN = norm(from), toN = norm(to);
   var list = items.filter(function(it){
+    if(!inMode(it)) return false;
     var t = norm(it.t0);
     if(!t) return false;
     if(fromN && t < fromN) return false;
@@ -3083,7 +3086,12 @@ function initFirebase(){
     itemsRef = db.ref("okc_items_v6");
     itemsRef.on("value", function(snap){
       var v = snap.val();
-      if(v){ items = Object.values(v); persist(); }
+      if(v){
+        // 서버에는 공유 항목만 있으므로, 이 기기에만 있는 나만보기 항목은 그대로 붙여 둔다
+        var mine = items.filter(function(x){ return x.private; });
+        items = Object.values(v).filter(function(x){ return !x.private; }).concat(mine);
+        persist();
+      }
       migrateTreeTypes();   // 기존 "수목전도" 건들을 새 명칭으로 1회 정리
       renderAll();
       checkNewItemsForAlarm(items);
@@ -3379,7 +3387,7 @@ function renderFilters(){
   REGIONS.forEach(function(r){ ecnt[r[0]] = 0; });
   var mcnt = {}; // 담당자별 카운트
   items.forEach(function(it){
-    if(it.deleted) return;
+    if(it.deleted || !inMode(it)) return;
     if(cnt[it.status] !== undefined) cnt[it.status]++;
     if(it.kind === "disaster" && tcnt[it.type] !== undefined) tcnt[it.type]++;
     var reg = itemRegion(it);
@@ -3402,7 +3410,7 @@ function renderFilters(){
   document.getElementById("st_reopened").textContent = cnt.reopened;
 }
 function shouldShow(it){
-  if(it.deleted) return false;
+  if(it.deleted || !inMode(it)) return false;
   if(!filters.status.has(it.status)) return false;
   if(it.kind === "disaster" && !filters.type.has(it.type)) return false;
   if(!filters.eupmyeon.has(itemRegion(it))) return false;
@@ -3497,6 +3505,7 @@ function toggleShareMode(){
     }
   });
   document.body.classList.toggle("share-off", !shareOn);
+  renderAll();
   showModeToast(shareOn);
 }
 // 공유 on/off 전환 시 안내 메시지 (화면 상단에 잠깐 떴다 사라짐)
@@ -3577,7 +3586,7 @@ function renderMarkers(){
 /* ---------- 목록 ---------- */
 function renderLists(){
   var bl = document.getElementById("blist");
-  var blocked = items.filter(function(x){ return !x.deleted && x.kind === "closure" && x.status === "blocked"; })
+  var blocked = items.filter(function(x){ return !x.deleted && inMode(x) && x.kind === "closure" && x.status === "blocked"; })
     .sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
   if(!blocked.length){
     bl.innerHTML = '<div class="note">현재 차단중인 도로가 없습니다.</div>';
@@ -5192,7 +5201,7 @@ function savePerfBase(){
 // 시스템에 쌓인 실제 데이터로 처리 성과를 계산
 function calcPerf(from, to){
   var list = items.filter(function(it){
-    if(it.deleted) return false;
+    if(it.deleted || !inMode(it)) return false;
     var d = String(it.t0 || "").slice(0, 10);
     if(from && d < from) return false;
     if(to && d > to) return false;
@@ -5409,7 +5418,7 @@ function filterByPeriod(arr, period){
 }
 function renderDashboard(){
   var body = document.getElementById("dbbody");
-  var all = items.filter(function(it){ return !it.deleted; });
+  var all = items.filter(function(it){ return !it.deleted && inMode(it); });
 
   // 기간 필터 적용
   var periodFiltered = filterByPeriod(all, dbFilter.period);
@@ -5989,7 +5998,7 @@ function makeHwpxReport(from, to, title, damage){
   if(!from || !to){ alert("기간을 입력하세요."); return false; }
   var rows = [], picked = [];
   items.slice().sort(function(a,b){ return (a.t0||"") < (b.t0||"") ? -1 : 1; }).forEach(function(it){
-    if(it.deleted) return;
+    if(it.deleted || !inMode(it)) return;
     var d = (it.t0||"").slice(0,10);
     if(d < from || d > to) return;
     picked.push(it);
@@ -6043,7 +6052,7 @@ function hxFillDamage(){
   var f = val("h_rfrom"), t = val("h_rto");
   if(!f || !t){ alert("기간을 먼저 입력하세요."); return; }
   var picked = items.filter(function(it){
-    if(it.deleted) return false;
+    if(it.deleted || !inMode(it)) return false;
     var d = (it.t0||"").slice(0,10);
     return d >= f && d <= t;
   });
@@ -6122,7 +6131,7 @@ function trStaffLine(s){
 var trendPickMode = false;
 function startTrendPick(){
   var list = items.filter(function(it){
-    return !it.deleted && it.kind === "disaster";
+    return !it.deleted && it.kind === "disaster" && inMode(it);
   });
   if(!list.length){ alert("동향보고를 만들 재난상황이 없습니다."); return; }
   trendPickMode = true;
@@ -6874,7 +6883,7 @@ function openHwpxReport(){
   // 오늘 등록된 건들의 사고 원인 중 가장 많은 것을 기본값으로 제시
   var ccnt = {}, cbest = "";
   items.forEach(function(it){
-    if(it.deleted) return;
+    if(it.deleted || !inMode(it)) return;
     if((it.t0||"").slice(0,10) !== today || !it.cause) return;
     // 사고 원인은 다중 선택이므로 콤마로 나눠 각각 집계
     String(it.cause).split(",").forEach(function(cz){
@@ -6933,7 +6942,7 @@ function makeReport(from, to){
   if(!from || !to){ alert("기간을 입력하세요."); return; }
   var rows = [];
   items.slice().sort(function(a,b){ return (a.t0 || "") < (b.t0 || "") ? -1 : 1; }).forEach(function(it){
-    if(it.deleted) return;
+    if(it.deleted || !inMode(it)) return;
     var d = (it.t0 || "").slice(0,10);
     if(d < from || d > to) return;
     var photos = 0;
@@ -7036,7 +7045,7 @@ function shareLogo(dataUrl){
 
 /* ---------- 일괄삭제 ---------- */
 function openBulkDelete(){
-  var list = items.filter(function(x){ return !x.deleted; })
+  var list = items.filter(function(x){ return !x.deleted && inMode(x); })
     .sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
   if(!list.length){ alert("삭제할 상황이 없습니다."); return; }
   var h = '<div class="note">삭제할 항목을 선택하세요.</div>' +
@@ -7155,6 +7164,7 @@ function enterSystem(){
     btn.classList.toggle("off", !shareOn);
   });
   document.body.classList.toggle("share-off", !shareOn);
+  try{ renderAll(); }catch(e){}
   try{ updateMyPresence(); }catch(e){}
   document.getElementById("gate").classList.add("hide");
   // 게이트가 떠 있는 동안 측정된 값들을 화면이 실제로 보이는 시점에 다시 계산한다
@@ -8608,6 +8618,14 @@ map.on("zoomend", function(){ upStatus(); });
 </script>
 
 <style id="lyrspanel-fix">
+/* PC 헤더: 재난등록 버튼을 나만보기·접속자 배지와 같은 높이·모서리로 */
+@media (min-width:861px){
+  .hbtns #shareToggle,.hbtns #conn,.hbtns .hbtn.b-red{height:32px !important;min-height:0 !important;
+    padding:0 12px !important;line-height:1 !important;box-sizing:border-box !important;
+    display:inline-flex !important;align-items:center !important;align-self:center !important;
+    border-radius:9px !important}
+  .hbtns .hbtn.b-red{font-size:13px !important;font-weight:800 !important}
+}
 /* ===== 테마 버튼줄·용도지역지구 드롭다운·레이어 패널 배치 보정 (2026-09-21) ===== */
 
 /* 0) 용도지역지구 드롭다운 (위험구역·도로구역·도시계획도로·하천구역) */
