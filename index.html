@@ -1518,10 +1518,9 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     display:flex;align-items:center;justify-content:center}
   #lyrs .lyrsgrid .lyb.on{background:#0f2540;border-color:#0f2540;color:#fff}
   #lyrs .lyrsgrid label[style*="none"]{display:none !important}
-  #lyrs .lyrstabs{gap:6px;margin-bottom:6px}
-  #lyrs .lytab{background:rgba(255,255,255,.96);border:1px solid #e6ebf2;border-radius:999px;
-    box-shadow:0 2px 8px rgba(15,37,64,.12);min-height:30px;font-size:11px}
-  #lyrs .lytab.on{background:#0f2540;border-color:#0f2540;color:#fff}
+  #lyrs #zonemenu{display:flex !important;flex-wrap:wrap;gap:6px;margin-top:6px}
+  #lyrs #zonemenu[data-hidden="1"]{display:none !important}
+  #lyrs #zonemenu .lyb{flex:1 1 calc(50% - 3px)}
   #ovlpanel{top:54px}
 }
 /* 실제상황/훈련모드 전환 안내 토스트 */
@@ -1695,16 +1694,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <div id="mapwrap">
   <div id="map"></div>
   <div id="lyrs">
-    <div class="lyrstabs">
-      <button class="lytab on" id="lytab_cad" onclick="setLyrsTab('cad')">지적도</button>
-      <button class="lytab" id="lytab_zone" onclick="setLyrsTab('zone')">용도지역지구</button>
-    </div>
-    <div class="lyrsgrid" id="lyrsgrid_cad">
+    <div class="lyrsgrid">
       <button class="lyb" id="ly_osm" onclick="setBase('osm')">일반</button>
       <button class="lyb on" id="ly_vw" onclick="setBase('vw')" ondblclick="setBase('esri')" title="더블클릭: 대체 위성영상">위성</button>
       <button class="lyb" id="cadbtn" onclick="toggleCadastral()">지적도</button>
+      <button class="lyb" id="zonebtn" onclick="toggleZoneMenu()">용도지역지구</button>
     </div>
-    <div class="lyrsgrid" id="lyrsgrid_zone" data-hidden="1">
+    <div id="zonemenu" data-hidden="1">
       <button class="lyb" id="ovlbtn" onclick="toggleOvlPanel()">위험구역</button>
       <button class="lyb" id="roadbtn" onclick="toggleRoadPanel()">도로구역</button>
       <button class="lyb" id="upbtn" onclick="toggleUpPanel()">도시계획도로</button>
@@ -1872,7 +1868,7 @@ setTimeout(syncHeaderHeight, 300);
 setTimeout(syncWarnHeight, 300);
 // 사고 원인(기상 요인) — 재난 유형보다 상위 개념
 var DCAUSES = ["호우","강풍","대설","한파·결빙","폭염","태풍","지진","기타"];
-var DTYPES = ["침수","토사유출","산사태","낙석","강풍","수목 전도","전주 전도","결빙","포트홀","정전","단수","화재","산불","시설물 피해","기타"];
+var DTYPES = ["침수","토사유출","산사태","낙석","강풍","수목 전도","전주 전도","결빙","포트홀","정전","단수","화재","산불","시설물 피해","병해충","AI감염","기타"];
 // 재난 유형별 지도(위성) 표시 이모티콘. bg=배경(흐리게 크게 깔림) + fg=전경(진하게 위에 겹침)으로 하나의 아이콘처럼 합성
 var CREASONS = ["도로 침수","유실·붕괴","낙석·산사태","결빙·폭설","교량 통제","지하차도 통제","기타"];
 var REGIONS = [["옥천읍",36.300,127.585],["동이면",36.285,127.646],["안남면",36.352,127.685],["안내면",36.395,127.639],["청성면",36.322,127.737],["청산면",36.342,127.816],["이원면",36.222,127.631],["군서면",36.265,127.527],["군북면",36.351,127.568]];
@@ -4828,7 +4824,8 @@ function guessType(txt){
   for(var i = 0; i < DTYPES.length; i++){ if(txt.indexOf(DTYPES[i]) >= 0) return DTYPES[i]; }
   var kw = [["물에","침수"],["잠김","침수"],["토사","토사유출"],["붕괴","산사태"],["돌","낙석"],["바람","강풍"],
     ["전주","전주 전도"],["전신주","전주 전도"],["통신주","전주 전도"],["가로등","전주 전도"],["나무","수목 전도"],["수목","수목 전도"],["쓰러","수목 전도"],["얼음","결빙"],["빙판","결빙"],["도로파임","포트홀"],["구멍","포트홀"],
-    ["전기","정전"],["불이","화재"],["산에 불","산불"],["단수","단수"],["파손","시설물 피해"]];
+    ["전기","정전"],["불이","화재"],["산에 불","산불"],["단수","단수"],["파손","시설물 피해"],
+    ["해충","병해충"],["병충해","병해충"],["방제","병해충"],["조류독감","AI감염"],["조류인플루엔자","AI감염"],["가금","AI감염"],["살처분","AI감염"]];
   for(var j = 0; j < kw.length; j++){ if(txt.indexOf(kw[j][0]) >= 0) return kw[j][1]; }
   return "기타";
 }
@@ -7950,7 +7947,14 @@ function toggleRoadPanel(){
 function closeRoadPanel(){ document.getElementById("roadpanel").classList.remove("show"); }
 function closeRiverPanel(){ document.getElementById("rivpanel").classList.remove("show"); }
 /* 지도를 누르면 설정 패널을 닫아 화면을 비워준다 */
-map.on("click", function(){ closeMapPanels(""); });
+map.on("click", function(){
+  closeMapPanels("");
+  var m = document.getElementById("zonemenu");
+  if(m && !m.hasAttribute("data-hidden")){
+    m.setAttribute("data-hidden", "1");
+    document.getElementById("zonebtn").classList.remove("on");
+  }
+});
 
 /* 처음 열 때만 내장 데이터를 풀어 레이어를 만든다 */
 function rzEnsure(){
@@ -8562,15 +8566,12 @@ map.on("zoomend", function(){ upStatus(); });
 </script>
 
 <style id="lyrspanel-fix">
-/* ===== 테마 탭·버튼줄·레이어 패널 배치 보정 (2026-09-21) ===== */
+/* ===== 테마 버튼줄·용도지역지구 드롭다운·레이어 패널 배치 보정 (2026-09-21) ===== */
 
-/* 0) 상위 탭 (지적도 / 용도지역지구) */
-.lyrstabs{display:flex;gap:4px;margin-bottom:6px}
-.lytab{flex:1 1 auto;border:1px solid #e6ebf2;border-radius:8px;background:#f6f8fb;color:#6b7686;
-  font-size:11.5px;font-weight:700;padding:6px 4px;cursor:pointer;font-family:inherit}
-.lytab.on{background:#eef3fb;border-color:#c7d6ea;color:#0f2540}
-/* 탭에서 감춘 버튼 그룹은 어떤 display 규칙보다도 확실히 숨긴다 */
-#lyrs .lyrsgrid[data-hidden="1"]{display:none !important}
+/* 0) 용도지역지구 드롭다운 (위험구역·도로구역·도시계획도로·하천구역) */
+#lyrs #zonemenu{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+#lyrs #zonemenu[data-hidden="1"]{display:none !important}
+#lyrs #zonebtn.on{background:#0f2540 !important;border-color:#0f2540 !important;color:#fff !important}
 
 /* 1) PC 테마 카드: 버튼 줄을 좌우로 나열 */
 @media (min-width:861px){
@@ -8607,14 +8608,12 @@ map.on("zoomend", function(){ upStatus(); });
 }
 </style>
 <script>
-/* 지적도 / 용도지역지구 탭 전환 */
-function setLyrsTab(tab){
-  var isCad = tab === "cad";
-  document.getElementById("lytab_cad").classList.toggle("on", isCad);
-  document.getElementById("lytab_zone").classList.toggle("on", !isCad);
-  var gCad = document.getElementById("lyrsgrid_cad"), gZone = document.getElementById("lyrsgrid_zone");
-  if(isCad){ gCad.removeAttribute("data-hidden"); gZone.setAttribute("data-hidden", "1"); }
-  else { gZone.removeAttribute("data-hidden"); gCad.setAttribute("data-hidden", "1"); }
+/* 용도지역지구 버튼: 위험구역·도로구역·도시계획도로·하천구역 서브메뉴를 여닫는다 */
+function toggleZoneMenu(){
+  var m = document.getElementById("zonemenu");
+  var open = !m.hasAttribute("data-hidden");
+  if(open){ m.setAttribute("data-hidden", "1"); document.getElementById("zonebtn").classList.remove("on"); }
+  else { m.removeAttribute("data-hidden"); document.getElementById("zonebtn").classList.add("on"); }
   if(typeof placePanels === "function") setTimeout(placePanels, 0);
 }
 /* 레이어 패널을 테마 버튼줄 바로 아래에 붙인다.
