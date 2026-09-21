@@ -5010,33 +5010,55 @@ function nmGeocode(qq){
 }
 
 /* ---------- 주소 검색 ---------- */
-function doSearch(){
+function doSearch(direct){
   var q = val("q");
   if(!q) return;
   var box = document.getElementById("srs");
   box.innerHTML = '<div class="note">검색중…</div>';
   var key = getKey("vw");
   if(key){
-    vwSearch(q, key, box);
+    vwSearch(q, key, box, direct);
   } else {
-    nmSearch(q, box);
+    nmSearch(q, box, direct);
   }
 }
-function nmSearch(q, box){
+/* 검색 결과가 1건이면 목록을 거치지 않고 바로 그 지점으로 이동한다.
+   0건(실패)이거나 2건 이상(어느 곳인지 애매함)이면 좌측 목록 패널을 열어 고르게 한다. */
+function resolveSearch(list, q, box, direct){
+  if(!direct){
+    box.innerHTML = "";
+    list.forEach(function(r){ addSR(box, r.name, r.lat, r.lng); });
+    return;
+  }
+  if(list.length === 1){
+    document.getElementById("side").classList.add("collapsed");
+    goToSearchResult(list[0].name, list[0].lat, list[0].lng);
+    return;
+  }
+  document.getElementById("side").classList.remove("collapsed");
+  railMark("railb_list");
+  if(!list.length){
+    box.innerHTML = '<div class="note">결과 없음 (⚙설정에 VWorld 키 등록 시 지번·도로명 정밀검색 가능)</div>';
+    return;
+  }
+  box.innerHTML = '<div class="note">검색 결과가 여러 건입니다. 지점을 선택해 주세요.</div>';
+  list.forEach(function(r){ addSR(box, r.name, r.lat, r.lng); });
+}
+function nmSearch(q, box, direct){
   var qq = q.indexOf("옥천") >= 0 ? q : "충청북도 옥천군 " + q;
   fetch("https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ko&q=" + encodeURIComponent(qq))
     .then(function(r){ return r.json(); })
     .then(function(rs){
-      if(!rs.length){ box.innerHTML = '<div class="note">결과 없음 (⚙설정에 VWorld 키 등록 시 지번·도로명 정밀검색 가능)</div>'; return; }
-      box.innerHTML = "";
-      rs.forEach(function(r){
-        addSR(box, r.display_name, parseFloat(r.lat), parseFloat(r.lon));
-      });
+      var list = rs.map(function(r){ return {name:r.display_name, lat:parseFloat(r.lat), lng:parseFloat(r.lon)}; });
+      resolveSearch(list, q, box, direct);
     })
-    .catch(function(){ box.innerHTML = '<div class="note">검색 실패(네트워크 확인)</div>'; });
+    .catch(function(){
+      if(direct){ document.getElementById("side").classList.remove("collapsed"); railMark("railb_list"); }
+      box.innerHTML = '<div class="note">검색 실패(네트워크 확인)</div>';
+    });
 }
 var _jsonpN = 0;
-function vwSearch(q, key, box){
+function vwSearch(q, key, box, direct){
   var qq = q.indexOf("옥천") >= 0 ? q : "충청북도 옥천군 " + q;
   Promise.all([vwSearchCat(qq, key, "ROAD"), vwSearchCat(qq, key, "PARCEL")]).then(function(rs){
     var merged = rs[0].concat(rs[1]);
@@ -5047,9 +5069,8 @@ function vwSearch(q, key, box){
       seen[k] = true;
       return true;
     });
-    if(!merged.length){ nmSearch(q, box); return; }
-    box.innerHTML = "";
-    merged.slice(0, 8).forEach(function(r){ addSR(box, r.name, r.lat, r.lng); });
+    if(!merged.length){ nmSearch(q, box, direct); return; }
+    resolveSearch(merged.slice(0, 8), q, box, direct);
   });
 }
 function vwSearchCat(qq, key, cat){
@@ -5074,34 +5095,35 @@ function vwSearchCat(qq, key, cat){
     setTimeout(function(){ if(!done) resolve([]); }, 4000);
   });
 }
-function addSR(box, name, lat, lng){
-  var d = document.createElement("div");
-  d.className = "sr";
-  d.textContent = name;
-  d.onclick = function(){
-    var isMobile = window.innerWidth <= 860;
-    if(isMobile){
-      // 모바일: 지도 탭으로 전환 → 해당 위치로 이동 → 바로 재난등록 폼
-      setMobileTab("map");
-      setTimeout(function(){
-        map.setView([lat, lng], 18);
-        if(_searchMarker) map.removeLayer(_searchMarker);
-        _searchMarker = L.marker([lat, lng]).addTo(map);
-        highlightParcelAt(lat, lng);
-        openDisasterForm([lat, lng], cleanAddrName(name));
-      }, 150);
-    } else {
-      // PC: 지도 이동 + 선택 팝업
+function goToSearchResult(name, lat, lng){
+  var isMobile = window.innerWidth <= 860;
+  if(isMobile){
+    // 모바일: 지도 탭으로 전환 → 해당 위치로 이동 → 바로 재난등록 폼
+    setMobileTab("map");
+    setTimeout(function(){
       map.setView([lat, lng], 18);
       if(_searchMarker) map.removeLayer(_searchMarker);
       _searchMarker = L.marker([lat, lng]).addTo(map);
       highlightParcelAt(lat, lng);
-      var h = '<div class="pop"><b>' + esc(name) + '</b><div class="pbtns">' +
-        '<button class="pbtn pbtn-reg" onclick="regHere(' + lat + ',' + lng + ',\'' + esc(cleanAddrName(name)).replace(/'/g,"\\'") + '\')">🔴 이 위치에 재난 등록</button>' +
-        '<button class="pbtn pbtn-blk" onclick="blockHere(' + lat + ',' + lng + ')">❌ 통행차단 등록</button></div></div>';
-      L.popup().setLatLng([lat, lng]).setContent(h).openOn(map);
-    }
-  };
+      openDisasterForm([lat, lng], cleanAddrName(name));
+    }, 150);
+  } else {
+    // PC: 지도 이동 + 선택 팝업
+    map.setView([lat, lng], 18);
+    if(_searchMarker) map.removeLayer(_searchMarker);
+    _searchMarker = L.marker([lat, lng]).addTo(map);
+    highlightParcelAt(lat, lng);
+    var h = '<div class="pop"><b>' + esc(name) + '</b><div class="pbtns">' +
+      '<button class="pbtn pbtn-reg" onclick="regHere(' + lat + ',' + lng + ',\'' + esc(cleanAddrName(name)).replace(/'/g,"\\'") + '\')">🔴 이 위치에 재난 등록</button>' +
+      '<button class="pbtn pbtn-blk" onclick="blockHere(' + lat + ',' + lng + ')">❌ 통행차단 등록</button></div></div>';
+    L.popup().setLatLng([lat, lng]).setContent(h).openOn(map);
+  }
+}
+function addSR(box, name, lat, lng){
+  var d = document.createElement("div");
+  d.className = "sr";
+  d.textContent = name;
+  d.onclick = function(){ goToSearchResult(name, lat, lng); };
   box.appendChild(d);
 }
 function cleanAddrName(name){
@@ -7566,9 +7588,7 @@ function headerSearch(){
   var hq = document.getElementById("hq"), q = document.getElementById("q");
   if(!hq || !q) return;
   q.value = hq.value;
-  document.getElementById("side").classList.remove("collapsed");
-  railMark("railb_list");
-  if(typeof doSearch === "function") doSearch();
+  if(typeof doSearch === "function") doSearch(true);
 }
 </script>
 <script>
