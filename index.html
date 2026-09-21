@@ -2193,7 +2193,12 @@ function renderCadastralInView(){
   // 확대 수준에 따라 그리는 개수를 제한한다.
   var MAX = z >= 18 ? 12000 : (z >= 17 ? 8000 : (z >= 16 ? 4000 : 1500));
   var drawn = 0;
-  var showLabel = z >= 17;   // 많이 확대했을 때만 지번 글자 표시
+  // 확대할수록 지번 글자를 더 많이/크게 보여준다. 17 미만은 필지 경계선만 표시해
+  // 화면이 촘촘한 텍스트로 어지러워지지 않게 한다.
+  var showLabel = z >= 17;
+  var labelEvery = z >= 19 ? 1 : (z >= 18 ? 1 : 2);   // 17~18은 필지 하나 걸러 하나만 표시
+  var labelSize = z >= 19 ? 11 : (z >= 18 ? 10 : 9);
+  var labelIdx = 0;
   for(var eup in CAD_DATA){
     var arr = CAD_DATA[eup];
     for(var i=0;i<arr.length;i++){
@@ -2210,12 +2215,12 @@ function renderCadastralInView(){
       var poly = L.polygon(latlngs, {renderer: cadRenderer, color:"#fbbf24", weight: z >= 18 ? 1 : 1.2, fill:false, opacity: z >= 18 ? 0.75 : 0.6, lineJoin:"round", lineCap:"round", smoothFactor:0, interactive:true});
       if(jibun){
         poly.bindTooltip(String(jibun), {sticky:true, className:"cad-tip"});
-        if(showLabel){
+        if(showLabel && (labelIdx++ % labelEvery === 0)){
           var c = polyCenter(latlngs[0]);
           if(c && isFinite(c[0]) && isFinite(c[1])){
             var lbl = L.marker(c, {
               interactive: false,
-              icon: L.divIcon({className:"cad-label", html: String(jibun), iconSize:[0,0]})
+              icon: L.divIcon({className:"cad-label", html: '<span style="font-size:' + labelSize + 'px">' + String(jibun) + '</span>', iconSize:[0,0]})
             });
             cadastralLayer.addLayer(lbl);
           }
@@ -4437,15 +4442,88 @@ function openRclickMenu(ll){
   window._rcLL = ll;
   window._rcLoc = reg;
   highlightParcelAt(ll[0], ll[1]); // 선택 지점 필지 빨간 강조
+  var zoneHtml = zoneInfoAt(ll[0], ll[1]);
   var html = '<div style="min-width:190px">' +
     '<div style="font-size:12.5px;font-weight:700;color:#1e3a5f;margin-bottom:2px">📍 선택 지점</div>' +
-    '<div id="' + pid + '" style="font-size:11.5px;color:#374151;margin-bottom:8px">' + esc(reg) + '</div>' +
+    '<div id="' + pid + '" style="font-size:11.5px;color:#374151;margin-bottom:6px">' + esc(reg) + '</div>' +
+    zoneHtml +
     '<button onclick="rcPick(\'disaster\')" style="width:100%;border:1px solid #f0c9c5;background:#fff;color:#9a2318;border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;margin-bottom:6px">🔴 재난상황 등록</button>' +
     '<button onclick="rcPick(\'closure\')" style="width:100%;border:1px solid #c9d7f6;background:#fff;color:#1740a6;border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer">❌ 통행차단 등록</button>' +
     '</div>';
   L.popup({maxWidth:240, closeButton:true}).setLatLng(ll).setContent(html).openOn(map);
   // 인터넷 가능 시 정밀 지번으로 갱신(실패해도 읍면명 유지)
   autoFillLocation(ll[0], ll[1], pid, reg);
+}
+/* 켜져 있는 도로구역·하천구역·도시계획도로 중 이 지점에 걸린 것만, 한 줄씩, 중복 없이 보여준다.
+   구역 밖이면 아무것도 표시하지 않는다(선택 지점과 무관한 정보라 등록 흐름에 방해되므로). */
+function zoneInfoAt(lat, lng){
+  var rows = [];
+  try{
+    if(window._rzLayer && map.hasLayer(_rzLayer) && window._rzReady){
+      RoadZone.lookup(lat, lng).inside.forEach(function(i){
+        rows.push({ c: RoadZone.COLOR[i.grade] || "#9aa0a6", t: i.route + " " + i.zone });
+      });
+    }
+  }catch(e){}
+  try{
+    if(window._rvLayer && map.hasLayer(_rvLayer) && window._rvReady){
+      var seen = {};
+      RiverZone.lookup(lat, lng).inside.forEach(function(i){
+        var t = i.route + " " + i.grade;
+        if(seen[t]) return; seen[t] = 1;
+        rows.push({ c: RiverZone.COLOR[i.grade] || "#0e7490", t: t });
+      });
+    }
+  }catch(e){}
+  try{
+    if(window._upOn && window._upKinds){
+      var upSeen = {};
+      for(var k in _upKinds){
+        var g = _upKinds[k];
+        if(!g || g.on === false) continue;
+        for(var i2 = 0; i2 < g.layers.length; i2++){
+          var l = g.layers[i2];
+          if(l._upGeom && pointInGeoJSON(lng, lat, l._upGeom)){
+            var t2 = (l._upName || "도시계획시설 도로");
+            if(upSeen[t2]) continue; upSeen[t2] = 1;
+            rows.push({ c: (window.UP_COLOR && UP_COLOR[k]) || "#ec4899", t: t2 });
+          }
+        }
+      }
+    }
+  }catch(e){}
+  if(!rows.length) return "";
+  rows = rows.slice(0, 4);   // 겹치는 구역이 많아도 최대 4줄까지만
+  var html = '<div style="margin-bottom:6px">';
+  rows.forEach(function(r){
+    html += '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#33465c;padding:1px 0">' +
+      '<span style="width:9px;height:9px;border-radius:2px;flex:none;background:' + r.c + '"></span>' +
+      esc(r.t) + '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+/* 점-내부 판정 (도시계획도로 GeoJSON, 도넛 구멍 처리 포함) */
+function pointInGeoJSON(x, y, g){
+  function pip(px, py, ring){
+    var inside = false;
+    for(var i = 0, j = ring.length - 1; i < ring.length; j = i++){
+      var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+      if(((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+    return inside;
+  }
+  if(!g) return false;
+  var polys = g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : null;
+  if(!polys) return false;
+  for(var i = 0; i < polys.length; i++){
+    var rings = polys[i];
+    if(!rings || !rings.length || !pip(x, y, rings[0])) continue;
+    var hole = false;
+    for(var j = 1; j < rings.length; j++){ if(pip(x, y, rings[j])){ hole = true; break; } }
+    if(!hole) return true;
+  }
+  return false;
 }
 function rcPick(kind){
   var ll = window._rcLL;
@@ -8500,128 +8578,6 @@ map.on("zoomend", function(){ upStatus(); });
     window.addEventListener("resize", placePanels);
     window.addEventListener("orientationchange", placePanels);
     placePanels();
-  }
-  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
-  else init();
-})();
-</script>
-
-<style id="search-zoneinfo-fix">
-/* 검색 입력줄 */
-#srsbox .qrow{display:flex;gap:6px;margin-bottom:8px}
-#srsbox .qrow input{flex:1 1 auto;min-width:0;border:1px solid #dbe2ea;border-radius:9px;
-  padding:9px 11px;font-size:13px;font-family:inherit;color:#0f2540;background:#fff;outline:none}
-#srsbox .qrow input:focus{border-color:#1f6feb;box-shadow:0 0 0 3px rgba(31,111,235,.12)}
-#srsbox .qrow .qbtn{flex:0 0 auto;border:0;border-radius:9px;background:#0f2540;color:#fff;
-  font-size:13px;font-weight:800;padding:0 14px;min-height:38px;cursor:pointer;font-family:inherit}
-#srsbox .qrow .qbtn:hover{background:#1b3c66}
-@media (max-width:860px){
-  #srsbox .qrow input{min-height:44px;font-size:15px}
-  #srsbox .qrow .qbtn{min-height:44px;font-size:14px;padding:0 16px}
-}
-/* 우클릭 구역 조회 팝업 */
-.zinfo b{display:block;font-size:12.5px;color:#0f2540;margin-bottom:5px;letter-spacing:-.02em}
-.zinfo .zrow{display:flex;align-items:center;gap:7px;font-size:12px;color:#33465c;padding:2px 0}
-.zinfo .zdot{width:10px;height:10px;border-radius:3px;flex:none}
-.zinfo .znone{font-size:11.5px;color:#9aa0a6}
-.zinfo .zfar{color:#7b8794}
-.zinfo .zcoord{margin-top:6px;padding-top:5px;border-top:1px solid #eef2f6;
-  font-size:10.5px;color:#9aa0a6;font-variant-numeric:tabular-nums}
-</style>
-<script>
-/* 지도에서 오른쪽 버튼(모바일은 길게 누르기) → 그 지점에 표시 중인 구역 명칭을 알려준다.
-   켜져 있는 레이어만 조회한다. */
-(function(){
-  function pip(x, y, ring){
-    var inside = false;
-    for(var i = 0, j = ring.length - 1; i < ring.length; j = i++){
-      var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
-      if(((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
-    }
-    return inside;
-  }
-  function inGeom(lng, lat, g){
-    if(!g) return false;
-    var polys = g.type === "Polygon" ? [g.coordinates]
-              : g.type === "MultiPolygon" ? g.coordinates : null;
-    if(!polys) return false;
-    for(var i = 0; i < polys.length; i++){
-      var rings = polys[i];
-      if(!rings || !rings.length || !pip(lng, lat, rings[0])) continue;
-      var hole = false;
-      for(var j = 1; j < rings.length; j++){ if(pip(lng, lat, rings[j])){ hole = true; break; } }
-      if(!hole) return true;
-    }
-    return false;
-  }
-  function rows(latlng){
-    var lat = latlng.lat, lng = latlng.lng, out = [];
-    /* 도로구역 */
-    try{
-      if(window._rzLayer && map.hasLayer(_rzLayer)){
-        var r = RoadZone.lookup(lat, lng);
-        r.inside.forEach(function(i){
-          out.push({ c: RoadZone.COLOR[i.grade] || "#9aa0a6", t: i.route + " " + i.zone });
-        });
-        if(!r.inside.length && r.nearest){
-          out.push({ c: "#c9d1da", far: true,
-            t: r.nearest.route + " " + r.nearest.zone + "에서 " + r.nearest.dist + "m" });
-        }
-      }
-    }catch(e){}
-    /* 하천구역 */
-    try{
-      if(window._rvLayer && map.hasLayer(_rvLayer)){
-        var v = RiverZone.lookup(lat, lng), seen = {};
-        v.inside.forEach(function(i){
-          var t = i.route + " " + i.grade;
-          if(seen[t]) return; seen[t] = 1;
-          out.push({ c: RiverZone.COLOR[i.grade] || "#0e7490", t: t });
-        });
-        if(!v.inside.length && v.nearest){
-          out.push({ c: "#c9d1da", far: true,
-            t: v.nearest.route + " " + v.nearest.grade + "에서 " + v.nearest.dist + "m" });
-        }
-      }
-    }catch(e){}
-    /* 도시계획도로 */
-    try{
-      if(window._upOn && window._upKinds){
-        for(var k in _upKinds){
-          var g = _upKinds[k];
-          if(!g || g.on === false) continue;
-          for(var i2 = 0; i2 < g.layers.length; i2++){
-            var l = g.layers[i2];
-            if(inGeom(lng, lat, l._upGeom)){
-              out.push({ c: (window.UP_COLOR && UP_COLOR[k]) || "#ec4899",
-                         t: (l._upName || "도시계획시설 도로") + " · " + k });
-            }
-          }
-        }
-      }
-    }catch(e){}
-    return out;
-  }
-  function show(latlng){
-    var list = rows(latlng), html = '<div class="zinfo"><b>이 지점의 구역</b>';
-    if(!list.length){
-      html += '<div class="znone">표시 중인 구역 안이 아닙니다.<br>도로구역·하천구역·도시계획도로를 켜고 다시 눌러 보세요.</div>';
-    } else {
-      list.forEach(function(r){
-        html += '<div class="zrow' + (r.far ? " zfar" : "") + '">'
-              + '<span class="zdot" style="background:' + r.c + '"></span>'
-              + (r.far ? "구역 밖 — " : "") + r.t + '</div>';
-      });
-    }
-    html += '<div class="zcoord">' + latlng.lat.toFixed(6) + ", " + latlng.lng.toFixed(6) + '</div></div>';
-    L.popup({ maxWidth: 260 }).setLatLng(latlng).setContent(html).openOn(map);
-  }
-  function init(){
-    if(typeof map === "undefined" || !map || !map.on) return setTimeout(init, 400);
-    map.on("contextmenu", function(e){
-      if(document.querySelector(".crosshair")) return;   // 통제선 그리는 중이면 건너뛴다
-      show(e.latlng);
-    });
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
