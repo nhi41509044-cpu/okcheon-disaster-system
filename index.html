@@ -147,10 +147,10 @@ main{flex:1;display:flex;min-height:0}
 .blink{animation:bl 1s infinite}
 path.blinkline{animation:bl 1s infinite}
 .leaflet-popup-content{margin:10px 12px;max-height:340px;overflow-y:auto;font-size:12.5px;min-width:230px}
-#drillToggle{background:#374151;color:#fff;border:none;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
-#drillToggle.on{background:#f59e0b;color:#1f2937}
-#drillBanner{display:none;background:repeating-linear-gradient(45deg,#f59e0b,#f59e0b 12px,#fbbf24 12px,#fbbf24 24px);color:#1f2937;font-weight:800;text-align:center;padding:8px 10px;font-size:13px;letter-spacing:.2px}
-body.drill-mode #drillBanner{display:block}
+#shareToggle{background:#374151;color:#fff;border:none;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+#shareToggle.off{background:#f59e0b;color:#1f2937}
+#shareBanner{display:none;background:repeating-linear-gradient(45deg,#f59e0b,#f59e0b 12px,#fbbf24 12px,#fbbf24 24px);color:#1f2937;font-weight:800;text-align:center;padding:8px 10px;font-size:13px;letter-spacing:.2px}
+body.share-off #shareBanner{display:block}
 .pop h4{font-size:13.5px;margin-bottom:4px}
 .badge{display:inline-block;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;color:#fff;margin-left:5px}
 .tl{border-left:2px solid #e5e7eb;margin:7px 0 0 4px;padding-left:9px}
@@ -697,7 +697,23 @@ body.trendpick #map{cursor:crosshair}
 .gb-real:hover{background:#fff6f6;border-color:#c02020}
 .gate-card.drillmode{box-shadow:0 22px 54px rgba(0,0,0,.4),0 0 0 3px #f59e0b}
 
-/* 동향보고 대상 입력 행 */
+/* 접속 화면: 공유 on/off 배너 + 입장 버튼 */
+.gate-share{display:flex;align-items:center;gap:10px;margin:14px 0 12px;padding:11px 13px;
+  border:1.5px solid #bfe0c6;border-radius:12px;background:#f2faf4;cursor:pointer;user-select:none;transition:.15s}
+.gate-share.off{border-color:#e2c4a0;background:#fdf6ec}
+.gs-txt{flex:1;display:flex;flex-direction:column;gap:2px;text-align:left}
+.gs-txt b{font-size:13.5px;color:#166534}
+.gate-share.off .gs-txt b{color:#9a5b12}
+.gs-txt span{font-size:11px;color:#4b5f52;line-height:1.4}
+.gate-share.off .gs-txt span{color:#7a6650}
+.gs-sw{flex:0 0 auto;width:42px;height:24px;border-radius:999px;background:#16a34a;position:relative;transition:.15s}
+.gate-share.off .gs-sw{background:#c7ccd4}
+.gs-knob{position:absolute;top:3px;left:21px;width:18px;height:18px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);transition:.15s}
+.gate-share.off .gs-knob{left:3px}
+.gb-enter{width:100%;padding:14px 8px;border:0;border-radius:11px;background:#0f2540;color:#fff;
+  font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;transition:.15s}
+.gb-enter:hover{background:#1b3c66}
 .whorow{display:flex;align-items:center;gap:6px;margin-bottom:9px;padding-bottom:9px;
   border-bottom:1px dashed #e2e8f0}
 .whorow:last-of-type{border-bottom:none;padding-bottom:0}
@@ -768,7 +784,7 @@ body.trendpick #map{cursor:crosshair}
   #hdricons > *{width:auto;min-width:0;height:26px;border-radius:7px;padding:0 5px;margin:0;
     display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;line-height:1;
     overflow:hidden;white-space:nowrap;background:rgba(255,255,255,.16);color:#fff;border:0;gap:3px;flex:1 1 0}
-  #hdricons #conn,#hdricons #drillToggle{display:none}   /* 훈련/실제 전환은 지도 좌상단으로 이동 */
+  #hdricons #conn,#hdricons #shareToggle{display:none}   /* 훈련/실제 전환은 지도 좌상단으로 이동 */
 
   #hdricons #lyrstoggle{position:static;width:auto;height:26px;border-radius:7px;
     background:rgba(255,255,255,.16);color:#fff;border:0;box-shadow:none;font-size:10.5px}
@@ -1045,10 +1061,10 @@ header{padding:8px 14px;gap:10px;flex-wrap:nowrap}
 .hbtns .hbtn.b-x2{background:#b42318;border:0;color:#fff}
 .hbtns .hbtn.b-x2:hover{background:#9a1e14}
 /* 훈련모드 버튼은 동접자 배지와 같은 크기·모양 */
-#drillToggle{font-size:12px;padding:5px 10px;border-radius:9px;line-height:1;
+#shareToggle{font-size:12px;padding:5px 10px;border-radius:9px;line-height:1;
   display:inline-flex;align-items:center;background:rgba(255,255,255,.14);color:#fff}
-#drillToggle.on{background:#d98a00;color:#241a00}
-.hbtns #conn,.hbtns #drillToggle{align-self:center}
+#shareToggle.off{background:#d98a00;color:#241a00}
+.hbtns #conn,.hbtns #shareToggle{align-self:center}
 @media (max-width:860px){ #railmenu{display:none} }
 /* 지도 테마 패널 넘침 방지 */
 #lyrs{flex-wrap:wrap;max-width:min(220px,calc(100% - 20px))}
@@ -1077,7 +1093,7 @@ header{padding:8px 14px;gap:10px;flex-wrap:nowrap}
 .warnban{animation:none;transform:none}
 /* 헤더 항목은 줄바꿈·축소 금지 */
 header>*,#hdricons>*{flex:none}
-header h1,#statbtn,#statbtn2,.conn,#drillToggle,#alarmbtn,#regbtn,#closurebtn,#lyrstoggle,#morebtn,#searchbtn,#chatbtn{white-space:nowrap}
+header h1,#statbtn,#statbtn2,.conn,#shareToggle,#alarmbtn,#regbtn,#closurebtn,#lyrstoggle,#morebtn,#searchbtn,#chatbtn{white-space:nowrap}
 #chat h3,#chatid button,#chatform button{white-space:nowrap}
 /* 헤더 한 줄 유지 */
 .hbtns{flex-wrap:nowrap;flex:none}
@@ -1123,7 +1139,7 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
 /* 모바일 FAB 꽃잎메뉴는 데스크탑에서 렌더하지 않는다 */
 .petal-hidden{display:none !important}
-@media (min-width:861px){ #petalmenu,#mfab,#drillFab{display:none !important} }
+@media (min-width:861px){ #petalmenu,#mfab,#shareFab{display:none !important} }
 
 /* ===== 1a: 날씨 카드 · 특보 카드 · 지도 테마 패널 ===== */
 @media (min-width:861px){
@@ -1397,16 +1413,16 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* 제목이 잘리지 않게 로고를 줄이고 자간을 좁힌다 */
   header h1{font-size:13.5px;letter-spacing:-.04em}
   header h1 .hlogo{width:30px;height:30px}
-  header #drillToggle{height:34px;padding:0 10px;font-size:12.5px;letter-spacing:-.04em;border-radius:999px;
+  header #shareToggle{height:34px;padding:0 10px;font-size:12.5px;letter-spacing:-.04em;border-radius:999px;
     background:#f2f5f8;border:1px solid #e6ebf2;color:#33465c;flex:1 1 0;min-width:0;justify-content:center}
-  header #drillToggle.on{background:#fef4e4;border-color:#f2e0bd;color:#8a5411}
+  header #shareToggle.off{background:#fef4e4;border-color:#f2e0bd;color:#8a5411}
   header .hbtns{flex:1 1 0;min-width:0;order:1}
   header .hbtns{display:flex;gap:6px;align-items:center}
   header .hbtns > *{display:none}
-  header #drillToggle{display:inline-flex;align-items:center;width:auto;min-width:0;
+  header #shareToggle{display:inline-flex;align-items:center;width:auto;min-width:0;
     font-weight:800;white-space:nowrap}
-  header #drillToggle::before{content:none}
-  header #drillToggle.on{background:#fef4e4;color:#b54708}
+  header #shareToggle::before{content:none}
+  header #shareToggle.off{background:#fef4e4;color:#b54708}
 
   /* 집계: 지도 위 흰 카드 */
   .stats#statbox{display:flex;position:absolute;left:10px;right:10px;
@@ -1510,10 +1526,10 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     background:transparent !important;border:0 !important;padding:0 !important;box-shadow:none !important;
     z-index:1300}
   #lyrs .lyrsgrid{display:grid !important;grid-template-columns:repeat(4,1fr) !important;
-    grid-auto-flow:row !important;flex-wrap:nowrap !important;gap:6px !important;width:100% !important}
+    grid-auto-flow:row !important;flex-wrap:nowrap !important;gap:4px !important;width:100% !important}
   #lyrs .lyrsgrid>*{min-width:0}
-  #lyrs .lyrsgrid .lyb{min-height:38px;padding:0 6px;font-size:12px;letter-spacing:-.05em;
-    white-space:nowrap;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid #e6ebf2;
+  #lyrs .lyrsgrid .lyb{min-height:36px;padding:0 2px;font-size:10.5px;letter-spacing:-.06em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid #e6ebf2;
     color:#33465c;font-weight:800;box-shadow:0 2px 8px rgba(15,37,64,.12);
     display:flex;align-items:center;justify-content:center}
   #lyrs .lyrsgrid .lyb.on{background:#0f2540;border-color:#0f2540;color:#fff}
@@ -1590,12 +1606,16 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <label class="gate-lb" for="g_dept">부서</label>
     <input id="g_dept" placeholder="○○과" autocomplete="off" onkeydown="if(event.key==='Enter')document.getElementById('g_name').focus()">
     <label class="gate-lb" for="g_name">이름</label>
-    <input id="g_name" placeholder="예: 홍길동" autocomplete="off" onkeydown="if(event.key==='Enter')enterSystem(false)">
+    <input id="g_name" placeholder="예: 홍길동" autocomplete="off" onkeydown="if(event.key==='Enter')enterSystem()">
     <div id="g_err" class="gate-err"></div>
-    <div class="gate-btns">
-      <button class="gate-btn gb-test" onclick="enterSystem(true)">테스트 서버<br><small>훈련·교육용</small></button>
-      <button class="gate-btn gb-real" onclick="enterSystem(false)">실제상황 접속<br><small>실제 재난 상황</small></button>
+    <div class="gate-share" id="gateShareBanner" onclick="toggleGateShare()">
+      <div class="gs-txt">
+        <b id="gs_title">🔗 공유 켜짐</b>
+        <span id="gs_desc">등록하는 상황이 다른 담당자에게 실시간으로 공유됩니다</span>
+      </div>
+      <div class="gs-sw" id="gs_sw"><div class="gs-knob"></div></div>
     </div>
+    <button class="gate-btn gb-enter" onclick="enterSystem()">입장하기</button>
     <div class="gate-foot">입력하신 정보는 실시간 접속자 목록과<br>상황 대화창에 표시됩니다</div>
   </div>
 </div>
@@ -1606,7 +1626,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   <button id="statbtn" onclick="toggleStatBox(event)" title="상황 현황 보기" aria-label="상황 현황 보기">📢 현황</button>
   <div id="hdricons">
     <span class="conn" id="conn" onclick="showOnlineUsers()" title="접속자 보기">🔌 로컬</span>
-    <button id="drillToggle" onclick="toggleDrillMode()" title="훈련(연습) 모드 전환">🔴 실제상황</button>
+    <button id="shareToggle" onclick="toggleShareMode()" title="공유 켜짐/나만 보기 전환">🔗 공유중</button>
     <button id="statbtn2" onclick="toggleStatBox(event)" title="상황 집계" aria-label="상황 집계">집계</button>
     <button id="searchbtn" onclick="openMobilePanel('side')" title="검색·목록" aria-label="검색 및 상황 목록 열기">검색</button>
     <button id="chatbtn" onclick="openMobilePanel('chat')" title="대화" aria-label="대화창 열기">대화</button>
@@ -1646,7 +1666,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
   </div>
 </header>
-<div id="drillBanner" style="display:none">🎓 테스트 서버 접속 중 — 지금 등록·조회되는 자료는 실제 상황이 아닙니다</div>
+<div id="shareBanner" style="display:none">🔒 나만 보기 켜짐 — 지금 등록하는 상황은 이 기기에만 저장되며 다른 담당자와 공유되지 않습니다</div>
 <main>
 <nav id="rail" aria-label="주요 메뉴">
   <button class="railb on" id="railb_map" onclick="railSel('map')"><span>🗺</span>지도</button>
@@ -1756,7 +1776,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   <div id="wxbar">날씨 불러오는 중…</div>
   <div id="hint"><span id="hinttxt"></span><button id="btnFinishLine" style="background:#16a34a;color:#fff" onclick="finishClosure()">✔ 선 완료</button><button style="background:#e5e7eb" onclick="cancelDraw()">취소</button></div>
   <div id="warnbanners"></div>
-<button id="drillFab" onclick="toggleDrillMode()" title="훈련(연습) 모드 전환" aria-label="훈련·실제 모드 전환">🔴 실제상황</button>
+<button id="shareFab" onclick="toggleShareMode()" title="공유 켜짐/나만 보기 전환" aria-label="공유 켜짐·나만 보기 전환">🔗 공유중</button>
 <button id="connfab" onclick="showOnlineUsers()" title="실시간 공유 상태·접속자" aria-label="실시간 공유 상태">
   <span class="cfico">👥</span><b id="cf_n">1</b>
 </button>
@@ -1877,7 +1897,7 @@ var STATCOLORS = {occur:"#dc2626", action:"#eab308", done:"#16a34a", blocked:"#1
 
 var items = [];
 var filters = {status:new Set(["occur","action","done","blocked","reopened"]), type:new Set(DTYPES), eupmyeon:new Set(REGIONS.map(function(r){ return r[0]; })), manager:new Set()};
-var drillMode = false; // 훈련(연습) 모드: true면 훈련 데이터만 등록·표시, false면 실제 데이터만 등록·표시
+var shareOn = true; // 공유 모드: true면 이 기기에서 등록하는 상황이 Firebase로 전체 공유됨, false면 이 기기에만 저장(나만 보기)
 var drawMode = null, drawPts = [], tempLine = null;
 // 클릭한 점들을 부드러운 곡선으로 보간 (Catmull-Rom spline)
 function smoothPath(pts){
@@ -2830,7 +2850,7 @@ function saveItem(it){
   items = items.filter(function(x){ return x.id !== it.id; });
   items.push(it);
   persist();
-  if(itemsRef){
+  if(itemsRef && !it.private){
     itemsRef.child(it.id).set(it).catch(function(err){
       console.error("Firebase 저장 실패:", err);
       alert("⚠ 서버 저장에 실패했습니다 (네트워크 상태 또는 사진 용량 문제일 수 있습니다).\n이 화면에는 방금 입력한 내용이 보이지만, 다른 기기에는 반영되지 않았을 수 있습니다.\n네트워크가 안정된 곳에서 다시 저장해 주세요.\n\n오류 내용: " + (err && err.message ? err.message : err));
@@ -2845,7 +2865,7 @@ function removeItem(id){
   it.deleted = true;
   it.deletedAt = Date.now();
   persist();
-  if(itemsRef) itemsRef.child(id).set(it).catch(function(err){ console.error("Firebase 삭제 반영 실패:", err); });
+  if(itemsRef && !it.private) itemsRef.child(id).set(it).catch(function(err){ console.error("Firebase 삭제 반영 실패:", err); });
   map.closePopup();
   closeItemPopup();
   renderAll();
@@ -3004,7 +3024,7 @@ function historyRestoreAll(){
       delete it.deleted;
       delete it.deletedAt;
       it.status = lastCoreStage(it);
-      if(itemsRef) itemsRef.child(it.id).set(it).catch(function(err){ console.error("Firebase 복구 반영 실패:", err); });
+      if(itemsRef && !it.private) itemsRef.child(it.id).set(it).catch(function(err){ console.error("Firebase 복구 반영 실패:", err); });
     }
   });
   persist();
@@ -3360,7 +3380,6 @@ function renderFilters(){
   var mcnt = {}; // 담당자별 카운트
   items.forEach(function(it){
     if(it.deleted) return;
-    if((!!it.drill) !== drillMode) return; // 현재 모드(실제/훈련)와 일치하는 데이터만 집계
     if(cnt[it.status] !== undefined) cnt[it.status]++;
     if(it.kind === "disaster" && tcnt[it.type] !== undefined) tcnt[it.type]++;
     var reg = itemRegion(it);
@@ -3384,7 +3403,6 @@ function renderFilters(){
 }
 function shouldShow(it){
   if(it.deleted) return false;
-  if((!!it.drill) !== drillMode) return false; // 실제상황 모드에선 실제 데이터만, 훈련모드에선 훈련 데이터만 표시
   if(!filters.status.has(it.status)) return false;
   if(it.kind === "disaster" && !filters.type.has(it.type)) return false;
   if(!filters.eupmyeon.has(itemRegion(it))) return false;
@@ -3463,36 +3481,36 @@ function initFontSize(){
   applyFontSize(v);
 }
 
-function toggleDrillMode(){
-  drillMode = !drillMode;
+function toggleShareMode(){
+  shareOn = !shareOn;
+  try{ localStorage.setItem("okc6_share", shareOn ? "on" : "off"); }catch(e){}
   // 헤더(안 쓰면 숨김)와 지도 위 버튼 둘 다 상태를 맞춘다
-  ["drillToggle", "drillFab"].forEach(function(id){
+  ["shareToggle", "shareFab"].forEach(function(id){
     var btn = document.getElementById(id);
     if(!btn) return;
-    if(drillMode){
-      btn.textContent = "🎓 훈련모드";
-      btn.classList.add("on");
+    if(shareOn){
+      btn.textContent = "🔗 공유중";
+      btn.classList.remove("off");
     } else {
-      btn.textContent = "🔴 실제상황";
-      btn.classList.remove("on");
+      btn.textContent = "🔒 나만 보기";
+      btn.classList.add("off");
     }
   });
-  document.body.classList.toggle("drill-mode", drillMode);
-  renderAll();
-  showModeToast(drillMode);
+  document.body.classList.toggle("share-off", !shareOn);
+  showModeToast(shareOn);
 }
-// 실제상황 ↔ 훈련모드 전환 시 안내 메시지 (화면 상단에 잠깐 떴다 사라짐)
-function showModeToast(isDrill){
+// 공유 on/off 전환 시 안내 메시지 (화면 상단에 잠깐 떴다 사라짐)
+function showModeToast(isShareOn){
   var old = document.getElementById("modeToast");
   if(old) old.remove();
   var box = document.createElement("div");
   box.id = "modeToast";
-  if(isDrill){
-    box.className = "mode-toast mt-drill";
-    box.innerHTML = "🎓 <b>훈련모드</b>입니다.<br><span>해당 기능은 실제 상황과 분리된 연습·훈련 전용 기록만 등록·표시하며, 실제 재난 데이터에는 영향을 주지 않습니다.</span>";
-  } else {
+  if(isShareOn){
     box.className = "mode-toast mt-real";
-    box.innerHTML = "🔴 <b>실제상황</b>입니다.<br><span>해당 기능은 실제 재난·통행차단 상황만 등록·표시하며, 여기서 등록한 내용은 실제 대응 기록으로 저장됩니다.</span>";
+    box.innerHTML = "🔗 <b>공유 켜짐</b>입니다.<br><span>지금부터 등록하는 상황은 다른 담당자에게도 실시간으로 공유됩니다.</span>";
+  } else {
+    box.className = "mode-toast mt-drill";
+    box.innerHTML = "🔒 <b>나만 보기</b>입니다.<br><span>지금부터 등록하는 상황은 이 기기에만 저장되며, 다른 담당자에게 공유되지 않습니다.</span>";
   }
   document.body.appendChild(box);
   requestAnimationFrame(function(){ box.classList.add("show"); });
@@ -3501,20 +3519,17 @@ function showModeToast(isDrill){
     setTimeout(function(){ if(box && box.parentNode) box.remove(); }, 300);
   }, 3200);
 }
-function countDrillItems(){
-  return items.filter(function(it){ return !it.deleted && it.drill; }).length;
+function countPrivateItems(){
+  return items.filter(function(it){ return !it.deleted && it.private; }).length;
 }
-function deleteAllDrillData(){
-  var n = countDrillItems();
-  if(!n){ alert("삭제할 훈련 데이터가 없습니다."); return; }
-  if(!confirm("훈련(연습) 데이터 " + n + "건을 전체 삭제합니다.\n실제 데이터는 영향받지 않습니다.\n계속할까요?")) return;
-  items.filter(function(it){ return it.drill; }).forEach(function(it){
-    if(itemsRef) itemsRef.child(it.id).remove();
-  });
-  items = items.filter(function(it){ return !it.drill; });
+function deleteAllPrivateData(){
+  var n = countPrivateItems();
+  if(!n){ alert("삭제할 비공유(나만 보기) 데이터가 없습니다."); return; }
+  if(!confirm("비공유(나만 보기) 데이터 " + n + "건을 이 기기에서 전체 삭제합니다.\n공유된 데이터는 영향받지 않습니다.\n계속할까요?")) return;
+  items = items.filter(function(it){ return !it.private; });
   persist();
   renderAll();
-  alert("훈련 데이터 " + n + "건을 삭제했습니다.");
+  alert("비공유 데이터 " + n + "건을 삭제했습니다.");
 }
 
 /* ---------- 마커 렌더 ---------- */
@@ -4261,7 +4276,7 @@ function openDisasterFormDirect(){
         else { lat = 36.306; lng = 127.571; } // 못 찾으면 옥천읍 중심
         var _types = typeMultiVals("f_type"), _cause = causeVal("f_cause");
         _types.forEach(function(_ty){
-          saveItem({id:uid(), kind:"disaster", type:_ty, cause:_cause, status:"occur", drill:drillMode, lat:lat, lng:lng,
+          saveItem({id:uid(), kind:"disaster", type:_ty, cause:_cause, status:"occur", private:!shareOn, lat:lat, lng:lng,
             location:loc, peopleDamage:val("f_ppl") || "0", reporterName:val("f_rpname"), reporterTel:val("f_rptel"), victimName:val("f_vcname"), victimTel:val("f_vctel"), victimAddr:val("f_vcaddr"), victimAction:val("f_vcact"), facilityDamage:val("f_fac"), t0:t, createdAt:Date.now(),
             timeline:[{stage:"occur", time:t, desc:val("f_desc"), manager:val("f_mgr"), photos:_photos.slice()}]});
         });
@@ -4576,7 +4591,7 @@ function openDisasterForm(ll, preLoc){
       var _types = typeMultiVals("f_type"), _cause = causeVal("f_cause");
       if(!_types.length){ alert("재난 유형을 하나 이상 선택하세요."); return false; }
       _types.forEach(function(_ty){
-        saveItem({id:uid(), kind:"disaster", type:_ty, cause:_cause, status:"occur", drill:drillMode, lat:ll[0], lng:ll[1],
+        saveItem({id:uid(), kind:"disaster", type:_ty, cause:_cause, status:"occur", private:!shareOn, lat:ll[0], lng:ll[1],
           location:val("f_loc"), peopleDamage:val("f_ppl") || "0", reporterName:val("f_rpname"), reporterTel:val("f_rptel"), victimName:val("f_vcname"), victimTel:val("f_vctel"), victimAddr:val("f_vcaddr"), victimAction:val("f_vcact"), facilityDamage:val("f_fac"), t0:t, createdAt:Date.now(),
           timeline:[{stage:"occur", time:t, desc:val("f_desc"), manager:val("f_mgr"), photos:_photos.slice()}]});
       });
@@ -4596,7 +4611,7 @@ function openClosureForm(pts, preLoc){
     function(){
       var t = val("f_time");
       if(!t){ alert("차단 시각을 입력하세요."); return false; }
-      saveItem({id:uid(), kind:"closure", type:val("f_type"), status:"blocked", drill:drillMode,
+      saveItem({id:uid(), kind:"closure", type:val("f_type"), status:"blocked", private:!shareOn,
         lat:mid[0], lng:mid[1], path:smoothPath(pts), rawPath:pts, location:val("f_loc"), t0:t, createdAt:Date.now(),
         timeline:[{stage:"blocked", time:t, desc:val("f_desc"), manager:val("f_mgr"), photos:_photos.slice()}]});
     });
@@ -4886,7 +4901,7 @@ function openAIResultForm(origTxt, r){
       var photos = _photos.slice();
       geocodeText(locTxt).then(function(pos){
         var lat = pos ? pos.lat : region[1], lng = pos ? pos.lng : region[2];
-        saveItem({id:uid(), kind:"disaster", type:type, status:"occur", drill:drillMode, lat:lat, lng:lng,
+        saveItem({id:uid(), kind:"disaster", type:type, status:"occur", private:!shareOn, lat:lat, lng:lng,
           location:locTxt, peopleDamage:ppl, facilityDamage:fac, t0:t, createdAt:Date.now(),
           timeline:[{stage:"occur", time:t, desc:desc, manager:mgr, photos:photos}]});
         closeModal();
@@ -5177,7 +5192,7 @@ function savePerfBase(){
 // 시스템에 쌓인 실제 데이터로 처리 성과를 계산
 function calcPerf(from, to){
   var list = items.filter(function(it){
-    if(it.deleted || it.drill) return false;          // 훈련 데이터 제외
+    if(it.deleted) return false;
     var d = String(it.t0 || "").slice(0, 10);
     if(from && d < from) return false;
     if(to && d > to) return false;
@@ -5975,7 +5990,6 @@ function makeHwpxReport(from, to, title, damage){
   var rows = [], picked = [];
   items.slice().sort(function(a,b){ return (a.t0||"") < (b.t0||"") ? -1 : 1; }).forEach(function(it){
     if(it.deleted) return;
-    if((!!it.drill) !== drillMode) return;
     var d = (it.t0||"").slice(0,10);
     if(d < from || d > to) return;
     picked.push(it);
@@ -6030,7 +6044,6 @@ function hxFillDamage(){
   if(!f || !t){ alert("기간을 먼저 입력하세요."); return; }
   var picked = items.filter(function(it){
     if(it.deleted) return false;
-    if((!!it.drill) !== drillMode) return false;
     var d = (it.t0||"").slice(0,10);
     return d >= f && d <= t;
   });
@@ -6109,7 +6122,7 @@ function trStaffLine(s){
 var trendPickMode = false;
 function startTrendPick(){
   var list = items.filter(function(it){
-    return !it.deleted && it.kind === "disaster" && (!!it.drill) === drillMode;
+    return !it.deleted && it.kind === "disaster";
   });
   if(!list.length){ alert("동향보고를 만들 재난상황이 없습니다."); return; }
   trendPickMode = true;
@@ -6861,7 +6874,7 @@ function openHwpxReport(){
   // 오늘 등록된 건들의 사고 원인 중 가장 많은 것을 기본값으로 제시
   var ccnt = {}, cbest = "";
   items.forEach(function(it){
-    if(it.deleted || (!!it.drill) !== drillMode) return;
+    if(it.deleted) return;
     if((it.t0||"").slice(0,10) !== today || !it.cause) return;
     // 사고 원인은 다중 선택이므로 콤마로 나눠 각각 집계
     String(it.cause).split(",").forEach(function(cz){
@@ -6982,9 +6995,9 @@ function openSettings(){
       '<button type="button" onclick="applyFontSize(\'lg\')">크게</button>' +
       '<button type="button" onclick="applyFontSize(\'xl\')">아주 크게</button>' +
     '</div>' +
-    '<label>훈련(연습) 데이터 관리</label>' +
-    '<div class="note">현재 등록된 훈련 데이터: <b>' + countDrillItems() + '건</b></div>' +
-    '<button type="button" class="hbtn b-gray" style="margin-top:6px" onclick="deleteAllDrillData()">🗑 훈련 데이터 전체 삭제</button>',
+    '<label>비공유(나만 보기) 데이터 관리</label>' +
+    '<div class="note">이 기기에만 저장되어 있는 비공유 데이터: <b>' + countPrivateItems() + '건</b></div>' +
+    '<button type="button" class="hbtn b-gray" style="margin-top:6px" onclick="deleteAllPrivateData()">🗑 비공유 데이터 전체 삭제</button>',
     function(){
       localStorage.setItem("okc6_ai", val("f_ai"));
       var lf = document.getElementById("f_logo");
@@ -7044,7 +7057,7 @@ function openBulkDelete(){
       if(it){
         it.deleted = true;
         it.deletedAt = Date.now();
-        if(itemsRef) itemsRef.child(it.id).set(it).catch(function(err){ console.error("Firebase 일괄삭제 반영 실패:", err); });
+        if(itemsRef && !it.private) itemsRef.child(it.id).set(it).catch(function(err){ console.error("Firebase 일괄삭제 반영 실패:", err); });
       }
     });
     persist();
@@ -7104,9 +7117,22 @@ function renderWhoami(){
   wd.textContent = localStorage.getItem("okc6_dept") || "-";
   wn.textContent = localStorage.getItem("okc6_name") || "-";
 }
-var _gateDrill = false;   // 접속 시 고른 모드(테스트/실제상황)
-function enterSystem(drill){
-  _gateDrill = !!drill;
+var _gateShareOn = true;   // 접속 화면 공유 배너에서 고른 값
+function toggleGateShare(){
+  _gateShareOn = !_gateShareOn;
+  var banner = document.getElementById("gateShareBanner");
+  var title = document.getElementById("gs_title");
+  var desc = document.getElementById("gs_desc");
+  banner.classList.toggle("off", !_gateShareOn);
+  if(_gateShareOn){
+    title.textContent = "🔗 공유 켜짐";
+    desc.textContent = "등록하는 상황이 다른 담당자에게 실시간으로 공유됩니다";
+  } else {
+    title.textContent = "🔒 나만 보기";
+    desc.textContent = "등록하는 상황이 이 기기에만 저장되고 공유되지 않습니다";
+  }
+}
+function enterSystem(){
   var dept = (document.getElementById("g_dept").value || "").trim();
   var name = (document.getElementById("g_name").value || "").trim();
   var err = document.getElementById("g_err");
@@ -7119,9 +7145,16 @@ function enterSystem(drill){
   if(cd) cd.value = dept;
   if(cn) cn.value = name;
   renderWhoami();
-  // 접속 화면에서 고른 구분(실제/훈련)을 그대로 적용
-  if(drillMode !== _gateDrill) toggleDrillMode();
-  try{ localStorage.setItem("okc6_lastmode", _gateDrill ? "drill" : "real"); }catch(e){}
+  // 접속 화면에서 고른 공유 여부를 그대로 적용
+  shareOn = _gateShareOn;
+  try{ localStorage.setItem("okc6_share", shareOn ? "on" : "off"); }catch(e){}
+  ["shareToggle", "shareFab"].forEach(function(id){
+    var btn = document.getElementById(id);
+    if(!btn) return;
+    btn.textContent = shareOn ? "🔗 공유중" : "🔒 나만 보기";
+    btn.classList.toggle("off", !shareOn);
+  });
+  document.body.classList.toggle("share-off", !shareOn);
   try{ updateMyPresence(); }catch(e){}
   document.getElementById("gate").classList.add("hide");
   // 게이트가 떠 있는 동안 측정된 값들을 화면이 실제로 보이는 시점에 다시 계산한다
@@ -7154,14 +7187,23 @@ function checkLocalFileMode(){
 }
 
 function checkGate(){
-  // 부서·이름은 기억해서 미리 채워두되, 실제/훈련 구분은 매번 직접 고르게 한다.
+  // 부서·이름·공유 여부는 기억해서 미리 채워둔다.
   var dept = (localStorage.getItem("okc6_dept") || "").trim();
   var name = (localStorage.getItem("okc6_name") || "").trim();
   var gd = document.getElementById("g_dept"), gn = document.getElementById("g_name");
   if(gd) gd.value = dept;
   if(gn) gn.value = name;
-  var last = "";
-  try{ last = localStorage.getItem("okc6_lastmode") || ""; }catch(e){}
+  var lastShare = "";
+  try{ lastShare = localStorage.getItem("okc6_share") || ""; }catch(e){}
+  _gateShareOn = lastShare !== "off";
+  var banner = document.getElementById("gateShareBanner");
+  if(banner){
+    banner.classList.toggle("off", !_gateShareOn);
+    document.getElementById("gs_title").textContent = _gateShareOn ? "🔗 공유 켜짐" : "🔒 나만 보기";
+    document.getElementById("gs_desc").textContent = _gateShareOn
+      ? "등록하는 상황이 다른 담당자에게 실시간으로 공유됩니다"
+      : "등록하는 상황이 이 기기에만 저장되고 공유되지 않습니다";
+  }
   if(gd && !dept) gd.focus();
   else if(gn && !name) gn.focus();
   renderWhoami();
@@ -7506,7 +7548,7 @@ function railify(btn){
   });
   // 동접자·훈련모드를 등록 버튼 왼쪽으로 옮긴다
   var regBtn = hb.querySelector('.hbtn[onclick*="openRegPick"]');
-  ["drillToggle","conn"].forEach(function(id){
+  ["shareToggle","conn"].forEach(function(id){
     var el = document.getElementById(id);
     if(el && regBtn) hb.insertBefore(el, regBtn);
   });
@@ -8569,15 +8611,15 @@ map.on("zoomend", function(){ upStatus(); });
 /* ===== 테마 버튼줄·용도지역지구 드롭다운·레이어 패널 배치 보정 (2026-09-21) ===== */
 
 /* 0) 용도지역지구 드롭다운 (위험구역·도로구역·도시계획도로·하천구역) */
-#lyrs #zonemenu{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+#lyrs #zonemenu{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;max-width:100%}
 #lyrs #zonemenu[data-hidden="1"]{display:none !important}
 #lyrs #zonebtn.on{background:#0f2540 !important;border-color:#0f2540 !important;color:#fff !important}
 
 /* 1) PC 테마 카드: 버튼 줄을 좌우로 나열 */
 @media (min-width:861px){
-  #lyrs{width:auto !important;max-width:236px !important;
+  #lyrs{width:auto !important;max-width:calc(100% - 320px) !important;
     flex-direction:column !important;align-items:stretch !important;overflow:visible}
-  #lyrs .lyrsgrid{display:flex !important;flex-direction:row !important;flex-wrap:wrap !important;
+  #lyrs .lyrsgrid{display:flex !important;flex-direction:row !important;flex-wrap:nowrap !important;
     grid-template-columns:none !important;gap:5px !important;width:auto !important;
     background:transparent !important;border-bottom:0 !important;box-shadow:none !important;
     justify-content:flex-start}
