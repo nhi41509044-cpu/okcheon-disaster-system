@@ -1718,6 +1718,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <button class="lyb" id="ly_osm" onclick="setBase('osm')">일반</button>
       <button class="lyb on" id="ly_vw" onclick="setBase('vw')" ondblclick="setBase('esri')" title="더블클릭: 대체 위성영상">위성</button>
       <button class="lyb" id="cadbtn" onclick="toggleCadastral()">지적도</button>
+      <button class="lyb" id="rvbtn" onclick="toggleRoadviewMode()">로드뷰</button>
       <button class="lyb" id="zonebtn" onclick="toggleZoneMenu()">용도지역지구</button>
     </div>
     <div id="zonemenu" data-hidden="1">
@@ -4512,8 +4513,7 @@ function openRclickMenu(ll){
     '<div id="' + pid + '" style="font-size:11.5px;color:#374151;margin-bottom:6px">' + esc(reg) + '</div>' +
     zoneHtml +
     '<button onclick="rcPick(\'disaster\')" style="width:100%;border:1px solid #f0c9c5;background:#fff;color:#9a2318;border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;margin-bottom:6px">🔴 재난상황 등록</button>' +
-    '<button onclick="rcPick(\'closure\')" style="width:100%;border:1px solid #c9d7f6;background:#fff;color:#1740a6;border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;margin-bottom:6px">❌ 통행차단 등록</button>' +
-    '<button onclick="map.closePopup();openRoadview(window._rcLL[0],window._rcLL[1])" style="width:100%;border:1px solid #d7e3d0;background:#fff;color:#2f6b1f;border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer">🛣 로드뷰 보기</button>' +
+    '<button onclick="rcPick(\'closure\')" style="width:100%;border:1px solid #c9d7f6;background:#fff;color:#1740a6;border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer">❌ 통행차단 등록</button>' +
     '</div>';
   L.popup({maxWidth:240, closeButton:true}).setLatLng(ll).setContent(html).openOn(map);
   // 인터넷 가능 시 정밀 지번으로 갱신(실패해도 읍면명 유지)
@@ -8957,6 +8957,16 @@ applyMemoMode();
   box-shadow:-8px 0 28px rgba(0,0,0,.35)}
 #rvwrap.show{display:flex}
 @media (min-width:861px){ #rvwrap{top:0;right:0;bottom:0;width:min(52vw,900px);border-left:1px solid #1f2d40} }
+#rvresize{display:none}
+@media (min-width:861px){
+  #rvresize{display:block;position:absolute;left:-5px;top:0;bottom:0;width:10px;cursor:ew-resize;z-index:10}
+  #rvresize::after{content:"";position:absolute;left:3px;top:50%;width:4px;height:46px;margin-top:-23px;
+    border-radius:4px;background:rgba(255,255,255,.55);box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+  #rvresize:hover::after,#rvwrap.resizing #rvresize::after{background:#fff}
+  #rvwrap.resizing #roadview{pointer-events:none}
+}
+body.rvmode #map{cursor:crosshair}
+.rvpin{background:none;border:0}
 @media (max-width:860px){ #rvwrap{inset:0} }
 #rvhead{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#0f2540;color:#fff;flex:none}
 #rvhead b{font-size:14px;white-space:nowrap}
@@ -8979,14 +8989,16 @@ applyMemoMode();
   border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 </style>
 <div id="rvwrap">
+  <div id="rvresize" title="좌우로 끌어 크기 조절"></div>
   <div id="rvhead">
     <b>🛣 로드뷰</b><span id="rvaddr"></span>
+    <button onclick="openKakaoMapRoadview()" title="카카오맵에서 촬영일·과거 로드뷰 확인">카카오맵 ↗</button>
     <button onclick="closeRoadview()">닫기 ✕</button>
   </div>
   <div id="rvbody">
     <div id="roadview"></div>
     <div id="rvmsg"></div>
-    <div id="rvtip">지도를 클릭하면 그 지점 로드뷰로 이동합니다</div>
+    <div id="rvtip">지도를 클릭하거나 핀을 끌면 그 지점 로드뷰로 이동합니다</div>
   </div>
 </div>
 <script>
@@ -9067,21 +9079,141 @@ function rvSync(){
     var el = _rvWalker.getElement();
     if(el) el.innerHTML = html;
   }
-  if(!map.getBounds().pad(-0.15).contains(ll)) map.panTo(ll);
+  rvKeepVisible();
 }
-function closeRoadview(){
+function closeRoadview(fromMode){
   document.getElementById("rvwrap").classList.remove("show");
   _rvOpen = false;
   if(_rvWalker){ map.removeLayer(_rvWalker); _rvWalker = null; }
+  // 로드뷰 모드가 꺼져 있으면(상황 팝업에서 연 경우) 핀도 치운다
+  if(!fromMode && typeof _rvMode !== "undefined" && !_rvMode && _rvPin){ map.removeLayer(_rvPin); _rvPin = null; }
 }
-/* 로드뷰가 열려 있으면 지도 클릭 지점으로 로드뷰를 옮긴다 (통제선 그리는 중엔 제외) */
+/* ---------- 로드뷰 모드 (테마 버튼) ----------
+   켜면 지도를 클릭한 곳에 핀을 찍고 그 지점 로드뷰를 연다. 핀을 끌어 옮기면 로드뷰도 따라간다. */
+var _rvMode = false, _rvPin = null, _rvLastLL = null;
+function toggleRoadviewMode(force){
+  _rvMode = (typeof force === "boolean") ? force : !_rvMode;
+  var b = document.getElementById("rvbtn");
+  if(b) b.classList.toggle("on", _rvMode);
+  document.body.classList.toggle("rvmode", _rvMode);
+  if(_rvMode){
+    if(typeof showModeToast === "function"){ /* 공유 토스트와 겹치지 않게 간단 안내만 */ }
+    rvHint("지도에서 로드뷰를 볼 지점을 클릭하세요");
+  } else {
+    closeRoadview(true);
+    if(_rvPin){ map.removeLayer(_rvPin); _rvPin = null; }
+  }
+}
+function rvHint(t){
+  var old = document.getElementById("rvhint"); if(old) old.remove();
+  var d = document.createElement("div");
+  d.id = "rvhint"; d.textContent = "🛣 " + t;
+  d.style.cssText = "position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:2600;background:#0f2540;color:#fff;" +
+    "font-size:13px;font-weight:700;padding:9px 16px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);pointer-events:none";
+  document.body.appendChild(d);
+  setTimeout(function(){ if(d.parentNode) d.remove(); }, 2600);
+}
+function rvPlacePin(lat, lng){
+  var ll = [lat, lng];
+  if(!_rvPin){
+    _rvPin = L.marker(ll, { draggable:true, zIndexOffset:2100, autoPan:true,
+      icon: L.divIcon({ className:"rvpin", iconSize:[26,36], iconAnchor:[13,35],
+        html:'<svg width="26" height="36" viewBox="0 0 26 36"><path d="M13 35C13 35 25 20.5 25 12.5A12 12 0 0 0 1 12.5C1 20.5 13 35 13 35Z" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="13" cy="12.5" r="4.5" fill="#fff"/></svg>' }) }).addTo(map);
+    _rvPin.on("dragend", function(){
+      var p = _rvPin.getLatLng();
+      rvShowAt(p.lat, p.lng);
+    });
+  } else {
+    _rvPin.setLatLng(ll);
+  }
+}
+function rvShowAt(lat, lng){
+  _rvLastLL = [lat, lng];
+  rvPlacePin(lat, lng);
+  if(_rvOpen && _rv){
+    rvMsg("로드뷰를 불러오는 중…");
+    try{ autoFillLocation(lat, lng, "rvaddr", ""); }catch(err){}
+    rvGoto(lat, lng, 50);
+  } else {
+    openRoadview(lat, lng);
+  }
+}
 map.on("click", function(e){
-  if(!_rvOpen || !_rv) return;
-  if(document.querySelector(".crosshair")) return;
-  rvMsg("로드뷰를 불러오는 중…");
-  try{ autoFillLocation(e.latlng.lat, e.latlng.lng, "rvaddr", ""); }catch(err){}
-  rvGoto(e.latlng.lat, e.latlng.lng, 50);
+  if(!_rvMode && !_rvOpen) return;
+  if(document.querySelector(".crosshair")) return;   // 통제선 그리는 중엔 제외
+  rvShowAt(e.latlng.lat, e.latlng.lng);
 });
+/* 상황 팝업의 '현장 로드뷰'에서 열 때도 핀을 함께 찍는다 */
+var _openRoadviewRaw = openRoadview;
+openRoadview = function(lat, lng){
+  _rvLastLL = [lat, lng];
+  rvPlacePin(lat, lng);
+  _openRoadviewRaw(lat, lng);
+  setTimeout(rvKeepVisible, 60);
+};
+/* 카카오맵 사이트에서 같은 지점 로드뷰 열기 (촬영일·과거 사진 확인용) */
+function openKakaoMapRoadview(){
+  var ll = _rvLastLL;
+  try{ if(_rv && _rv.getPosition()){ var p = _rv.getPosition(); ll = [p.getLat(), p.getLng()]; } }catch(e){}
+  if(!ll) return;
+  window.open("https://map.kakao.com/link/roadview/" + ll[0].toFixed(6) + "," + ll[1].toFixed(6), "_blank", "noopener");
+}
+
+/* ---------- 로드뷰 창 가로 크기 조절 (PC) ---------- */
+(function(){
+  var MIN = 320, KEEP = 360;   // 로드뷰 최소 폭, 지도 쪽 최소 폭
+  var wrap = document.getElementById("rvwrap"), h = document.getElementById("rvresize");
+  function clampW(w){ return Math.max(MIN, Math.min(window.innerWidth - KEEP, w)); }
+  function apply(w){
+    if(window.innerWidth <= 860){ wrap.style.width = ""; return; }
+    wrap.style.width = clampW(w) + "px";
+  }
+  var saved = 0; try{ saved = parseInt(localStorage.getItem("okc6_rvw") || "0", 10) || 0; }catch(e){}
+  if(saved) apply(saved);
+  var dragging = false, raf = 0;
+  h.addEventListener("pointerdown", function(e){
+    if(window.innerWidth <= 860) return;
+    dragging = true; wrap.classList.add("resizing");
+    try{ h.setPointerCapture(e.pointerId); }catch(err){}
+    e.preventDefault();
+  });
+  h.addEventListener("pointermove", function(e){
+    if(!dragging) return;
+    apply(window.innerWidth - e.clientX);
+    if(!raf) raf = requestAnimationFrame(function(){ raf = 0; try{ if(_rv) _rv.relayout(); }catch(err){} });
+  });
+  function end(e){
+    if(!dragging) return;
+    dragging = false; wrap.classList.remove("resizing");
+    try{ h.releasePointerCapture(e.pointerId); }catch(err){}
+    try{ localStorage.setItem("okc6_rvw", String(wrap.offsetWidth)); }catch(err){}
+    try{ if(_rv) _rv.relayout(); }catch(err){}
+    rvKeepVisible();
+  }
+  h.addEventListener("pointerup", end);
+  h.addEventListener("pointercancel", end);
+  h.addEventListener("dblclick", function(){   // 두 번 클릭하면 기본 크기로
+    wrap.style.width = ""; try{ localStorage.removeItem("okc6_rvw"); }catch(err){}
+    try{ if(_rv) _rv.relayout(); }catch(err){}
+  });
+  window.addEventListener("resize", function(){ if(wrap.style.width) apply(wrap.offsetWidth); });
+})();
+
+/* 로드뷰 창에 가려지지 않은 지도 영역 안에 현재 위치가 보이도록 옮긴다 */
+function rvKeepVisible(){
+  if(!_rvOpen || window.innerWidth <= 860) return;
+  var ll = null;
+  try{ if(_rv && _rv.getPosition()){ var p = _rv.getPosition(); ll = L.latLng(p.getLat(), p.getLng()); } }catch(e){}
+  if(!ll && _rvLastLL) ll = L.latLng(_rvLastLL[0], _rvLastLL[1]);
+  if(!ll) return;
+  var mapRect = map.getContainer().getBoundingClientRect();
+  var rvLeft = document.getElementById("rvwrap").getBoundingClientRect().left;
+  var visW = Math.max(120, Math.min(mapRect.width, rvLeft - mapRect.left));
+  var pt = map.latLngToContainerPoint(ll), m = 60;
+  if(pt.x < m || pt.x > visW - m || pt.y < m || pt.y > mapRect.height - m){
+    map.panBy([pt.x - visW / 2, pt.y - mapRect.height / 2]);
+  }
+}
 document.addEventListener("keydown", function(e){ if(e.key === "Escape" && _rvOpen) closeRoadview(); });
 window.addEventListener("resize", function(){ if(_rv && _rvOpen){ try{ _rv.relayout(); }catch(e){} } });
 </script>
