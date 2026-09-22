@@ -1815,6 +1815,19 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <button onclick="sendChat()">전송</button>
   </div>
   <div id="chatreset"><button onclick="resetChat()">🗑 대화 초기화</button></div>
+  <div id="memopad">
+    <div class="mp-form">
+      <textarea id="mp_txt" placeholder="민원·상황 메모를 적으세요&#10;(Ctrl+Enter로 저장)" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();addMemo();}"></textarea>
+      <button onclick="addMemo()">메모 저장</button>
+    </div>
+    <div class="mp-filter">
+      <button id="mpf_all" class="on" onclick="setMemoFilter('all')">전체</button>
+      <button id="mpf_open" onclick="setMemoFilter('open')">진행중</button>
+      <button id="mpf_done" onclick="setMemoFilter('done')">완료</button>
+    </div>
+    <div id="mp_list"></div>
+    <div class="mp-note">이 기기에만 저장되며 다른 담당자에게 공유되지 않습니다.</div>
+  </div>
 </div>
 </main>
 <button id="panelclose" onclick="setMobileTab('map')">✕ 닫기</button>
@@ -3506,6 +3519,7 @@ function toggleShareMode(){
   });
   document.body.classList.toggle("share-off", !shareOn);
   renderAll();
+  try{ applyMemoMode(); }catch(e){}
   showModeToast(shareOn);
 }
 // 공유 on/off 전환 시 안내 메시지 (화면 상단에 잠깐 떴다 사라짐)
@@ -7165,6 +7179,7 @@ function enterSystem(){
   });
   document.body.classList.toggle("share-off", !shareOn);
   try{ renderAll(); }catch(e){}
+  try{ applyMemoMode(); }catch(e){}
   try{ updateMyPresence(); }catch(e){}
   document.getElementById("gate").classList.add("hide");
   // 게이트가 떠 있는 동안 측정된 값들을 화면이 실제로 보이는 시점에 다시 계산한다
@@ -8714,6 +8729,124 @@ function toggleZoneMenu(){
   else init();
   window.placePanels = placePanels;
 })();
+</script>
+
+<style id="memopad-style">
+/* 나만 보기일 때 대화창 → 개인 메모장 */
+#memopad{display:none;flex:1;min-height:0;flex-direction:column}
+body.share-off #memopad{display:flex}
+body.share-off #chatpin,body.share-off #chatconn,body.share-off #chatid,
+body.share-off #chatlist,body.share-off #chatform,body.share-off #chatreset{display:none !important}
+#memopad .mp-form{display:flex;flex-direction:column;gap:6px;padding:8px;border-bottom:1px solid #e5e7eb}
+#memopad textarea{width:100%;box-sizing:border-box;min-height:78px;resize:vertical;border:1px solid #dbe2ea;border-radius:9px;
+  padding:8px 10px;font-size:13px;font-family:inherit;line-height:1.45;color:#0f2540;outline:none}
+#memopad textarea:focus{border-color:#d98a00;box-shadow:0 0 0 3px rgba(217,138,0,.14)}
+#memopad .mp-form button{align-self:flex-end;border:0;border-radius:8px;background:#d98a00;color:#fff;
+  font-size:12.5px;font-weight:800;padding:7px 14px;cursor:pointer;font-family:inherit}
+#memopad .mp-filter{display:flex;gap:4px;padding:6px 8px 2px}
+#memopad .mp-filter button{flex:1;border:1px solid #e6ebf2;background:#f6f8fb;color:#5b6778;border-radius:7px;
+  font-size:11.5px;font-weight:700;padding:4px 0;cursor:pointer;font-family:inherit}
+#memopad .mp-filter button.on{background:#0f2540;border-color:#0f2540;color:#fff}
+#mp_list{flex:1;overflow-y:auto;padding:6px 8px}
+.mp-item{border:1px solid #eee3cf;background:#fffaf1;border-radius:9px;padding:8px 9px;margin-bottom:6px}
+.mp-item.done{background:#f5f6f8;border-color:#e5e7eb}
+.mp-item.done .mp-body{color:#9aa0a6;text-decoration:line-through}
+.mp-body{font-size:12.5px;color:#243447;white-space:pre-wrap;word-break:break-all;line-height:1.45}
+.mp-meta{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:10.5px;color:#9a8f7d}
+.mp-meta span{flex:1}
+.mp-meta button{border:1px solid #e6ddcc;background:#fff;border-radius:6px;font-size:10.5px;padding:2px 7px;
+  cursor:pointer;color:#5b6778;font-family:inherit}
+.mp-empty{font-size:12px;color:#9aa0a6;text-align:center;padding:24px 8px}
+.mp-note{font-size:10.5px;color:#9aa0a6;padding:6px 10px 9px;border-top:1px solid #f0f2f5}
+</style>
+<script>
+/* 개인 메모장 — localStorage(okc6_memos)에만 저장, 서버로 보내지 않는다 */
+var _memoFilter = "all";
+function loadMemos(){
+  try{ return JSON.parse(localStorage.getItem("okc6_memos") || "[]") || []; }catch(e){ return []; }
+}
+function saveMemos(list){
+  try{ localStorage.setItem("okc6_memos", JSON.stringify(list)); }
+  catch(e){ alert("메모 저장에 실패했습니다(저장 공간 부족일 수 있습니다)."); }
+}
+function memoTime(ts){
+  var d = new Date(ts), p = function(n){ return (n < 10 ? "0" : "") + n; };
+  return (d.getMonth()+1) + "/" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+function addMemo(){
+  var ta = document.getElementById("mp_txt");
+  var t = (ta.value || "").trim();
+  if(!t){ ta.focus(); return; }
+  var list = loadMemos();
+  list.push({ id: "m" + Date.now(), text: t, at: Date.now(), done: false });
+  saveMemos(list);
+  ta.value = "";
+  if(_memoFilter === "done") setMemoFilter("all"); else renderMemos();
+}
+function toggleMemo(id){
+  var list = loadMemos();
+  list.forEach(function(m){ if(m.id === id){ m.done = !m.done; m.doneAt = m.done ? Date.now() : null; } });
+  saveMemos(list); renderMemos();
+}
+function editMemo(id){
+  var list = loadMemos(), m = list.filter(function(x){ return x.id === id; })[0];
+  if(!m) return;
+  var t = prompt("메모 수정", m.text);
+  if(t === null) return;
+  t = t.trim();
+  if(!t){ return delMemo(id); }
+  m.text = t; m.editedAt = Date.now();
+  saveMemos(list); renderMemos();
+}
+function delMemo(id){
+  if(!confirm("이 메모를 삭제할까요?")) return;
+  saveMemos(loadMemos().filter(function(m){ return m.id !== id; }));
+  renderMemos();
+}
+function setMemoFilter(f){
+  _memoFilter = f;
+  ["all","open","done"].forEach(function(k){
+    var b = document.getElementById("mpf_" + k);
+    if(b) b.classList.toggle("on", k === f);
+  });
+  renderMemos();
+}
+function renderMemos(){
+  var box = document.getElementById("mp_list");
+  if(!box) return;
+  var list = loadMemos().filter(function(m){
+    return _memoFilter === "all" || (_memoFilter === "done" ? m.done : !m.done);
+  }).sort(function(a,b){
+    if(a.done !== b.done) return a.done ? 1 : -1;   // 진행중을 위로
+    return b.at - a.at;                             // 최신순
+  });
+  if(!list.length){
+    box.innerHTML = '<div class="mp-empty">' + (_memoFilter === "all" ? "아직 메모가 없습니다." : "해당하는 메모가 없습니다.") + '</div>';
+    return;
+  }
+  box.innerHTML = list.map(function(m){
+    return '<div class="mp-item' + (m.done ? ' done' : '') + '">' +
+      '<div class="mp-body">' + esc(m.text) + '</div>' +
+      '<div class="mp-meta"><span>' + memoTime(m.at) + (m.editedAt ? ' · 수정됨' : '') + '</span>' +
+      '<button onclick="toggleMemo(\'' + m.id + '\')">' + (m.done ? '되돌리기' : '✔ 완료') + '</button>' +
+      '<button onclick="editMemo(\'' + m.id + '\')">수정</button>' +
+      '<button onclick="delMemo(\'' + m.id + '\')">삭제</button></div></div>';
+  }).join("");
+}
+/* 공유 on/off에 맞춰 제목·메뉴 이름을 대화 ↔ 메모장으로 바꾼다 */
+function applyMemoMode(){
+  var memo = document.body.classList.contains("share-off");
+  var h = document.querySelector("#chat h3");
+  if(h) h.textContent = memo ? "📝 메모장 (나만 보기)" : "💬 대화";
+  var rb = document.getElementById("railb_chat");
+  if(rb) rb.innerHTML = memo ? "<span>📝</span>메모" : "<span>💬</span>대화";
+  var mt = document.getElementById("mtab_chat");
+  if(mt) mt.innerHTML = memo ? "<span>📝</span>메모" : "<span>💬</span>대화";
+  var cb = document.getElementById("chatbtn");
+  if(cb){ cb.textContent = memo ? "메모" : "대화"; cb.title = memo ? "메모장" : "대화"; }
+  if(memo) renderMemos();
+}
+applyMemoMode();
 </script>
 
 </body>
