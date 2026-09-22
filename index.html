@@ -3060,12 +3060,13 @@ function getItem(id){
 // 내장 기본 키 (담당자 별도 입력 없이 자동 적용)
 var BUILTIN_KEYS = {
   vw: "753968B6-A88B-31EA-9E57-5E33AB12B171",
+  kakao: "048061d117ce8424c4999f0a114df407",   // 카카오 JavaScript 키 (로드뷰, 등록 도메인에서만 동작)
   kmakey: "0081123d9def75096399f1427919bcccdcd215b36c2ecc83511a36f6486d727d",
   kmastn: "131"
 };
 // 내장값 우선, 없으면 사용자 설정값 사용
 function getKey(name){
-  var map = {vw:"okc6_vw", kmakey:"okc6_kmakey", kmastn:"okc6_kmastn"};
+  var map = {vw:"okc6_vw", kmakey:"okc6_kmakey", kmastn:"okc6_kmastn", kakao:"okc6_kakao"};
   if(BUILTIN_KEYS[name]) return BUILTIN_KEYS[name];
   return localStorage.getItem(map[name]) || "";
 }
@@ -3749,6 +3750,7 @@ function openItemPopup(id){
   } else {
     if(it.status === "blocked") h += '<button class="pbtn" style="background:#38bdf8;color:#fff" onclick="openReopenForm(\'' + it.id + '\')">🔵 통행재개 처리</button>';
   }
+  h += '<button class="pbtn" style="background:#e7f3e1;color:#2f6b1f" onclick="closeItemPopup();var _p=itemPos(getItem(\'' + it.id + '\'));openRoadview(_p[0],_p[1])">🛣 현장 로드뷰</button>';
   h += '<button class="pbtn" style="background:#dbeafe;color:#1e3a5f" onclick="openEditForm(\'' + it.id + '\')">✏ 수정</button>';
   h += '<button class="pbtn" style="background:#e5e7eb" onclick="removeItem(\'' + it.id + '\')">삭제</button></div></div>';
   showItemPopup(h);
@@ -4510,7 +4512,8 @@ function openRclickMenu(ll){
     '<div id="' + pid + '" style="font-size:11.5px;color:#374151;margin-bottom:6px">' + esc(reg) + '</div>' +
     zoneHtml +
     '<button onclick="rcPick(\'disaster\')" style="width:100%;border:1px solid #f0c9c5;background:#fff;color:#9a2318;border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;margin-bottom:6px">🔴 재난상황 등록</button>' +
-    '<button onclick="rcPick(\'closure\')" style="width:100%;border:1px solid #c9d7f6;background:#fff;color:#1740a6;border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer">❌ 통행차단 등록</button>' +
+    '<button onclick="rcPick(\'closure\')" style="width:100%;border:1px solid #c9d7f6;background:#fff;color:#1740a6;border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;margin-bottom:6px">❌ 통행차단 등록</button>' +
+    '<button onclick="map.closePopup();openRoadview(window._rcLL[0],window._rcLL[1])" style="width:100%;border:1px solid #d7e3d0;background:#fff;color:#2f6b1f;border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer">🛣 로드뷰 보기</button>' +
     '</div>';
   L.popup({maxWidth:240, closeButton:true}).setLatLng(ll).setContent(html).openOn(map);
   // 인터넷 가능 시 정밀 지번으로 갱신(실패해도 읍면명 유지)
@@ -8946,6 +8949,141 @@ function applyMemoMode(){
   if(memo){ renderMemos(); updateMemoSync(); }
 }
 applyMemoMode();
+</script>
+
+<style id="roadview-style">
+/* 카카오 로드뷰 창 — PC는 지도 오른쪽 절반, 모바일은 전체 화면 */
+#rvwrap{position:fixed;z-index:3000;background:#0b1624;display:none;flex-direction:column;
+  box-shadow:-8px 0 28px rgba(0,0,0,.35)}
+#rvwrap.show{display:flex}
+@media (min-width:861px){ #rvwrap{top:0;right:0;bottom:0;width:min(52vw,900px);border-left:1px solid #1f2d40} }
+@media (max-width:860px){ #rvwrap{inset:0} }
+#rvhead{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#0f2540;color:#fff;flex:none}
+#rvhead b{font-size:14px;white-space:nowrap}
+#rvaddr{flex:1;min-width:0;font-size:12px;color:#c7d3e3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rvhead button{border:0;border-radius:8px;background:rgba(255,255,255,.14);color:#fff;font-size:13px;font-weight:800;
+  padding:7px 12px;cursor:pointer;font-family:inherit}
+#rvhead button:hover{background:rgba(255,255,255,.24)}
+#rvbody{position:relative;flex:1;min-height:0}
+#roadview{position:absolute;inset:0}
+#rvmsg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;
+  color:#dbe4ef;font-size:13.5px;line-height:1.6;padding:20px;background:#0b1624}
+#rvmsg.show{display:flex}
+#rvtip{position:absolute;left:10px;bottom:10px;z-index:5;background:rgba(15,37,64,.82);color:#fff;font-size:11.5px;
+  padding:5px 9px;border-radius:8px;pointer-events:none}
+@media (max-width:860px){ #rvtip{display:none} }
+/* 지도 위 로드뷰 위치·방향 표시 */
+.rvwalker{width:34px;height:34px;margin:-17px 0 0 -17px}
+.rvwalker .rvw-cone{position:absolute;left:0;top:0;width:34px;height:34px;transform-origin:17px 17px}
+.rvwalker .rvw-dot{position:absolute;left:11px;top:11px;width:12px;height:12px;border-radius:50%;background:#16a34a;
+  border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+</style>
+<div id="rvwrap">
+  <div id="rvhead">
+    <b>🛣 로드뷰</b><span id="rvaddr"></span>
+    <button onclick="closeRoadview()">닫기 ✕</button>
+  </div>
+  <div id="rvbody">
+    <div id="roadview"></div>
+    <div id="rvmsg"></div>
+    <div id="rvtip">지도를 클릭하면 그 지점 로드뷰로 이동합니다</div>
+  </div>
+</div>
+<script>
+/* ---------- 카카오 로드뷰 (카카오 지도 없이 로드뷰만 사용) ----------
+   SDK는 로드뷰를 처음 열 때만 불러온다. 좌표는 Leaflet과 같은 WGS84 위경도. */
+var _kkLoading = null, _rv = null, _rvClient = null, _rvWalker = null, _rvOpen = false;
+function loadKakaoSDK(){
+  if(window.kakao && kakao.maps && kakao.maps.Roadview) return Promise.resolve();
+  if(_kkLoading) return _kkLoading;
+  _kkLoading = new Promise(function(resolve, reject){
+    var key = getKey("kakao");
+    if(!key){ reject(new Error("카카오 JavaScript 키가 없습니다.")); return; }
+    var sc = document.createElement("script");
+    sc.src = "https://dapi.kakao.com/v2/maps/sdk.js?appkey=" + encodeURIComponent(key) + "&autoload=false";
+    sc.onload = function(){
+      if(!window.kakao || !kakao.maps){ reject(new Error("SDK 응답이 올바르지 않습니다.")); return; }
+      kakao.maps.load(function(){ resolve(); });
+    };
+    sc.onerror = function(){ reject(new Error("카카오 SDK를 불러오지 못했습니다.")); };
+    document.head.appendChild(sc);
+  });
+  _kkLoading.catch(function(){ _kkLoading = null; });
+  return _kkLoading;
+}
+function rvMsg(t){
+  var m = document.getElementById("rvmsg");
+  if(!t){ m.classList.remove("show"); m.innerHTML = ""; return; }
+  m.innerHTML = t; m.classList.add("show");
+}
+function openRoadview(lat, lng){
+  if(!isFinite(lat) || !isFinite(lng)) return;
+  var wrap = document.getElementById("rvwrap");
+  wrap.classList.add("show"); _rvOpen = true;
+  document.getElementById("rvaddr").textContent = "";
+  rvMsg("로드뷰를 불러오는 중…");
+  try{ autoFillLocation(lat, lng, "rvaddr", ""); }catch(e){}
+  loadKakaoSDK().then(function(){
+    if(!_rv){
+      _rv = new kakao.maps.Roadview(document.getElementById("roadview"));
+      _rvClient = new kakao.maps.RoadviewClient();
+      kakao.maps.event.addListener(_rv, "init", rvSync);
+      kakao.maps.event.addListener(_rv, "position_changed", rvSync);
+      kakao.maps.event.addListener(_rv, "viewpoint_changed", rvSync);
+    }
+    rvGoto(lat, lng, 50);
+  }).catch(function(err){
+    rvMsg("⚠ 로드뷰를 불러오지 못했습니다.<br><small>" + esc(err.message || String(err)) +
+      "<br>카카오 디벨로퍼스에서 JavaScript SDK 도메인 등록과 카카오맵 사용 설정(ON)을 확인해 주세요.</small>");
+  });
+}
+function rvGoto(lat, lng, radius){
+  var pos = new kakao.maps.LatLng(lat, lng);
+  _rvClient.getNearestPanoId(pos, radius, function(panoId){
+    if(panoId === null || panoId === undefined){
+      if(radius < 150) return rvGoto(lat, lng, 150);   // 50m 안에 없으면 150m까지 넓혀 본다
+      rvMsg("이 지점 근처(150m 이내)에는 로드뷰 사진이 없습니다.<br><small>도로 가까운 곳을 다시 선택해 보세요.</small>");
+      return;
+    }
+    rvMsg("");
+    _rv.setPanoId(panoId, pos);
+    setTimeout(function(){ try{ _rv.relayout(); }catch(e){} }, 50);
+  });
+}
+/* 로드뷰에서 보는 위치·방향을 Leaflet 지도에 표시 */
+function rvSync(){
+  if(!_rv || !_rvOpen) return;
+  var p = _rv.getPosition(), vp = _rv.getViewpoint();
+  if(!p) return;
+  var ll = [p.getLat(), p.getLng()], pan = vp ? vp.pan : 0;
+  var html = '<svg class="rvw-cone" viewBox="0 0 34 34" style="transform:rotate(' + pan + 'deg)">' +
+    '<path d="M17 17 L7 1 A18 18 0 0 1 27 1 Z" fill="rgba(22,163,74,.45)" stroke="#16a34a" stroke-width="1"/></svg>' +
+    '<div class="rvw-dot"></div>';
+  if(!_rvWalker){
+    _rvWalker = L.marker(ll, { interactive:false, zIndexOffset:2000,
+      icon: L.divIcon({ className:"rvwalker", html: html, iconSize:[34,34], iconAnchor:[17,17] }) }).addTo(map);
+  } else {
+    _rvWalker.setLatLng(ll);
+    var el = _rvWalker.getElement();
+    if(el) el.innerHTML = html;
+  }
+  if(!map.getBounds().pad(-0.15).contains(ll)) map.panTo(ll);
+}
+function closeRoadview(){
+  document.getElementById("rvwrap").classList.remove("show");
+  _rvOpen = false;
+  if(_rvWalker){ map.removeLayer(_rvWalker); _rvWalker = null; }
+}
+/* 로드뷰가 열려 있으면 지도 클릭 지점으로 로드뷰를 옮긴다 (통제선 그리는 중엔 제외) */
+map.on("click", function(e){
+  if(!_rvOpen || !_rv) return;
+  if(document.querySelector(".crosshair")) return;
+  rvMsg("로드뷰를 불러오는 중…");
+  try{ autoFillLocation(e.latlng.lat, e.latlng.lng, "rvaddr", ""); }catch(err){}
+  rvGoto(e.latlng.lat, e.latlng.lng, 50);
+});
+document.addEventListener("keydown", function(e){ if(e.key === "Escape" && _rvOpen) closeRoadview(); });
+window.addEventListener("resize", function(){ if(_rv && _rvOpen){ try{ _rv.relayout(); }catch(e){} } });
 </script>
 
 </body>
