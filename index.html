@@ -1797,7 +1797,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   </div>
 </div>
 <div id="chat">
-  <h3>💬 대화</h3>
+  <h3><span id="chattitle">💬 대화</span></h3>
   <div id="chatpin"></div>
   <div id="chatconn" onclick="showOnlineUsers()" title="접속자 보기">
     <span class="ccdot"></span><b id="cc_txt">연결 확인 중…</b>
@@ -7672,7 +7672,13 @@ function railSel(key){
     if(typeof map !== "undefined" && map) setTimeout(function(){ map.invalidateSize(); }, 220);
     return;
   }
-  if(key === "chat"){ if(typeof toggleChat === "function") toggleChat(); railMark(ids.chat); return; }
+  if(key === "chat"){
+    // 로드뷰가 열려 있으면 로드뷰 위에 띄우는 창으로 연다
+    if(typeof chatFloatToggle === "function" && typeof _rvOpen !== "undefined" && _rvOpen && window.innerWidth > 860){
+      chatFloatToggle(); railMark(ids.chat); return;
+    }
+    if(typeof toggleChat === "function") toggleChat(); railMark(ids.chat); return;
+  }
   if(key === "alarm"){ if(typeof openAlarmSettings === "function") openAlarmSettings(); return; }
 }
 function railMark(id){
@@ -8938,7 +8944,7 @@ function renderMemos(){
 /* 공유 on/off에 맞춰 제목·메뉴 이름을 대화 ↔ 메모장으로 바꾼다 */
 function applyMemoMode(){
   var memo = document.body.classList.contains("share-off");
-  var h = document.querySelector("#chat h3");
+  var h = document.getElementById("chattitle") || document.querySelector("#chat h3");
   if(h) h.textContent = memo ? "📝 메모장 (나만 보기)" : "💬 대화";
   var rb = document.getElementById("railb_chat");
   if(rb) rb.innerHTML = memo ? "<span>📝</span>메모" : "<span>💬</span>대화";
@@ -9216,6 +9222,137 @@ function rvKeepVisible(){
 }
 document.addEventListener("keydown", function(e){ if(e.key === "Escape" && _rvOpen) closeRoadview(); });
 window.addEventListener("resize", function(){ if(_rv && _rvOpen){ try{ _rv.relayout(); }catch(e){} } });
+</script>
+
+<style id="chatfloat-style">
+/* 로드뷰 위에 띄우는 대화·메모장 창 (PC) */
+#chat.floating{position:fixed;z-index:3200;width:420px;height:420px;min-width:280px;min-height:240px;
+  border:1px solid #cfd8e3;border-left:1px solid #cfd8e3;border-radius:14px;overflow:hidden;
+  box-shadow:0 18px 46px rgba(0,0,0,.38);transition:none}
+#chat.floating h3{cursor:move;user-select:none;display:flex;align-items:center;gap:6px;
+  background:#0f2540;color:#fff;margin:0;padding:9px 10px;font-size:13px}
+body.share-off #chat.floating h3{background:#8a5411}
+#chat.floating #chatfloatbtns{margin-left:auto;display:flex;gap:4px}
+#chat.floating #chatfloatbtns button{border:0;border-radius:7px;background:rgba(255,255,255,.16);color:#fff;
+  font-size:12px;font-weight:800;padding:4px 9px;cursor:pointer;font-family:inherit}
+#chat.floating #chatfloatbtns button:hover{background:rgba(255,255,255,.3)}
+#chat.floating #chatgrip{position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;z-index:5}
+#chat.floating #chatgrip::after{content:"";position:absolute;right:4px;bottom:4px;width:8px;height:8px;
+  border-right:2px solid #98a5b5;border-bottom:2px solid #98a5b5}
+#chat.floating.dragging{opacity:.94}
+#chatfloatbtns,#chatgrip{display:none}
+#chat.floating #chatfloatbtns,#chat.floating #chatgrip{display:flex}
+</style>
+<script>
+/* ---------- 대화·메모장을 로드뷰 위에 띄우기 (PC 전용) ---------- */
+(function(){
+  var el, h3, btns, grip, floating = false;
+  function ready(){
+    el = document.getElementById("chat");
+    if(!el) return false;
+    h3 = el.querySelector("h3");
+    if(!btns){
+      btns = document.createElement("span");
+      btns.id = "chatfloatbtns";
+      btns.innerHTML = '<button title="원래 자리로">↩ 고정</button><button title="닫기">✕</button>';
+      btns.children[0].onclick = function(e){ e.stopPropagation(); chatFloat(false); };
+      btns.children[1].onclick = function(e){ e.stopPropagation(); chatFloat(false); el.classList.add("collapsed"); };
+      h3.appendChild(btns);
+      grip = document.createElement("div");
+      grip.id = "chatgrip";
+      el.appendChild(grip);
+      bindDrag();
+    }
+    return true;
+  }
+  function defaultBox(){
+    var w = 420, h = 420;
+    var rv = document.getElementById("rvwrap");
+    var right = (rv && rv.classList.contains("show")) ? rv.getBoundingClientRect().left : window.innerWidth;
+    var left = Math.max(70, right - w - 16);
+    return { left: left, top: Math.max(64, Math.round(window.innerHeight * 0.18)), w: w, h: h };
+  }
+  function place(b){
+    b.w = Math.max(280, Math.min(window.innerWidth - 40, b.w));
+    b.h = Math.max(240, Math.min(window.innerHeight - 40, b.h));
+    b.left = Math.max(0, Math.min(window.innerWidth - b.w, b.left));
+    b.top = Math.max(0, Math.min(window.innerHeight - 60, b.top));
+    el.style.left = b.left + "px"; el.style.top = b.top + "px";
+    el.style.width = b.w + "px"; el.style.height = b.h + "px";
+    el.style.right = "auto"; el.style.bottom = "auto";
+    try{ localStorage.setItem("okc6_chatbox", JSON.stringify(b)); }catch(e){}
+  }
+  function savedBox(){
+    try{ var b = JSON.parse(localStorage.getItem("okc6_chatbox") || "null"); if(b && b.w) return b; }catch(e){}
+    return null;
+  }
+  function bindDrag(){
+    var mode = "", sx = 0, sy = 0, box = null;
+    function start(m){
+      return function(e){
+        if(!floating) return;
+        mode = m; sx = e.clientX; sy = e.clientY;
+        box = { left: el.offsetLeft, top: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+        el.classList.add("dragging");
+        try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(err){}
+        e.preventDefault();
+      };
+    }
+    function move(e){
+      if(!mode) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if(mode === "move") place({ left: box.left + dx, top: box.top + dy, w: box.w, h: box.h });
+      else place({ left: box.left, top: box.top, w: box.w + dx, h: box.h + dy });
+    }
+    function end(e){
+      if(!mode) return;
+      mode = ""; el.classList.remove("dragging");
+      try{ e.currentTarget.releasePointerCapture(e.pointerId); }catch(err){}
+    }
+    h3.addEventListener("pointerdown", start("move"));
+    h3.addEventListener("pointermove", move);
+    h3.addEventListener("pointerup", end);
+    h3.addEventListener("pointercancel", end);
+    grip.addEventListener("pointerdown", start("size"));
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", end);
+    grip.addEventListener("pointercancel", end);
+  }
+  window.chatFloat = function(on){
+    if(!ready() || window.innerWidth <= 860) return;
+    floating = !!on;
+    if(floating){
+      el.classList.remove("collapsed");
+      el.classList.add("floating");
+      place(savedBox() || defaultBox());
+      var t = document.getElementById("chattoggle"); if(t) t.style.display = "none";
+    } else {
+      el.classList.remove("floating");
+      el.style.cssText = "";
+      var t2 = document.getElementById("chattoggle"); if(t2) t2.style.display = "";
+    }
+    try{ if(map) setTimeout(function(){ map.invalidateSize(); }, 200); }catch(e){}
+  };
+  window.chatFloatToggle = function(){
+    if(!ready()) return;
+    if(el.classList.contains("floating")) chatFloat(false);
+    else chatFloat(true);
+  };
+  window.chatIsFloating = function(){ return !!(el && el.classList.contains("floating")); };
+  window.addEventListener("resize", function(){
+    if(!floating) return;
+    if(window.innerWidth <= 860){ chatFloat(false); return; }
+    place({ left: el.offsetLeft, top: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
+  });
+})();
+/* 로드뷰를 닫으면 띄운 창도 원래 자리로 되돌린다 */
+(function(){
+  var raw = window.closeRoadview;
+  window.closeRoadview = function(fromMode){
+    raw(fromMode);
+    try{ if(window.chatIsFloating && chatIsFloating()) chatFloat(false); }catch(e){}
+  };
+})();
 </script>
 
 </body>
