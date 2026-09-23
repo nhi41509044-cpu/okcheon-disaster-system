@@ -6061,7 +6061,7 @@ function makeHwpxReport(from, to, title, damage){
 
   var now = new Date(serverNow());
   JSZip.loadAsync(buf).then(function(zip){
-    return zip.file("Contents/section0.xml").async("string").then(function(sec){
+    return hxRead(zip, "Contents/section0.xml").then(function(sec){
       var out = hxBuildSection(sec, rows, title, hxBasis(now), hxDateLine(now), damage);
       zip.file("Contents/section0.xml", out);
       return repackHwpx(zip);
@@ -6100,17 +6100,25 @@ function hxFillDamage(){
 
 // hwpx(=zip)는 mimetype 항목이 반드시 "첫 번째"에 "무압축"으로 들어가야 한글이 정상 인식한다.
 // JSZip의 기본 generateAsync는 이 규칙을 지키지 않아 "손상된 파일"로 뜨므로 직접 재구성한다.
+/* hwpx 안의 파일을 안전하게 읽는다. 없으면 어느 파일인지 알려준다. */
+function hxRead(zip, path, type){
+  var f = zip.file(path);
+  if(!f) throw new Error("문서 템플릿에서 '" + path + "' 파일을 찾지 못했습니다.");
+  return f.async(type || "string");
+}
 function repackHwpx(zip){
   var out = new JSZip();
   var names = [];
   zip.forEach(function(path, file){ if(!file.dir) names.push(path); });
-  return zip.file("mimetype").async("uint8array").then(function(mt){
+  return hxRead(zip, "mimetype", "uint8array").then(function(mt){
     out.file("mimetype", mt, {compression:"STORE", createFolders:false});   // 첫 항목 · 무압축
     var chain = Promise.resolve();
     names.forEach(function(n){
       if(n === "mimetype") return;
       chain = chain.then(function(){
-        return zip.file(n).async("uint8array").then(function(d){ out.file(n, d, {createFolders:false}); });
+        var f = zip.file(n);
+        if(!f) return;   // 중간에 지워진 항목은 건너뛴다
+        return f.async("uint8array").then(function(d){ out.file(n, d, {createFolders:false}); });
       });
     });
     return chain.then(function(){
@@ -6816,7 +6824,7 @@ function makeTrendReport(it){
       var mapB64 = mapImg && mapImg.b64, p1 = p1Img && p1Img.b64, p2 = p2Img && p2Img.b64;
       var extraImgs = imgs.slice(3);   // extraPhotos와 같은 순서
       return JSZip.loadAsync(buf).then(function(zip){
-        return zip.file("Contents/section0.xml").async("string").then(function(sec){
+        return hxRead(zip, "Contents/section0.xml").then(function(sec){
           // 내용이 비어 있는 조치사항 줄은 기호(-)까지 통째로 지운다
       for(var i2 = 1; i2 <= 3; i2++){
         if(!map["__ACT" + i2 + "__"]){
@@ -6868,7 +6876,7 @@ function makeTrendReport(it){
             zip.file("BinData/" + r.imgId1 + ".jpg", img.b64, {base64:true});
             zip.file("BinData/" + r.imgId2 + ".jpg", img2.b64, {base64:true});
           });
-          return zip.file("Contents/content.hpf").async("string").then(function(hpf){
+          return hxRead(zip, "Contents/content.hpf").then(function(hpf){
             if(mapB64){
               hpf = hpf.replace('href="BinData/image2.bmp" media-type="image/bmp"',
                                 'href="BinData/image2.jpg" media-type="image/jpg"');
@@ -6908,7 +6916,8 @@ function makeTrendReport(it){
   }).catch(function(err){
     setCadLoadingUI(false);
     console.error(err);
-    alert("동향보고 생성 중 오류가 발생했습니다.\n" + err);
+    alert("동향보고 생성 중 오류가 발생했습니다.\n" + (err && err.message ? err.message : err) +
+      "\n\n같은 오류가 또 나면 F12 콘솔의 빨간 오류 내용을 알려주세요.");
   });
   return true;
 }
