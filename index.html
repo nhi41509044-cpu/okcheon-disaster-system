@@ -252,6 +252,28 @@ body.share-off #shareBanner{display:block}
 #mbody input[type=text],#mbody input[type=datetime-local],#mbody input[type=date],#mbody select,#mbody textarea{width:100%;border:1px solid #d1d5db;border-radius:6px;padding:7px;font-size:12.5px;font-family:inherit}
 #mbody textarea{height:64px;resize:vertical}
 #thumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+/* 피해자 여러 명 입력 */
+.vcrow{border:1px solid #e5e7eb;border-radius:9px;padding:8px;margin-bottom:6px;background:#fafbfc}
+.vchead{display:flex;align-items:center;margin-bottom:5px}
+.vchead b{font-size:11.5px;color:#b91c1c;letter-spacing:-.02em}
+.vcdel{margin-left:auto;border:1px solid #e5e7eb;background:#fff;color:#6b7280;border-radius:6px;
+  font-size:11px;padding:2px 8px;cursor:pointer;font-family:inherit}
+.vcdel:hover{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+.vcadd{width:100%;border:1px dashed #cbd5e1;background:#fff;color:#475569;border-radius:8px;
+  font-size:12px;font-weight:700;padding:8px;cursor:pointer;font-family:inherit}
+.vcadd:hover{border-color:#94a3b8;background:#f8fafc}
+/* 사진 끌어다 놓기 영역 */
+.dropzone{position:relative;display:flex;align-items:center;gap:10px;padding:12px;cursor:pointer;
+  border:2px dashed #cbd5e1;border-radius:11px;background:#f8fafc;transition:.15s}
+.dropzone:hover{border-color:#94a3b8;background:#f1f5f9}
+.dropzone.over{border-color:#16a34a;background:#eefbf2;border-style:solid}
+.dropzone.busy{opacity:.65;pointer-events:none}
+.dropzone .dz-ico{font-size:22px;line-height:1;flex:none}
+.dropzone .dz-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dropzone .dz-txt b{font-size:12.5px;color:#334155}
+.dropzone.over .dz-txt b{color:#15803d}
+.dropzone .dz-txt span{font-size:11px;color:#8b98a8}
+.dropzone input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .thumb-wrap{position:relative;display:inline-block}
 .thumb-wrap img{width:72px;height:72px;object-fit:cover;border-radius:6px;display:block}
 .thumb-del{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#dc2626;color:#fff;border:2px solid #fff;font-size:12px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -2889,6 +2911,34 @@ function removeItem(id){
   closeItemPopup();
   renderAll();
 }
+/* 상황을 공유 ↔ 나만 보기로 옮긴다.
+   공유로 옮기면 개인공간에서 지우고 공유 저장소에 쓰고, 반대면 그 반대로 한다. */
+function moveItemShare(id, toShared){
+  var it = getItem(id);
+  if(!it) return;
+  if(!!it.private !== !!toShared){ return; }   // 이미 그 상태면 아무것도 하지 않는다
+  var msg = toShared
+    ? "이 상황을 공유로 옮깁니다.\n다른 담당자 모두에게 보이게 됩니다. 계속할까요?"
+    : "이 상황을 나만 보기로 옮깁니다.\n다른 담당자 화면에서는 사라집니다. 계속할까요?";
+  if(!confirm(msg)) return;
+  if(toShared){
+    if(personalRef){ try{ personalRef.child("items/" + id).remove(); }catch(e){} }
+    delete it.private;
+  } else {
+    if(itemsRef){ try{ itemsRef.child(id).remove(); }catch(e){} }
+    it.private = true;
+  }
+  saveItem(it);   // 바뀐 상태에 맞는 저장소로 기록된다
+  map.closePopup();
+  closeItemPopup();
+  renderAll();
+  var nowVisible = (!!it.private === !shareOn);
+  if(nowVisible){ return; }
+  if(confirm((toShared ? "공유로 옮겼습니다." : "나만 보기로 옮겼습니다.") +
+             "\n지금 화면에서는 보이지 않습니다. " + (toShared ? "공유" : "나만 보기") + " 모드로 전환할까요?")){
+    toggleShareMode();
+  }
+}
 function restoreItem(id){
   var it = getItem(id);
   if(!it) return;
@@ -3716,9 +3766,16 @@ function openItemPopup(id){
   if(it.reporterName || it.reporterTel){
     h += '<div style="font-size:11.5px;color:#374151;margin-top:3px">신고자: ' + esc(it.reporterName || "") + (it.reporterTel ? " ☏" + esc(it.reporterTel) : "") + "</div>";
   }
-  if(it.victimName || it.victimTel || it.victimAddr || it.victimAction){
-    h += '<div style="font-size:11.5px;color:#b91c1c;margin-top:3px">피해자: ' + esc(it.victimName || "") + (it.victimTel ? " ☏" + esc(it.victimTel) : "") +
-      (it.victimAddr ? " · " + esc(it.victimAddr) : "") + (it.victimAction ? "<br>　조치: " + esc(it.victimAction) : "") + "</div>";
+  var _vlist = itemVictims(it);
+  if(_vlist.length){
+    h += '<div style="font-size:11.5px;color:#b91c1c;margin-top:3px">';
+    _vlist.forEach(function(v, i){
+      h += (i ? '<div style="margin-top:3px">' : '<div>') +
+        '피해자' + (_vlist.length > 1 ? " " + (i + 1) : "") + ': ' + esc(v.name || "") +
+        (v.tel ? " ☏" + esc(v.tel) : "") + (v.addr ? " · " + esc(v.addr) : "") +
+        (v.act ? "<br>　조치: " + esc(v.act) : "") + '</div>';
+    });
+    h += "</div>";
   }
   if(it.deleted){
     h += '<div class="note" style="color:#b91c1c">🗑 삭제된 기록입니다' + (it.deletedAt ? " (" + fmt(new Date(it.deletedAt).toISOString()) + " 삭제)" : "") + '</div>';
@@ -3752,6 +3809,11 @@ function openItemPopup(id){
     if(it.status === "blocked") h += '<button class="pbtn" style="background:#38bdf8;color:#fff" onclick="openReopenForm(\'' + it.id + '\')">🔵 통행재개 처리</button>';
   }
   h += '<button class="pbtn" style="background:#e7f3e1;color:#2f6b1f" onclick="closeItemPopup();var _p=itemPos(getItem(\'' + it.id + '\'));openRoadview(_p[0],_p[1])">🛣 현장 로드뷰</button>';
+  if(it.private){
+    h += '<button class="pbtn" style="background:#fff0d6;color:#8a5411" onclick="moveItemShare(\'' + it.id + '\', true)">🔗 공유로 옮기기</button>';
+  } else {
+    h += '<button class="pbtn" style="background:#f1f3f6;color:#4b5563" onclick="moveItemShare(\'' + it.id + '\', false)">🔒 나만 보기로 옮기기</button>';
+  }
   h += '<button class="pbtn" style="background:#dbeafe;color:#1e3a5f" onclick="openEditForm(\'' + it.id + '\')">✏ 수정</button>';
   h += '<button class="pbtn" style="background:#e5e7eb" onclick="removeItem(\'' + it.id + '\')">삭제</button></div></div>';
   showItemPopup(h);
@@ -4046,6 +4108,7 @@ function openModal(title, body, onOk, initPhotos, wide){
   document.getElementById("mbody").classList.toggle("mbody-2col", !!wide);
   _photos = Array.isArray(initPhotos) ? initPhotos.slice() : [];
   bindPhotoInput();
+  renderVictims();   // 피해자 입력칸이 있는 폼이면 그려 준다
   document.getElementById("mok").onclick = function(){
     if(onOk() !== false) closeModal();
   };
@@ -4053,6 +4116,13 @@ function openModal(title, body, onOk, initPhotos, wide){
 function closeModal(){
   document.getElementById("ovl").style.display = "none";
 }
+// 화면 아무 곳에나 파일을 떨어뜨렸을 때 브라우저가 그 파일을 열어버리는 것을 막는다
+["dragover","drop"].forEach(function(ev){
+  window.addEventListener(ev, function(e){
+    var dt = e.dataTransfer;
+    if(dt && dt.types && Array.prototype.indexOf.call(dt.types, "Files") >= 0) e.preventDefault();
+  });
+});
 function compress(file){
   return new Promise(function(res){
     var rd = new FileReader();
@@ -4074,10 +4144,76 @@ function compress(file){
     rd.readAsDataURL(file);
   });
 }
+/* ---------- 피해자 여러 명 입력 ----------
+   it.victims = [{name,tel,addr,act}]. 예전 자료(victimName 등 단일 항목)도 그대로 읽는다. */
+var _victims = [];
+function itemVictims(it){
+  if(it && it.victims && it.victims.length) return it.victims;
+  if(it && (it.victimName || it.victimTel || it.victimAddr || it.victimAction)){
+    return [{ name: it.victimName || "", tel: it.victimTel || "",
+              addr: it.victimAddr || "", act: it.victimAction || "" }];
+  }
+  return [];
+}
+function fieldVictims(it){
+  _victims = itemVictims(it).map(function(v){
+    return { name: v.name || "", tel: v.tel || "", addr: v.addr || "", act: v.act || "" };
+  });
+  if(!_victims.length) _victims.push({ name:"", tel:"", addr:"", act:"" });
+  return '<div class="fitem"><label>피해자 인적사항 <span class="note" style="font-weight:400">(인명피해 발생 시, 여러 명 추가 가능)</span></label>' +
+    '<div id="vclist"></div>' +
+    '<button type="button" class="vcadd" onclick="addVictim()">＋ 피해자 추가</button></div>';
+}
+function addVictim(){
+  _victims.push({ name:"", tel:"", addr:"", act:"" });
+  renderVictims();
+  var box = document.getElementById("vclist");
+  if(box && box.lastChild){
+    var inp = box.lastChild.querySelector("input");
+    if(inp) inp.focus();
+  }
+}
+function delVictim(i){
+  _victims.splice(i, 1);
+  if(!_victims.length) _victims.push({ name:"", tel:"", addr:"", act:"" });
+  renderVictims();
+}
+function setVictim(i, k, v){ if(_victims[i]) _victims[i][k] = v; }
+function renderVictims(){
+  var box = document.getElementById("vclist");
+  if(!box) return;
+  box.innerHTML = "";
+  _victims.forEach(function(v, i){
+    var d = document.createElement("div");
+    d.className = "vcrow";
+    d.innerHTML =
+      '<div class="vchead"><b>피해자 ' + (i + 1) + '</b>' +
+      (_victims.length > 1 || v.name || v.tel || v.addr || v.act
+        ? '<button type="button" class="vcdel" onclick="delVictim(' + i + ')">삭제</button>' : '') + '</div>' +
+      '<div class="frow2">' +
+        '<input type="text" placeholder="성함" value="' + esc(v.name) + '" oninput="setVictim(' + i + ',\'name\',this.value)">' +
+        '<input type="text" placeholder="연락처" value="' + esc(v.tel) + '" oninput="setVictim(' + i + ',\'tel\',this.value)">' +
+      '</div>' +
+      '<input type="text" placeholder="주소" value="' + esc(v.addr) + '" style="margin-top:6px" oninput="setVictim(' + i + ',\'addr\',this.value)">' +
+      '<input type="text" placeholder="조치사항 (예: 충남대병원 이송)" value="' + esc(v.act) + '" style="margin-top:6px" oninput="setVictim(' + i + ',\'act\',this.value)">';
+    box.appendChild(d);
+  });
+}
+function collectVictims(){
+  return _victims.map(function(v){
+    return { name:(v.name||"").trim(), tel:(v.tel||"").trim(),
+             addr:(v.addr||"").trim(), act:(v.act||"").trim() };
+  }).filter(function(v){ return v.name || v.tel || v.addr || v.act; });
+}
+function vc0(list, k){ return (list && list[0] && list[0][k]) || ""; }
 function fieldPhotos(existing){
-  var thumbs = "";
   return '<label>사진 첨부 (여러 장 가능, 자동 압축)</label>' +
-    '<input type="file" id="f_photos" accept="image/*" multiple>' +
+    '<div id="photodrop" class="dropzone">' +
+      '<div class="dz-ico">🖼</div>' +
+      '<div class="dz-txt"><b>사진을 여기로 끌어다 놓으세요</b>' +
+      '<span>또는 눌러서 선택 · 붙여넣기(Ctrl+V)도 됩니다</span></div>' +
+      '<input type="file" id="f_photos" accept="image/*" multiple>' +
+    '</div>' +
     '<div id="thumbs" class="thumbs"></div>';
 }
 // 썸네일 다시 그리기 (삭제 버튼 포함)
@@ -4152,23 +4288,73 @@ function removeTlStage(idx){
     if(btn2) btn2.textContent = "🗑 이 단계 삭제";
   }
 }
+// 파일 목록을 받아 이미지만 골라 압축해 넣는다 (선택·드래그·붙여넣기 공통)
+function addPhotoFiles(list){
+  var files = Array.prototype.slice.call(list || []).filter(function(f){
+    return f && (f.type ? /^image\//.test(f.type) : /\.(jpe?g|png|gif|webp|bmp|heic)$/i.test(f.name || ""));
+  });
+  if(!files.length) return Promise.resolve(0);
+  var dz = document.getElementById("photodrop");
+  if(dz) dz.classList.add("busy");
+  var chain = Promise.resolve(), ok = 0;
+  files.forEach(function(file){
+    chain = chain.then(function(){
+      return compress(file).then(function(du){
+        _photos.push(du); ok++; renderThumbs();
+      }).catch(function(){ /* 읽지 못한 파일은 건너뛴다 */ });
+    });
+  });
+  return chain.then(function(){
+    if(dz) dz.classList.remove("busy");
+    return ok;
+  });
+}
 // 사진 input 이벤트 연결 (등록/수정 폼 공통)
 function bindPhotoInput(){
   var f = document.getElementById("f_photos");
   if(!f) return;
   f.onchange = function(){
-    var files = Array.prototype.slice.call(f.files);
-    var chain = Promise.resolve();
-    files.forEach(function(file){
-      chain = chain.then(function(){
-        return compress(file).then(function(du){
-          _photos.push(du);
-          renderThumbs();
-        });
+    addPhotoFiles(f.files).then(function(){ f.value = ""; }); // 같은 파일 다시 선택 가능하게
+  };
+  // 드롭·붙여넣기는 한 번만 연결한다 (폼을 다시 열어도 중복되지 않게)
+  if(!window._photoDropBound){
+    window._photoDropBound = true;
+    var depth = 0;
+    function curDz(){ return document.getElementById("photodrop"); }
+    function hasFiles(e){
+      var dt = e.dataTransfer;
+      return !!(dt && dt.types && Array.prototype.indexOf.call(dt.types, "Files") >= 0);
+    }
+    // 폼 어디에 떨어뜨려도 받도록 문서 전체에서 처리하되, 사진 폼이 열려 있을 때만 동작한다
+    document.addEventListener("dragenter", function(e){
+      var dz = curDz(); if(!dz || !hasFiles(e)) return;
+      e.preventDefault(); depth++; dz.classList.add("over");
+    });
+    document.addEventListener("dragover", function(e){
+      var dz = curDz(); if(!dz || !hasFiles(e)) return;
+      e.preventDefault();
+      try{ e.dataTransfer.dropEffect = "copy"; }catch(err){}
+    });
+    document.addEventListener("dragleave", function(e){
+      var dz = curDz(); if(!dz || !hasFiles(e)) return;
+      depth = Math.max(0, depth - 1);
+      if(!depth) dz.classList.remove("over");
+    });
+    document.addEventListener("drop", function(e){
+      var dz = curDz(); if(!dz || !hasFiles(e)) return;
+      e.preventDefault(); e.stopPropagation();
+      depth = 0; dz.classList.remove("over");
+      addPhotoFiles(e.dataTransfer.files).then(function(n){
+        if(!n) alert("이미지 파일만 첨부할 수 있습니다.");
       });
     });
-    chain.then(function(){ f.value = ""; }); // 같은 파일 다시 선택 가능하게
-  };
+    // 캡처 화면 등을 Ctrl+V로 바로 붙여넣기
+    document.addEventListener("paste", function(e){
+      if(!curDz()) return;
+      var fs = e.clipboardData && e.clipboardData.files;
+      if(fs && fs.length){ e.preventDefault(); addPhotoFiles(fs); }
+    });
+  }
   renderThumbs();
 }
 function selHtml(id, arr, sel){
@@ -4297,11 +4483,7 @@ function openDisasterFormDirect(){
     '<div class="fitem"><label>신고자 <span class="note" style="font-weight:400">(선택)</span></label>' +
     '<div class="frow2"><input type="text" id="f_rpname" placeholder="성함"><input type="text" id="f_rptel" placeholder="연락처"></div></div>' +
     '<div class="fitem"><label>인명피해(명)</label><input type="text" id="f_ppl" value="0" inputmode="numeric" pattern="[0-9]*"></div>' +
-    '<div class="fitem"><label>피해자 인적사항 <span class="note" style="font-weight:400">(인명피해 발생 시)</span></label>' +
-    '<div class="frow2"><input type="text" id="f_vcname" placeholder="성함"><input type="text" id="f_vctel" placeholder="연락처"></div></div>' +
-    '<div class="fitem"><label>피해자 주소·조치사항</label>' +
-    '<input type="text" id="f_vcaddr" placeholder="주소">' +
-    '<input type="text" id="f_vcact" placeholder="조치사항 (예: 충남대병원 이송)" style="margin-top:6px"></div>' +
+    fieldVictims(null) +
     '<div class="fitem"><label>시설물피해</label><input type="text" id="f_fac" placeholder="예: 주택 침수 2동, 축대 붕괴 등"></div>' +
     '<div class="fitem"><label>등록자(담당자)</label><input type="text" id="f_mgr"></div>' +
     '<div class="full"><label>상황 내용</label><textarea id="f_desc" placeholder="어떤 상황이 전개되었는지 기록"></textarea></div>' +
@@ -4319,10 +4501,10 @@ function openDisasterFormDirect(){
         var lat, lng;
         if(pos){ lat = pos.lat; lng = pos.lng; }
         else { lat = 36.306; lng = 127.571; } // 못 찾으면 옥천읍 중심
-        var _types = typeMultiVals("f_type"), _cause = causeVal("f_cause");
+        var _types = typeMultiVals("f_type"), _cause = causeVal("f_cause"), _vcs = collectVictims();
         _types.forEach(function(_ty){
           saveItem({id:uid(), kind:"disaster", type:_ty, cause:_cause, status:"occur", private:!shareOn, lat:lat, lng:lng,
-            location:loc, peopleDamage:val("f_ppl") || "0", reporterName:val("f_rpname"), reporterTel:val("f_rptel"), victimName:val("f_vcname"), victimTel:val("f_vctel"), victimAddr:val("f_vcaddr"), victimAction:val("f_vcact"), facilityDamage:val("f_fac"), t0:t, createdAt:Date.now(),
+            location:loc, peopleDamage:val("f_ppl") || "0", reporterName:val("f_rpname"), reporterTel:val("f_rptel"), victims:_vcs, victimName:vc0(_vcs,"name"), victimTel:vc0(_vcs,"tel"), victimAddr:vc0(_vcs,"addr"), victimAction:vc0(_vcs,"act"), facilityDamage:val("f_fac"), t0:t, createdAt:Date.now(),
             timeline:[{stage:"occur", time:t, desc:val("f_desc"), manager:val("f_mgr"), photos:_photos.slice()}]});
         });
         closeModal();
@@ -4621,11 +4803,7 @@ function openDisasterForm(ll, preLoc){
     '<div class="fitem"><label>신고자 <span class="note" style="font-weight:400">(선택)</span></label>' +
     '<div class="frow2"><input type="text" id="f_rpname" placeholder="성함"><input type="text" id="f_rptel" placeholder="연락처"></div></div>' +
     '<div class="fitem"><label>인명피해(명)</label><input type="text" id="f_ppl" value="0" inputmode="numeric" pattern="[0-9]*"></div>' +
-    '<div class="fitem"><label>피해자 인적사항 <span class="note" style="font-weight:400">(인명피해 발생 시)</span></label>' +
-    '<div class="frow2"><input type="text" id="f_vcname" placeholder="성함"><input type="text" id="f_vctel" placeholder="연락처"></div></div>' +
-    '<div class="fitem"><label>피해자 주소·조치사항</label>' +
-    '<input type="text" id="f_vcaddr" placeholder="주소">' +
-    '<input type="text" id="f_vcact" placeholder="조치사항 (예: 충남대병원 이송)" style="margin-top:6px"></div>' +
+    fieldVictims(null) +
     '<div class="fitem"><label>시설물피해</label><input type="text" id="f_fac" placeholder="예: 주택 침수 2동, 축대 붕괴 등"></div>' +
     '<div class="fitem"><label>등록자(담당자)</label><input type="text" id="f_mgr"></div>' +
     '<div class="full"><label>상황 내용</label><textarea id="f_desc" placeholder="어떤 상황이 전개되었는지 기록"></textarea></div>' +
@@ -4633,11 +4811,11 @@ function openDisasterForm(ll, preLoc){
     function(){
       var t = val("f_time");
       if(!t){ alert("발생 시각을 입력하세요."); return false; }
-      var _types = typeMultiVals("f_type"), _cause = causeVal("f_cause");
+      var _types = typeMultiVals("f_type"), _cause = causeVal("f_cause"), _vcs = collectVictims();
       if(!_types.length){ alert("재난 유형을 하나 이상 선택하세요."); return false; }
       _types.forEach(function(_ty){
         saveItem({id:uid(), kind:"disaster", type:_ty, cause:_cause, status:"occur", private:!shareOn, lat:ll[0], lng:ll[1],
-          location:val("f_loc"), peopleDamage:val("f_ppl") || "0", reporterName:val("f_rpname"), reporterTel:val("f_rptel"), victimName:val("f_vcname"), victimTel:val("f_vctel"), victimAddr:val("f_vcaddr"), victimAction:val("f_vcact"), facilityDamage:val("f_fac"), t0:t, createdAt:Date.now(),
+          location:val("f_loc"), peopleDamage:val("f_ppl") || "0", reporterName:val("f_rpname"), reporterTel:val("f_rptel"), victims:_vcs, victimName:vc0(_vcs,"name"), victimTel:vc0(_vcs,"tel"), victimAddr:vc0(_vcs,"addr"), victimAction:vc0(_vcs,"act"), facilityDamage:val("f_fac"), t0:t, createdAt:Date.now(),
           timeline:[{stage:"occur", time:t, desc:val("f_desc"), manager:val("f_mgr"), photos:_photos.slice()}]});
       });
     }, null, true);
@@ -4737,10 +4915,7 @@ function openEditForm(id){
       '<label>신고자</label>' +
       '<div class="frow2"><input type="text" id="e_rpname" placeholder="성함" value="' + esc(it.reporterName || "") + '"><input type="text" id="e_rptel" placeholder="연락처" value="' + esc(it.reporterTel || "") + '"></div>' +
       '<label>인명피해(명)</label><input type="text" id="e_ppl" value="' + esc(it.peopleDamage || "0") + '" inputmode="numeric" pattern="[0-9]*">' +
-      '<label>피해자 인적사항</label>' +
-      '<div class="frow2"><input type="text" id="e_vcname" placeholder="성함" value="' + esc(it.victimName || "") + '"><input type="text" id="e_vctel" placeholder="연락처" value="' + esc(it.victimTel || "") + '"></div>' +
-      '<input type="text" id="e_vcaddr" placeholder="주소" value="' + esc(it.victimAddr || "") + '" style="margin-top:6px">' +
-      '<input type="text" id="e_vcact" placeholder="조치사항 (예: 충남대병원 이송)" value="' + esc(it.victimAction || "") + '" style="margin-top:6px">' +
+      fieldVictims(it) +
       '<label>시설물피해</label><input type="text" id="e_fac" value="' + esc(it.facilityDamage || "") + '">';
   }
   // 타임라인(경과 이력) 단계별 수정: 각 단계(발생/조치중/완료)마다 시각·담당자·내용·사진을 개별 수정,
@@ -4777,8 +4952,10 @@ function openEditForm(id){
       it.cause = causeVal("e_cause");
       it.peopleDamage = val("e_ppl") || "0";
       it.reporterName = val("e_rpname"); it.reporterTel = val("e_rptel");
-      it.victimName = val("e_vcname"); it.victimTel = val("e_vctel");
-      it.victimAddr = val("e_vcaddr"); it.victimAction = val("e_vcact");
+      var _vcs = collectVictims();
+      it.victims = _vcs;
+      it.victimName = vc0(_vcs, "name"); it.victimTel = vc0(_vcs, "tel");
+      it.victimAddr = vc0(_vcs, "addr"); it.victimAction = vc0(_vcs, "act");
       it.facilityDamage = val("e_fac");
     }
     // 타임라인 단계별 내용·시각·담당자·사진 반영 + 삭제 표시된 단계 제거
@@ -4929,10 +5106,7 @@ function openAIResultForm(origTxt, r){
     '<label>신고자 <span class="note" style="font-weight:400">(선택)</span></label>' +
     '<div class="frow2"><input type="text" id="f_rpname" placeholder="성함"><input type="text" id="f_rptel" placeholder="연락처"></div>' +
     '<label>인명피해(명)</label><input type="text" id="f_ppl" value="' + esc(r.peopleDamage || "0") + '" inputmode="numeric" pattern="[0-9]*">' +
-    '<label>피해자 인적사항 <span class="note" style="font-weight:400">(인명피해 발생 시)</span></label>' +
-    '<div class="frow2"><input type="text" id="f_vcname" placeholder="성함"><input type="text" id="f_vctel" placeholder="연락처"></div>' +
-    '<input type="text" id="f_vcaddr" placeholder="주소" style="margin-top:6px">' +
-    '<input type="text" id="f_vcact" placeholder="조치사항 (예: 충남대병원 이송, 응급실 이동)" style="margin-top:6px">' +
+    fieldVictims(r) +
     '<label>시설물피해</label><input type="text" id="f_fac" value="' + esc(r.facilityDamage || "") + '">' +
     '<label>상황 내용</label><textarea id="f_desc">' + esc(r.desc || origTxt) + '</textarea>' +
     '<label>등록자(담당자)</label><input type="text" id="f_mgr">' + fieldPhotos(),
@@ -6248,11 +6422,16 @@ function trTel(t){
 }
 // 대상: 이름, 주소, (연락처) 순
 // 인명피해: 인원 수 + 조치(있으면)
+function victimActs(it){
+  return itemVictims(it).map(function(v){
+    return v.name && v.act ? v.name + " " + v.act : (v.act || "");
+  }).filter(function(x){ return x; }).join(", ");
+}
 function trDamagePeople(it){
   var ppl = parseInt(it.peopleDamage || "0", 10) || 0;
   if(ppl > 0){
-    var v = ppl + "명";
-    if(it.victimAction) v += "(" + it.victimAction + ")";
+    var v = ppl + "명", a = victimActs(it);
+    if(a) v += "(" + a + ")";
     return v;
   }
   return "없음";
@@ -6272,8 +6451,8 @@ function trDamage(it){
   if(fac && fac !== "없음") parts.push(fac);
   var ppl = parseInt(it.peopleDamage || "0", 10) || 0;
   if(ppl > 0){
-    var v = "인명피해 " + ppl + "명";
-    if(it.victimAction) v += "(" + it.victimAction + ")";
+    var v = "인명피해 " + ppl + "명", _a = victimActs(it);
+    if(_a) v += "(" + _a + ")";
     parts.push(v);
   } else {
     parts.push("인명 피해 없음");
@@ -6336,9 +6515,12 @@ function openTrendReport(id){
   // 입력 행 초기화: 대상 1행(등록 정보), 조치사항은 경과 이력만큼
   setTimeout(function(){
     document.getElementById("tr_wholist").innerHTML = "";
-    addWhoRow(it.victimName || it.reporterName || "",
-              it.victimTel || it.reporterTel || "",
-              it.victimAddr || "");
+    var _vl = itemVictims(it);
+    if(_vl.length){
+      _vl.forEach(function(v){ addWhoRow(v.name || "", v.tel || "", v.addr || ""); });
+    } else {
+      addWhoRow(it.reporterName || "", it.reporterTel || "", "");
+    }
     document.getElementById("tr_actlist").innerHTML = "";
     var made = 0;
     acts.forEach(function(a){ if(a[1]){ addActRow(a[0], a[1]); made++; } });
