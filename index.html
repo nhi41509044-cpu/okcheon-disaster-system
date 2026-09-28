@@ -1547,7 +1547,7 @@ header h1 .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     bottom:auto !important;width:auto !important;max-width:none !important;
     background:transparent !important;border:0 !important;padding:0 !important;box-shadow:none !important;
     z-index:1300}
-  #lyrs .lyrsgrid{display:grid !important;grid-template-columns:repeat(4,1fr) !important;
+  #lyrs .lyrsgrid{display:grid !important;grid-template-columns:repeat(3,1fr) !important;
     grid-auto-flow:row !important;flex-wrap:nowrap !important;gap:4px !important;width:100% !important}
   #lyrs .lyrsgrid>*{min-width:0}
   #lyrs .lyrsgrid .lyb{min-height:36px;padding:0 2px;font-size:10.5px;letter-spacing:-.06em;
@@ -1741,6 +1741,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <button class="lyb on" id="ly_vw" onclick="setBase('vw')" ondblclick="setBase('esri')" title="더블클릭: 대체 위성영상">위성</button>
       <button class="lyb" id="cadbtn" onclick="toggleCadastral()">지적도</button>
       <button class="lyb" id="rvbtn" onclick="toggleRoadviewMode()">로드뷰</button>
+      <button class="lyb" id="msbtn" onclick="toggleMeasureMode()">측량</button>
       <button class="lyb" id="zonebtn" onclick="toggleZoneMenu()">용도지역지구</button>
     </div>
     <div id="zonemenu" data-hidden="1">
@@ -4533,6 +4534,7 @@ function cancelDraw(){
   document.body.classList.remove("drawing");
 }
 map.on("click", function(e){
+  if(window._msMode) return;   // 측량 모드에서는 측량 전용 처리
   dbgLog("좌클릭 감지 (모드:" + (drawMode||"없음") + ")");
   if(window._tapHandled && Date.now() - window._tapHandled < 700){ return; }
   if(drawMode === "disaster"){
@@ -4548,12 +4550,14 @@ map.on("click", function(e){
 });
 map.on("contextmenu", function(e){
   dbgLog("우클릭 감지 (모드:" + (drawMode||"없음") + ")");
+  if(window._msMode){ try{ msUndo(); }catch(err){} return; }
   if(drawMode){ return; }
   var ll = [e.latlng.lat, e.latlng.lng];
   openRclickMenu(ll);
 });
 // 지적도가 켜져 있을 때, 지도를 클릭하면 그 지점 반경 500m만 표시
 map.on("click", function(e){
+  if(window._msMode) return;
   if(cadastralOn && !drawMode){
     setCadCenter(e.latlng.lat, e.latlng.lng);
   }
@@ -9336,6 +9340,7 @@ function rvShowAt(lat, lng){
   }
 }
 map.on("click", function(e){
+  if(window._msMode) return;          // 측량 모드 우선
   if(!_rvMode && !_rvOpen) return;
   if(document.querySelector(".crosshair")) return;   // 통제선 그리는 중엔 제외
   rvShowAt(e.latlng.lat, e.latlng.lng);
@@ -9544,6 +9549,324 @@ body.share-off #chat.floating h3{background:#8a5411}
     try{ if(window.chatIsFloating && chatIsFloating()) chatFloat(false); }catch(e){}
   };
 })();
+</script>
+
+<style id="measure-style">
+/* ===== 측량(거리·면적·반경) ===== */
+body.msmode #map{cursor:crosshair}
+#mspanel{position:absolute;left:12px;bottom:14px;z-index:1700;display:none;
+  background:#fff;border:1px solid #e3e9f0;border-radius:14px;padding:10px 12px;
+  box-shadow:0 10px 28px rgba(15,37,64,.18);font-size:12.5px;color:#22344a;max-width:330px}
+#mspanel.show{display:block}
+#mspanel .msttl{font-weight:800;font-size:13px;color:#0f2540;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+#mspanel .msttl b{flex:1}
+#mspanel .msx{border:0;background:#eef2f7;color:#44586f;border-radius:8px;width:24px;height:24px;
+  font-size:14px;font-weight:800;cursor:pointer;line-height:1}
+#mspanel .mskinds{display:flex;gap:5px;margin-bottom:8px}
+#mspanel .mskinds button{flex:1;border:1px solid #e6ebf2;background:#f6f8fb;color:#33465c;
+  border-radius:9px;min-height:32px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:-.03em}
+#mspanel .mskinds button.on{background:#0f2540;border-color:#0f2540;color:#fff}
+#msout{background:#f6f8fb;border:1px solid #eef2f7;border-radius:10px;padding:8px 10px;
+  line-height:1.55;min-height:38px;word-break:keep-all}
+#msout .msbig{font-size:15px;font-weight:800;color:#0f2540}
+#msout .msdim{color:#6b7f96;font-size:11.5px}
+#mspanel .msacts{display:flex;gap:5px;margin-top:8px}
+#mspanel .msacts button{flex:1;border:1px solid #e6ebf2;background:#fff;color:#33465c;
+  border-radius:9px;min-height:32px;font-size:11.5px;font-weight:800;cursor:pointer;letter-spacing:-.04em;white-space:nowrap}
+#mspanel .msacts button.pri{background:#16a34a;border-color:#16a34a;color:#fff}
+#mspanel .msacts button.dgr{background:#fff1f2;border-color:#fecdd3;color:#be123c}
+.mslbl-in{position:absolute;left:0;top:0;transform:translate(-50%,-50%);white-space:nowrap;
+  background:rgba(255,255,255,.95);border:1px solid #cbd5e1;border-radius:7px;padding:2px 7px;
+  font-size:11.5px;font-weight:800;color:#0f2540;box-shadow:0 2px 6px rgba(15,37,64,.18)}
+.mslbl-in.tot{background:#0f2540;border-color:#0f2540;color:#fff}
+@media (max-width:860px){
+  #mspanel{left:8px;right:8px;bottom:auto;top:96px;max-width:none}
+  #mspanel .msacts button{font-size:11px}
+}
+</style>
+<script>
+/* =========================================================
+   지도 측량 도구 — 거리 / 면적 / 반경
+   · 상단 테마 버튼 [측량]으로 켜고 끈다
+   · 지도를 클릭해 점을 찍고, 더블클릭(또는 [완료])으로 한 건을 마무리
+   · 우클릭 = 마지막 점 취소
+   ========================================================= */
+var _msMode = false, _msKind = "dist";
+var _msPts = [], _msHover = null;
+var _msLive = null, _msDone = null, _msDoneCnt = 0;
+
+function msLenFmt(m){
+  if(!isFinite(m) || m <= 0) return "0 m";
+  if(m < 1000) return (Math.round(m * 10) / 10).toLocaleString("ko-KR") + " m";
+  return (Math.round(m / 10) / 100).toLocaleString("ko-KR") + " km";
+}
+function msAreaFmt(a){
+  if(!isFinite(a) || a <= 0) return "0 ㎡";
+  var py = Math.round(a * 0.3025);
+  var s = (a < 10000)
+    ? Math.round(a).toLocaleString("ko-KR") + " ㎡"
+    : (Math.round(a / 100) / 100).toLocaleString("ko-KR") + " ha (" + Math.round(a).toLocaleString("ko-KR") + " ㎡)";
+  return s + " · 약 " + py.toLocaleString("ko-KR") + "평";
+}
+/* 위경도 다각형의 실제 면적(㎡) — 지구를 구로 보고 계산 */
+function msGeoArea(pts){
+  if(!pts || pts.length < 3) return 0;
+  var R = 6378137, d2r = Math.PI / 180, a = 0;
+  for(var i = 0; i < pts.length; i++){
+    var p1 = pts[i], p2 = pts[(i + 1) % pts.length];
+    a += ((p2.lng - p1.lng) * d2r) * (2 + Math.sin(p1.lat * d2r) + Math.sin(p2.lat * d2r));
+  }
+  return Math.abs(a * R * R / 2);
+}
+function msPathLen(pts){
+  var t = 0;
+  for(var i = 1; i < pts.length; i++) t += map.distance(pts[i - 1], pts[i]);
+  return t;
+}
+function msLabel(ll, txt, big){
+  return L.marker(ll, { interactive:false, zIndexOffset:2500,
+    icon: L.divIcon({ className:"mslbl", iconSize:null,
+      html:'<span class="mslbl-in' + (big ? " tot" : "") + '">' + txt + '</span>' }) });
+}
+function msCenter(pts){
+  var la = 0, ln = 0;
+  for(var i = 0; i < pts.length; i++){ la += pts[i].lat; ln += pts[i].lng; }
+  return L.latLng(la / pts.length, ln / pts.length);
+}
+
+/* ---------- 패널 ---------- */
+function msEnsure(){
+  if(document.getElementById("mspanel")) return;
+  var host = document.getElementById("mapwrap") || document.body;
+  var d = document.createElement("div");
+  d.id = "mspanel";
+  d.innerHTML =
+    '<div class="msttl"><b>📐 측량</b><button class="msx" onclick="toggleMeasureMode(false)" title="측량 끄기">✕</button></div>' +
+    '<div class="mskinds">' +
+      '<button id="mskd_dist" onclick="msSetKind(\'dist\')">거리</button>' +
+      '<button id="mskd_area" onclick="msSetKind(\'area\')">면적</button>' +
+      '<button id="mskd_rad" onclick="msSetKind(\'rad\')">반경</button>' +
+    '</div>' +
+    '<div id="msout"></div>' +
+    '<div class="msacts">' +
+      '<button class="pri" onclick="msFinish()">완료</button>' +
+      '<button onclick="msUndo()">되돌리기</button>' +
+      '<button class="dgr" onclick="msClear()">모두 지우기</button>' +
+    '</div>';
+  host.appendChild(d);
+}
+function msSetKind(k){
+  if(_msKind !== k) msResetLive();
+  _msKind = k;
+  ["dist", "area", "rad"].forEach(function(x){
+    var b = document.getElementById("mskd_" + x);
+    if(b) b.classList.toggle("on", x === k);
+  });
+  msRedraw();
+}
+function msOut(html){
+  var o = document.getElementById("msout");
+  if(o) o.innerHTML = html;
+}
+
+/* ---------- 모드 on/off ---------- */
+function toggleMeasureMode(force){
+  msEnsure();
+  var want = (typeof force === "boolean") ? force : !_msMode;
+  if(want === _msMode) return;
+  _msMode = want;
+  var b = document.getElementById("msbtn");
+  if(b) b.classList.toggle("on", _msMode);
+  document.body.classList.toggle("msmode", _msMode);
+  var p = document.getElementById("mspanel");
+  if(p) p.classList.toggle("show", _msMode);
+  if(_msMode){
+    // 다른 그리기·로드뷰 모드와 겹치지 않게 정리
+    try{ if(typeof drawMode !== "undefined" && drawMode) cancelDraw(); }catch(e){}
+    try{ if(typeof _rvMode !== "undefined" && _rvMode) toggleRoadviewMode(false); }catch(e){}
+    if(map.doubleClickZoom) map.doubleClickZoom.disable();
+    if(!_msLive) _msLive = L.layerGroup().addTo(map);
+    if(!_msDone) _msDone = L.layerGroup().addTo(map);
+    msSetKind(_msKind);
+  } else {
+    if(map.doubleClickZoom) map.doubleClickZoom.enable();
+    msResetLive();
+  }
+}
+/* 로드뷰를 켜면 측량은 끈다 */
+(function(){
+  if(typeof window.toggleRoadviewMode !== "function") return;
+  var raw = window.toggleRoadviewMode;
+  window.toggleRoadviewMode = function(force){
+    var before = (typeof _rvMode !== "undefined") ? _rvMode : false;
+    raw(force);
+    var after = (typeof _rvMode !== "undefined") ? _rvMode : false;
+    if(!before && after && _msMode) toggleMeasureMode(false);
+  };
+})();
+
+/* ---------- 그리기 ---------- */
+function msResetLive(){
+  _msPts = [];
+  _msHover = null;
+  if(_msLive) _msLive.clearLayers();
+  msRedraw();
+}
+function msUndo(){
+  if(_msPts.length){ _msPts.pop(); msRedraw(); return; }
+  // 찍던 점이 없으면 마지막으로 완료한 측정을 지운다
+  if(_msDone && _msDoneCnt > 0){
+    var ls = _msDone.getLayers();
+    // 마지막 한 건(그룹)만 제거
+    var last = ls[ls.length - 1];
+    if(last){ _msDone.removeLayer(last); _msDoneCnt--; }
+    msRedraw();
+  }
+}
+function msClear(){
+  if(_msDone) _msDone.clearLayers();
+  _msDoneCnt = 0;
+  msResetLive();
+}
+function msFinish(){
+  var need = (_msKind === "area") ? 3 : 2;
+  if(_msPts.length < need){
+    msResetLive();
+    return;
+  }
+  var g = msBuild(_msPts.slice(), false);
+  if(g && _msDone){ _msDone.addLayer(g); _msDoneCnt++; }
+  _msPts = [];
+  _msHover = null;
+  if(_msLive) _msLive.clearLayers();
+  msRedraw();
+}
+/* pts로 도형+라벨 묶음(LayerGroup)을 만든다. live=true면 작성 중(점선) 스타일 */
+function msBuild(pts, live){
+  if(!pts.length) return null;
+  var g = L.layerGroup();
+  var col = live ? "#f97316" : "#dc2626";
+  var dash = live ? "6 6" : null;
+
+  if(_msKind === "rad"){
+    var c = pts[0];
+    g.addLayer(L.circleMarker(c, {radius:5, color:"#fff", weight:2, fillColor:col, fillOpacity:1}));
+    if(pts.length >= 2){
+      var r = map.distance(c, pts[1]);
+      g.addLayer(L.circle(c, {radius:r, color:col, weight:2, dashArray:dash, fillColor:col, fillOpacity:.12}));
+      g.addLayer(L.polyline([c, pts[1]], {color:col, weight:2, dashArray:"4 5"}));
+      g.addLayer(msLabel(pts[1], "반경 " + msLenFmt(r), true));
+      g.addLayer(msLabel(c, "면적 " + msAreaFmt(Math.PI * r * r)));
+    }
+    return g;
+  }
+
+  var closed = (_msKind === "area" && pts.length >= 3);
+  if(closed){
+    g.addLayer(L.polygon(pts, {color:col, weight:2, dashArray:dash, fillColor:col, fillOpacity:.15}));
+  } else if(pts.length >= 2){
+    g.addLayer(L.polyline(pts, {color:col, weight:3, dashArray:dash}));
+  }
+  pts.forEach(function(p){
+    g.addLayer(L.circleMarker(p, {radius:4, color:"#fff", weight:2, fillColor:col, fillOpacity:1}));
+  });
+
+  if(_msKind === "dist"){
+    // 구간별 길이 + 마지막에 총 거리
+    var acc = 0;
+    for(var i = 1; i < pts.length; i++){
+      var seg = map.distance(pts[i - 1], pts[i]);
+      acc += seg;
+      var mid = L.latLng((pts[i-1].lat + pts[i].lat) / 2, (pts[i-1].lng + pts[i].lng) / 2);
+      g.addLayer(msLabel(mid, msLenFmt(seg)));
+    }
+    if(pts.length >= 2) g.addLayer(msLabel(pts[pts.length - 1], "총 " + msLenFmt(acc), true));
+  } else if(closed){
+    var a = msGeoArea(pts);
+    g.addLayer(msLabel(msCenter(pts), msAreaFmt(a), true));
+  }
+  return g;
+}
+function msRedraw(){
+  if(!_msLive) return;
+  _msLive.clearLayers();
+  var pts = _msPts.slice();
+  if(_msHover && pts.length) pts.push(_msHover);
+  if(pts.length){
+    var g = msBuild(pts, true);
+    if(g) _msLive.addLayer(g);
+  }
+  msSummary(pts);
+}
+function msSummary(pts){
+  var n = _msPts.length;
+  if(_msKind === "rad"){
+    if(!pts.length){ msOut('<span class="msdim">중심점을 클릭한 뒤, 원하는 반경만큼 떨어진 곳을 한 번 더 클릭하세요.</span>'); return; }
+    if(pts.length < 2){ msOut('<span class="msdim">중심점 지정됨 · 반경 지점을 클릭하세요.</span>'); return; }
+    var r = map.distance(pts[0], pts[1]);
+    msOut('<div class="msbig">반경 ' + msLenFmt(r) + '</div>' +
+          '<div>원 면적 ' + msAreaFmt(Math.PI * r * r) + '</div>' +
+          '<div>지름 ' + msLenFmt(r * 2) + '</div>');
+    return;
+  }
+  if(_msKind === "area"){
+    if(pts.length < 3){
+      msOut('<span class="msdim">경계를 따라 지도를 3번 이상 클릭하세요. 더블클릭 또는 [완료]로 마무리합니다.</span>' +
+            (n ? '<div class="msdim">찍은 점 ' + n + '개</div>' : ''));
+      return;
+    }
+    var a = msGeoArea(pts);
+    var peri = msPathLen(pts.concat([pts[0]]));
+    msOut('<div class="msbig">' + msAreaFmt(a) + '</div>' +
+          '<div>둘레 ' + msLenFmt(peri) + '</div>' +
+          '<div class="msdim">꼭짓점 ' + pts.length + '개</div>');
+    return;
+  }
+  if(pts.length < 2){
+    msOut('<span class="msdim">지도를 클릭해 경로를 이어 그리세요. 더블클릭 또는 [완료]로 마무리합니다.</span>');
+    return;
+  }
+  var t = msPathLen(pts);
+  msOut('<div class="msbig">총 ' + msLenFmt(t) + '</div>' +
+        '<div class="msdim">구간 ' + (pts.length - 1) + '개 · 직선거리 ' + msLenFmt(map.distance(pts[0], pts[pts.length - 1])) + '</div>');
+}
+
+/* ---------- 지도 이벤트 ---------- */
+map.on("click", function(e){
+  if(!_msMode) return;
+  var ll = e.latlng;
+  // 더블클릭으로 생기는 같은 자리 중복 점은 무시
+  if(_msPts.length){
+    var last = _msPts[_msPts.length - 1];
+    var pa = map.latLngToContainerPoint(last), pb = map.latLngToContainerPoint(ll);
+    if(Math.abs(pa.x - pb.x) < 6 && Math.abs(pa.y - pb.y) < 6) return;
+  }
+  _msPts.push(ll);
+  _msHover = null;
+  if(_msKind === "rad" && _msPts.length >= 2){ msFinish(); return; }
+  msRedraw();
+});
+map.on("mousemove", function(e){
+  if(!_msMode || !_msPts.length) return;
+  if(_msKind === "rad" && _msPts.length >= 2) return;
+  _msHover = e.latlng;
+  msRedraw();
+});
+map.on("dblclick", function(){
+  if(!_msMode) return;
+  _msHover = null;
+  msFinish();
+});
+document.addEventListener("keydown", function(e){
+  if(!_msMode) return;
+  var tg = e.target, tn = (tg && tg.tagName) ? tg.tagName.toUpperCase() : "";
+  if(tn === "INPUT" || tn === "TEXTAREA" || tn === "SELECT" || (tg && tg.isContentEditable)) return;
+  if(e.key === "Escape"){
+    if(_msPts.length) msResetLive(); else toggleMeasureMode(false);
+  } else if(e.key === "Enter"){
+    msFinish();
+  }
+});
 </script>
 
 </body>
