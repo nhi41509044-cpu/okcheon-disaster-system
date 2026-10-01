@@ -1587,33 +1587,33 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
 <style>
 /* ===== 도로구역 레이어 (V-World 도로/용도구역) ===== */
-#roadpanel,#rivpanel,#uppanel{position:absolute;top:52px;right:10px;z-index:1000;background:#fff;border:1px solid #d1d5db;
+#roadpanel,#rivpanel,#uppanel,#rnpanel{position:absolute;top:52px;right:10px;z-index:1000;background:#fff;border:1px solid #d1d5db;
   border-radius:8px;padding:10px 12px;font-size:12px;display:none;min-width:206px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
-#roadpanel.show,#rivpanel.show,#uppanel.show{display:block}
+#roadpanel.show,#rivpanel.show,#uppanel.show,#rnpanel.show{display:block}
 #roadpanel .rzttl,#rivpanel .rzttl,#uppanel .rzttl{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#1e3a5f;margin-bottom:4px}
 #roadpanel .rzttl span,#rivpanel .rzttl span,#uppanel .rzttl span{font-weight:400;color:#9ca3af;font-size:10px}
-#roadpanel .rzclose,#rivpanel .rzclose,#uppanel .rzclose{margin-left:auto;border:0;background:transparent;color:#9ca3af;
+#roadpanel .rzclose,#rivpanel .rzclose,#uppanel .rzclose,#rnpanel .rzclose{margin-left:auto;border:0;background:transparent;color:#9ca3af;
   font-size:17px;line-height:1;padding:2px 4px;cursor:pointer;flex:none}
-#roadpanel .rzclose:hover,#rivpanel .rzclose:hover,#uppanel .rzclose:hover{color:#4b5563}
-#roadpanel label,#rivpanel label,#uppanel label{display:flex;align-items:center;gap:7px;padding:4px 0;cursor:pointer}
-#roadpanel .rzsep,#rivpanel .rzsep,#uppanel .rzsep{border-top:1px solid #e5e7eb;margin:7px 0}
+#roadpanel .rzclose:hover,#rivpanel .rzclose:hover,#uppanel .rzclose:hover,#rnpanel .rzclose:hover{color:#4b5563}
+#roadpanel label,#rivpanel label,#uppanel label,#rnpanel label{display:flex;align-items:center;gap:7px;padding:4px 0;cursor:pointer}
+#roadpanel .rzsep,#rivpanel .rzsep,#uppanel .rzsep,#rnpanel .rzsep{border-top:1px solid #e5e7eb;margin:7px 0}
 #roadpanel .rzn,#rivpanel .rzn,#uppanel .rzn{margin-left:auto;color:#9ca3af;font-size:10.5px;font-variant-numeric:tabular-nums}
 #roadpanel .rzdot,#rivpanel .rzdot,#uppanel .rzdot{width:11px;height:11px;border-radius:3px;flex:none}
-#roadpanel .rzhint,#rivpanel .rzhint,#uppanel .rzhint{font-size:10.5px;color:#9ca3af;margin-top:6px;line-height:1.45}
+#roadpanel .rzhint,#rivpanel .rzhint,#uppanel .rzhint,#rnpanel .rzhint{font-size:10.5px;color:#9ca3af;margin-top:6px;line-height:1.45}
 #roadpanel.busy,#rivpanel.busy,#uppanel.busy{opacity:.6;pointer-events:none}
 #uppanel .upstat{font-size:10.5px;color:#6b7280;margin-top:6px;line-height:1.45}
 #uppanel .upstat.err{color:#b91c1c}
 .rzpop b{font-size:13px;color:#1e3a5f}
 .rzpop div{font-size:11.5px;color:#4b5563;margin-top:2px}
-@media (max-width:860px){ #roadpanel,#rivpanel,#uppanel{max-height:60vh;overflow-y:auto} }
+@media (max-width:860px){ #roadpanel,#rivpanel,#uppanel,#rnpanel{max-height:60vh;overflow-y:auto} }
 @media (max-width:860px){
   /* 목록을 2단으로 접어 지도가 가려지지 않게 한다 */
   #roadpanel #rzzones,#roadpanel #rzgrades,#rivpanel #rvzones,#rivpanel #rvgrades,#uppanel #upkinds{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
-  #roadpanel .rzclose,#rivpanel .rzclose,#uppanel .rzclose{font-size:22px;padding:4px 8px}
+  #roadpanel .rzclose,#rivpanel .rzclose,#uppanel .rzclose,#rnpanel .rzclose{font-size:22px;padding:4px 8px}
 }
 @media (max-width:600px){
-  #roadpanel,#rivpanel,#uppanel{top:auto;left:10px;right:10px;width:auto;z-index:1450;max-height:42vh}
-  #roadpanel label,#rivpanel label,#uppanel label{font-size:13px;padding:6px 0;color:#33465c;font-weight:600}
+  #roadpanel,#rivpanel,#uppanel,#rnpanel{top:auto;left:10px;right:10px;width:auto;z-index:1450;max-height:42vh}
+  #roadpanel label,#rivpanel label,#uppanel label,#rnpanel label{font-size:13px;padding:6px 0;color:#33465c;font-weight:600}
   #roadpanel .rzhint,#rivpanel .rzhint{display:none}
 }
 </style>
@@ -1749,6 +1749,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <button class="lyb" id="roadbtn" onclick="toggleRoadPanel()">도로구역</button>
       <button class="lyb" id="upbtn" onclick="toggleUpPanel()">도시계획도로</button>
       <button class="lyb" id="rivbtn" onclick="toggleRiverPanel()">하천구역</button>
+      <button class="lyb" id="rnbtn" onclick="toggleRoadNetPanel()">군·농어촌도로망</button>
     </div>
       <label class="lblwrap" style="display:none"><input type="checkbox" id="lblchk" onchange="updLabels()"> 지명</label>
       <button class="lyb hidden-slot" id="gpsbtn" onclick="goMyLocation()" style="display:none">현위치</button>
@@ -1762,6 +1763,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div id="geocode_status" style="font-size:10.5px;color:#9ca3af;margin-top:3px"></div>
     <div class="ovlsep"></div>
     <button class="ovladd" onclick="openAddRiskSiteForm()">➕ 위험지역 추가 등록</button>
+    <div class="ovlsep"></div>
+    <div class="ovlttl">대피소</div>
+    <label><input type="checkbox" id="shelter_show" onchange="toggleShelter(this.checked)">
+      <span style="color:#16a34a">▲</span> 대피소 <span class="shn" id="shelter_n"></span></label>
+    <button class="ovladd" onclick="openShelterForm()">➕ 대피소 등록·관리</button>
   </div>
   <div id="roadpanel">
     <div class="rzttl">도로구역 <span>국토교통부 V-World 2026-09</span>
@@ -1775,6 +1781,19 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div class="rzsep"></div>
     <div id="rzgrades"></div>
     <div class="rzhint">도형을 누르면 노선·구역·고시일이 표시됩니다.</div>
+  </div>
+  <div id="rnpanel">
+    <div class="rzttl">군·농어촌도로망 <span>총괄도(변경) 추출</span>
+      <button class="rzclose" onclick="closeRoadNetPanel()" aria-label="도로망도 설정 닫기">×</button></div>
+    <label><input type="checkbox" id="rn_on" onchange="rnShow(this.checked)"> <b>지도에 표시</b></label>
+    <div class="rzsep"></div>
+    <div id="rnmain"></div>
+    <div class="rzsep"></div>
+    <div id="rnref"></div>
+    <div class="rzsep"></div>
+    <label style="gap:8px"><span style="flex:none">진하기</span>
+      <input type="range" id="rn_op" min="20" max="100" value="85" oninput="rnOpacity(this.value)" style="flex:1"></label>
+    <div class="rzhint" id="rnhint">군·농어촌도로망도 총괄도를 지도 위에 겹쳐 놓은 그림 레이어입니다. 실제 도로 위치와는 최대 100m 내외 차이가 있을 수 있어 참고용으로만 사용하세요.</div>
   </div>
   <div id="rivpanel">
     <div class="rzttl">하천구역 <span>국토교통부 V-World 2026-09</span>
@@ -3121,7 +3140,7 @@ var BUILTIN_KEYS = {
 };
 // 내장값 우선, 없으면 사용자 설정값 사용
 function getKey(name){
-  var map = {vw:"okc6_vw", kmakey:"okc6_kmakey", kmastn:"okc6_kmastn", kakao:"okc6_kakao"};
+  var map = {vw:"okc6_vw", kmakey:"okc6_kmakey", kmastn:"okc6_kmastn", kakao:"okc6_kakao", hrfco:"okc6_hrfco"};
   if(BUILTIN_KEYS[name]) return BUILTIN_KEYS[name];
   return localStorage.getItem(map[name]) || "";
 }
@@ -3187,6 +3206,18 @@ function initFirebase(){
       }
     });
     // 담당자가 직접 추가 등록한 급경사지·산사태 위험지역을 모든 담당자와 실시간 공유
+    // 담당자가 등록한 대피소를 모든 담당자와 실시간 공유
+    try{
+      shelterRef = db.ref("okc_shelters_v6");
+      shelterRef.on("value", function(snap){
+        var v = snap.val();
+        var next = Array.isArray(v) ? v : (v ? Object.keys(v).map(function(k){ return v[k]; }) : []);
+        if(JSON.stringify(next) === JSON.stringify(shelters)) return;
+        shelters = next;
+        try{ localStorage.setItem(SHELTER_KEY, JSON.stringify(shelters)); }catch(e){}
+        if(typeof renderShelters === "function") renderShelters();
+      });
+    }catch(e){}
     customRiskRef = db.ref("okc_customrisk_v6");
     customRiskRef.on("value", function(snap){
       var v = snap.val();
@@ -4697,6 +4728,7 @@ function openRclickMenu(ll){
   window._rcLoc = reg;
   highlightParcelAt(ll[0], ll[1]); // 선택 지점 필지 빨간 강조
   var zoneHtml = zoneInfoAt(ll[0], ll[1]);
+  try{ zoneHtml += shelterInfoAt(ll[0], ll[1]); }catch(e){}
   var html = '<div style="min-width:190px">' +
     '<div style="font-size:12.5px;font-weight:700;color:#1e3a5f;margin-bottom:2px">📍 선택 지점</div>' +
     '<div id="' + pid + '" style="font-size:11.5px;color:#374151;margin-bottom:6px">' + esc(reg) + '</div>' +
@@ -7285,6 +7317,13 @@ function openSettings(){
     '기상청은 브라우저에서 직접 호출할 수 없어(CORS) <b>중계기</b>를 거쳐야 동작하며, 기본 중계기가 이미 연결되어 있어 별도 입력이 필요 없습니다. ' +
     '다른 중계기를 쓰고 싶을 때만 위 칸에 주소를 입력하세요.' +
     (kmaLastError ? '<br><b style="color:#b91c1c">마지막 오류: ' + esc(kmaLastError) + '</b>' : '') + '</div>' +
+    '<label>하천 수위 연동 <span class="note" style="font-weight:400">(한강홍수통제소 오픈API 인증키)</span></label>' +
+    '<input type="text" id="f_hrfco" placeholder="예: 8C52630B-30F3-..." value="' + esc(getKey("hrfco")) + '">' +
+    '<div class="msel-actions" style="padding:2px 0 8px"><button type="button" onclick="saveHrfcoKey()">🔗 저장 후 연결 시험</button></div>' +
+    '<div class="note">hrfco.go.kr에서 무료로 발급받습니다. 연결 시험을 누르면 관측소 목록을 받아와 ' +
+    '브라우저에서 바로 호출이 되는지(CORS), 응답이 어떤 형식인지 확인해 보여줍니다.</div>' +
+    '<pre id="hrfco_out" style="display:none;white-space:pre-wrap;word-break:break-all;font-size:11px;' +
+    'background:#f6f8fb;border:1px solid #e5e7eb;border-radius:8px;padding:8px;max-height:260px;overflow:auto;margin:0 0 8px"></pre>' +
     '<label>글자 크기 <span class="note" style="font-weight:400">(이 기기에만 적용)</span></label>' +
     '<div class="msel-actions" style="padding:2px 0 8px">' +
       '<button type="button" onclick="applyFontSize(\'\')">보통</button>' +
@@ -8271,7 +8310,7 @@ const RoadZone = (() => {
 var _rzLayer = null, _rzReady = false, _rzLoading = false;
 
 function closeMapPanels(except){
-  ["ovlpanel","roadpanel","rivpanel","uppanel"].forEach(function(id){
+  ["ovlpanel","roadpanel","rivpanel","uppanel","rnpanel"].forEach(function(id){
     if(id !== except){ var el = document.getElementById(id); if(el) el.classList.remove("show"); }
   });
 }
@@ -8941,20 +8980,20 @@ map.on("zoomend", function(){ upStatus(); });
 }
 
 /* 2) 레이어 패널: 흰 카드 확보 + 날씨·특보 카드(z-index 1200)보다 위로 */
-#ovlpanel,#roadpanel,#rivpanel,#uppanel{z-index:1500 !important;
+#ovlpanel,#roadpanel,#rivpanel,#uppanel,#rnpanel{z-index:1500 !important;
   background:#fff !important;border:1px solid #e3e9f0 !important;border-radius:14px !important;
   box-shadow:0 10px 28px rgba(15,37,64,.20) !important}
 
 /* PC: 우상단(날씨 자리) 대신 테마 카드 아래 좌측으로 */
 @media (min-width:861px){
-  #ovlpanel,#roadpanel,#rivpanel,#uppanel{right:auto !important;bottom:auto !important;
+  #ovlpanel,#roadpanel,#rivpanel,#uppanel,#rnpanel{right:auto !important;bottom:auto !important;
     width:min(256px,calc(100% - 28px)) !important;min-width:0 !important;padding:11px 12px !important;
     max-height:calc(100% - 140px);overflow-y:auto}
 }
 
 /* 모바일: 테마 칩줄 아래 가로 꽉 채움 */
 @media (max-width:860px){
-  #ovlpanel,#roadpanel,#rivpanel,#uppanel{left:8px !important;right:8px !important;bottom:auto !important;
+  #ovlpanel,#roadpanel,#rivpanel,#uppanel,#rnpanel{left:8px !important;right:8px !important;bottom:auto !important;
     width:auto !important;max-height:46vh;overflow-y:auto}
 }
 </style>
@@ -9918,6 +9957,393 @@ document.addEventListener("keydown", function(e){
     msFinish();
   }
 });
+</script>
+
+<style id="roadnet-style">
+/* ===== 군·농어촌도로망도 오버레이 ===== */
+#rnpanel{width:286px;max-width:calc(100vw - 40px)}
+#rnpanel .rnrow{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:12px;color:#22344a}
+#rnpanel .rnrow input{width:14px;height:14px;margin:0;flex:none;accent-color:#1d4ed8}
+#rnpanel .rnsw{width:16px;height:4px;border-radius:2px;flex:none}
+#rnpanel .rnnm{font-weight:700;flex:none;min-width:44px}
+#rnpanel .rnst{color:#6b7f96;font-size:11px;margin-left:auto;white-space:nowrap}
+#rnpanel #rnbad{display:none;color:#be123c;font-size:11.5px;line-height:1.5;margin-top:6px}
+#lyrs #rnbtn.on{background:#0f2540 !important;border-color:#0f2540 !important;color:#fff !important}
+</style>
+<script>
+/* =========================================================
+   군·농어촌도로망도 오버레이
+   출처: 옥천군 군·농어촌도로망도 총괄도(변경) 종이도면 스캔본
+   도면에서 등급별 색선만 추출해 투명 PNG로 만든 뒤, 도면의 군도·국도·
+   지방도를 V-World 도로구역과 맞춰 위경도에 정합했다.
+   정합 오차: 절반이 도로구역 안, 90%가 약 84m 이내.
+   ========================================================= */
+var RN_BOUNDS = [[36.154553, 127.389153], [36.463085, 127.932314]];
+var RN_DIR = "data/roadnet/";
+var RN_MAIN = [                    // 군·농어촌도로 (이 도면의 본체)
+  { k:"gun",   nm:"군도",  c:"#00be3c", st:"20개 노선 · 228.8 km" },
+  { k:"myeon", nm:"면도",  c:"#e61414", st:"29개 노선 · 80.9 km" },
+  { k:"ri",    nm:"리도",  c:"#194bdc", st:"92개 노선 · 198.2 km" },
+  { k:"nong",  nm:"농도",  c:"#e6aa00", st:"94개 노선 · 192.6 km" }
+];
+var RN_REF = [                     // 참고용 상위 도로·철도
+  { k:"exp",  nm:"고속국도", c:"#ff8c00", st:"" },
+  { k:"nat",  nm:"국도",     c:"#ff6eb4", st:"" },
+  { k:"nsup", nm:"국지도",   c:"#cd7dff", st:"" },
+  { k:"prov", nm:"지방도",   c:"#00afff", st:"" },
+  { k:"ktx",  nm:"고속철도", c:"#969696", st:"" }
+];
+var _rnLayer = null, _rnImg = {}, _rnOn = {}, _rnOpacity = 0.85, _rnBuilt = false, _rnFail = 0;
+
+function rnRow(it, on){
+  return '<div class="rnrow">' +
+    '<input type="checkbox" id="rn_' + it.k + '"' + (on ? " checked" : "") +
+      ' onchange="rnClass(\'' + it.k + '\', this.checked)">' +
+    '<span class="rnsw" style="background:' + it.c + '"></span>' +
+    '<span class="rnnm">' + it.nm + '</span>' +
+    (it.st ? '<span class="rnst">' + it.st + '</span>' : '') +
+    '</div>';
+}
+function rnEnsure(){
+  if(_rnBuilt) return;
+  _rnBuilt = true;
+  document.getElementById("rnmain").innerHTML = RN_MAIN.map(function(i){ return rnRow(i, true); }).join("");
+  document.getElementById("rnref").innerHTML =
+    '<div style="font-size:11px;color:#6b7f96;margin-bottom:3px">참고 — 상위도로·철도</div>' +
+    RN_REF.map(function(i){ return rnRow(i, false); }).join("") +
+    '<div id="rnbad"></div>';
+  if(!map.getPane("roadnetPane")){
+    map.createPane("roadnetPane");
+    map.getPane("roadnetPane").style.zIndex = 415;   // 타일 위, 구역 도형 아래
+  }
+  _rnLayer = L.layerGroup().addTo(map);
+  RN_MAIN.concat(RN_REF).forEach(function(it){
+    var img = L.imageOverlay(RN_DIR + "road_" + it.k + ".png", RN_BOUNDS,
+      { opacity:_rnOpacity, pane:"roadnetPane", interactive:false, className:"rnimg" });
+    img.on("error", function(){ rnMissing(); });
+    _rnImg[it.k] = img;
+    _rnOn[it.k] = (RN_MAIN.indexOf(it) >= 0);
+  });
+  rnSync();
+}
+function rnMissing(){
+  _rnFail++;
+  var b = document.getElementById("rnbad");
+  if(!b) return;
+  b.style.display = "block";
+  b.textContent = (location.protocol === "file:")
+    ? "도로망도 그림은 내려받은 파일을 직접 열면 불러올 수 없습니다. 웹 주소로 접속해 주세요."
+    : "도로망도 그림(" + RN_DIR + "road_*.png)을 찾지 못했습니다. 저장소의 " + RN_DIR + " 폴더에 올렸는지 확인해 주세요.";
+}
+function rnSync(){
+  if(!_rnLayer) return;
+  var show = !!(document.getElementById("rn_on") && document.getElementById("rn_on").checked);
+  RN_MAIN.concat(RN_REF).forEach(function(it){
+    var img = _rnImg[it.k];
+    if(!img) return;
+    var want = show && _rnOn[it.k];
+    if(want && !_rnLayer.hasLayer(img)) _rnLayer.addLayer(img);
+    if(!want && _rnLayer.hasLayer(img)) _rnLayer.removeLayer(img);
+    img.setOpacity(_rnOpacity);
+  });
+}
+function rnShow(on){
+  rnEnsure();
+  var b = document.getElementById("rnbtn");
+  if(b) b.classList.toggle("on", !!on);
+  rnSync();
+}
+function rnClass(k, on){ _rnOn[k] = !!on; rnSync(); }
+function rnOpacity(v){ _rnOpacity = Math.max(0.2, Math.min(1, Number(v) / 100)); rnSync(); }
+function closeRoadNetPanel(){ document.getElementById("rnpanel").classList.remove("show"); }
+function toggleRoadNetPanel(){
+  var p = document.getElementById("rnpanel");
+  var chk = document.getElementById("rn_on");
+  var on = !!(chk && chk.checked);
+  closeMapPanels("rnpanel");
+  if(on && p.classList.contains("show")){
+    chk.checked = false; rnShow(false);
+    p.classList.remove("show");
+    return;
+  }
+  p.classList.add("show");
+  if(!on && chk){ chk.checked = true; rnShow(true); }
+  rnEnsure();
+}
+</script>
+
+<style id="shelter-style">
+/* ===== 대피소 ===== */
+#ovlpanel .shn{color:#9ca3af;font-size:10.5px;margin-left:auto;font-variant-numeric:tabular-nums}
+.shpin{background:none;border:0}
+.shpop b{font-size:13px;color:#14532d}
+.shpop .shty{display:inline-block;background:#dcfce7;color:#15803d;border-radius:4px;
+  padding:1px 6px;font-size:10.5px;font-weight:700;margin-left:4px}
+.shpop div{font-size:11.5px;color:#4b5563;margin-top:3px}
+.shpop a{display:inline-block;margin-top:6px;font-size:11.5px;color:#1d4ed8;text-decoration:none;font-weight:700}
+#shlist{max-height:210px;overflow:auto;border:1px solid #e5e7eb;border-radius:8px;padding:4px}
+#shlist .shrow{display:flex;align-items:flex-start;gap:6px;padding:5px 4px;border-bottom:1px solid #f1f5f9;font-size:12px}
+#shlist .shrow:last-child{border-bottom:0}
+#shlist .shrow b{flex:none}
+#shlist .shrow .shad{color:#6b7f96;font-size:11px}
+#shlist .shdel{margin-left:auto;flex:none;border:0;background:#fef2f2;color:#be123c;
+  border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer}
+#shbulk{width:100%;min-height:92px;font-family:inherit;font-size:12px;line-height:1.5}
+#shprog{font-size:11.5px;color:#6b7f96;margin-top:4px}
+</style>
+<script>
+/* =========================================================
+   대피소 레이어
+   담당자가 직접 등록하고(한 건 또는 엑셀 붙여넣기) 모두가 함께 본다.
+   주소는 V-World 지오코딩으로 좌표를 찾으며, 한 번 찾은 좌표는 저장해 둔다.
+   재난상황을 등록할 지점을 우클릭하면 가까운 대피소가 함께 뜬다.
+   ========================================================= */
+var SHELTER_KEY = "okc6_shelters";
+var SHELTER_TYPES = ["민방위대피시설", "이재민임시주거시설", "지진옥외대피장소", "기타"];
+var shelters = [], shelterRef = null, shelterLayer = null;
+
+function loadShelters(){
+  try{ shelters = JSON.parse(localStorage.getItem(SHELTER_KEY) || "[]"); }catch(e){ shelters = []; }
+  if(!Array.isArray(shelters)) shelters = [];
+}
+function saveShelters(){
+  try{ localStorage.setItem(SHELTER_KEY, JSON.stringify(shelters)); }catch(e){}
+  if(shelterRef){ try{ shelterRef.set(shelters); }catch(e){} }
+  renderShelters();
+}
+function shelterIcon(){
+  return L.divIcon({ className:"shpin", iconSize:[24,30], iconAnchor:[12,29],
+    html:'<svg width="24" height="30" viewBox="0 0 24 30">' +
+         '<path d="M12 29C12 29 22 17 22 10.5A10 10 0 0 0 2 10.5C2 17 12 29 12 29Z" fill="#16a34a" stroke="#fff" stroke-width="2"/>' +
+         '<path d="M7 12.5L12 8l5 4.5V17H7z" fill="#fff"/></svg>' });
+}
+function renderShelters(){
+  if(!shelterLayer) shelterLayer = L.layerGroup();
+  shelterLayer.clearLayers();
+  shelters.forEach(function(s){
+    if(typeof s.lat !== "number" || typeof s.lng !== "number") return;
+    var html = '<div class="shpop"><b>' + esc(s.name || "대피소") + '</b>' +
+      '<span class="shty">' + esc(s.type || "기타") + '</span>' +
+      (s.addr ? '<div>' + esc(s.addr) + '</div>' : '') +
+      (s.cap ? '<div>수용 인원 ' + esc(String(s.cap)) + '명</div>' : '') +
+      (s.tel ? '<div>연락처 ' + esc(s.tel) + '</div>' : '') +
+      (s.note ? '<div>' + esc(s.note) + '</div>' : '') +
+      '<a href="https://map.kakao.com/link/to/' + encodeURIComponent(s.name || "대피소") +
+      ',' + s.lat + ',' + s.lng + '" target="_blank" rel="noopener">길찾기 ↗</a></div>';
+    L.marker([s.lat, s.lng], { icon: shelterIcon(), title: s.name || "대피소" })
+      .bindPopup(html).addTo(shelterLayer);
+  });
+  var n = document.getElementById("shelter_n");
+  if(n) n.textContent = shelters.length ? shelters.length + "곳" : "";
+  var chk = document.getElementById("shelter_show");
+  if(chk && chk.checked && !map.hasLayer(shelterLayer)) shelterLayer.addTo(map);
+}
+function toggleShelter(on){
+  if(!shelterLayer) renderShelters();
+  if(on){
+    if(!shelters.length){
+      alert("등록된 대피소가 없습니다.\n아래 [대피소 등록·관리]에서 먼저 등록해 주세요.");
+      var c = document.getElementById("shelter_show"); if(c) c.checked = false;
+      return;
+    }
+    shelterLayer.addTo(map);
+  } else if(map.hasLayer(shelterLayer)){
+    map.removeLayer(shelterLayer);
+  }
+}
+
+/* ---------- 가까운 대피소 (상황 판단 지원) ---------- */
+function nearestShelters(lat, lng, n){
+  return shelters.filter(function(s){ return typeof s.lat === "number"; })
+    .map(function(s){ return { s:s, d: map.distance([lat, lng], [s.lat, s.lng]) }; })
+    .sort(function(a, b){ return a.d - b.d; })
+    .slice(0, n || 2);
+}
+function shelterInfoAt(lat, lng){
+  var near = nearestShelters(lat, lng, 2);
+  if(!near.length) return "";
+  var html = '<div style="margin-bottom:7px;padding:6px 8px;background:#f0fdf4;border:1px solid #dcfce7;border-radius:8px">' +
+    '<div style="font-size:10.5px;color:#15803d;font-weight:700;margin-bottom:3px">가까운 대피소</div>';
+  near.forEach(function(x){
+    html += '<div style="font-size:11.5px;color:#22344a;word-break:keep-all">' +
+      esc(x.s.name || "대피소") +
+      ' <span style="color:#6b7f96">' + (x.d < 1000 ? Math.round(x.d) + "m" : (Math.round(x.d/100)/10) + "km") +
+      (x.s.cap ? " · " + esc(String(x.s.cap)) + "명" : "") + '</span></div>';
+  });
+  return html + '</div>';
+}
+
+/* ---------- 등록·관리 폼 ---------- */
+function openShelterForm(){
+  var opts = SHELTER_TYPES.map(function(t){ return '<option value="' + t + '">' + t + '</option>'; }).join("");
+  openModal("🏠 대피소 등록·관리",
+    '<div class="fitem"><label>종류</label><select id="sh_type">' + opts + '</select></div>' +
+    '<div class="fitem"><label>명칭</label><input type="text" id="sh_name" placeholder="예: 옥천읍사무소"></div>' +
+    '<div class="fitem"><label>주소 <span class="note" style="font-weight:400">(지번 주소)</span></label>' +
+    '<input type="text" id="sh_addr" placeholder="충청북도 옥천군 ○○면 ○○리 ○○"></div>' +
+    '<div class="fitem"><label>수용 인원 <span class="note" style="font-weight:400">(선택)</span></label>' +
+    '<input type="text" id="sh_cap" placeholder="예: 120"></div>' +
+    '<div class="fitem"><label>연락처 <span class="note" style="font-weight:400">(선택)</span></label>' +
+    '<input type="text" id="sh_tel" placeholder="043-730-0000"></div>' +
+    '<div class="fitem"><label>엑셀에서 한꺼번에 등록 <span class="note" style="font-weight:400">(선택)</span></label>' +
+    '<textarea id="shbulk" placeholder="엑셀에서 여러 줄을 복사해 붙여넣으세요.&#10;열 순서: 명칭 → 주소 → 종류 → 수용인원 → 연락처&#10;옥천읍사무소&#9;충청북도 옥천군 옥천읍 금구리 123&#9;이재민임시주거시설&#9;120&#9;043-730-0000"></textarea>' +
+    '<div class="note">위 한 건 입력란을 비우고 여기에만 붙여넣으면 붙여넣은 것만 등록됩니다.</div>' +
+    '<div id="shprog"></div></div>' +
+    '<div class="fitem"><label>등록된 대피소</label><div id="shlist"></div></div>',
+    function(){
+      var bulk = (val("shbulk") || "").trim();
+      var one = (val("sh_addr") || "").trim();
+      if(!bulk && !one){ alert("주소를 입력하거나, 엑셀 내용을 붙여넣어 주세요."); return false; }
+      if(!getKey("vw")){ alert("⚙설정에서 VWorld 인증키를 먼저 등록해 주세요.\n주소를 좌표로 바꾸는 데 필요합니다."); return false; }
+      var rows = [];
+      if(one){
+        rows.push({ name: val("sh_name").trim(), addr: one, type: val("sh_type"),
+                    cap: val("sh_cap").trim(), tel: val("sh_tel").trim() });
+      }
+      bulk.split(/\r?\n/).forEach(function(line){
+        if(!line.trim()) return;
+        var c = line.split("\t");
+        if(c.length < 2) c = line.split(/\s{2,}/);
+        if(c.length < 2) return;
+        rows.push({ name:(c[0]||"").trim(), addr:(c[1]||"").trim(),
+                    type:(c[2]||"").trim() || "기타", cap:(c[3]||"").trim(), tel:(c[4]||"").trim() });
+      });
+      shelterAddRows(rows);
+      return false;   // 지오코딩이 끝난 뒤 직접 닫는다
+    });
+  renderShelterList();
+}
+function shelterAddRows(rows){
+  var prog = document.getElementById("shprog");
+  var done = 0, added = 0, failed = [];
+  function step(){
+    if(done >= rows.length){
+      saveShelters();
+      saveGeocodeCache();
+      var chk = document.getElementById("shelter_show");
+      if(chk && !chk.checked && added){ chk.checked = true; toggleShelter(true); }
+      closeModal();
+      alert("대피소 " + added + "곳을 등록했습니다." +
+        (failed.length ? "\n\n주소를 찾지 못한 " + failed.length + "건:\n" + failed.slice(0,10).join("\n") : ""));
+      return;
+    }
+    var r = rows[done];
+    if(prog) prog.textContent = "주소 확인 중… (" + (done+1) + "/" + rows.length + ") " + (r.name || r.addr);
+    if(!r.addr){ done++; step(); return; }
+    if(shelters.some(function(x){ return x.addr === r.addr && x.name === r.name; })){ done++; step(); return; }
+    vwGeocode(r.addr).then(function(g){
+      if(g){
+        shelters.push({ id:uid(), name:r.name || r.addr, type:r.type || "기타", addr:r.addr,
+                        lat:g.lat, lng:g.lng, cap:r.cap || "", tel:r.tel || "", at:Date.now() });
+        added++;
+      } else {
+        failed.push((r.name ? r.name + " — " : "") + r.addr);
+      }
+      done++;
+      setTimeout(step, 60);
+    });
+  }
+  step();
+}
+function renderShelterList(){
+  var el = document.getElementById("shlist");
+  if(!el) return;
+  if(!shelters.length){ el.innerHTML = '<div class="note" style="padding:6px">등록된 대피소가 없습니다.</div>'; return; }
+  el.innerHTML = shelters.slice().reverse().map(function(s){
+    return '<div class="shrow"><b>' + esc(s.name || "대피소") + '</b>' +
+      '<span class="shad">' + esc(s.type || "") + (s.addr ? " · " + esc(s.addr) : "") + '</span>' +
+      '<button class="shdel" onclick="removeShelter(\'' + s.id + '\')">삭제</button></div>';
+  }).join("");
+}
+function removeShelter(id){
+  var s = shelters.filter(function(x){ return x.id === id; })[0];
+  if(!s) return;
+  if(!confirm("'" + (s.name || s.addr) + "' 대피소를 삭제할까요?")) return;
+  shelters = shelters.filter(function(x){ return x.id !== id; });
+  saveShelters();
+  renderShelterList();
+}
+loadShelters();
+renderShelters();
+</script>
+
+<script>
+/* =========================================================
+   하천 수위 — 1단계: 연결 시험
+   한강홍수통제소 오픈API가 브라우저에서 바로 호출되는지(CORS),
+   그리고 응답의 항목 이름이 무엇인지 이 자리에서 확인한다.
+     https://api.hrfco.go.kr/{인증키}/waterlevel/info.json
+   ========================================================= */
+var HRFCO_BASE = "https://api.hrfco.go.kr/";
+function hrfcoUrl(path){
+  var k = getKey("hrfco");
+  return k ? HRFCO_BASE + encodeURIComponent(k) + "/" + path : "";
+}
+function _wlOut(t){
+  var b = document.getElementById("hrfco_out");
+  if(b){ b.style.display = "block"; b.textContent = t; }
+}
+/* 응답에서 관측소 배열을 찾아낸다 (응답 틀이 기관마다 달라 여러 형태를 받아준다) */
+function wlPickList(j){
+  if(Array.isArray(j)) return j;
+  if(!j || typeof j !== "object") return null;
+  var keys = ["content", "list", "data", "items", "result"];
+  for(var i = 0; i < keys.length; i++){
+    var v = j[keys[i]];
+    if(Array.isArray(v)) return v;
+    if(v && typeof v === "object"){
+      var inner = wlPickList(v);
+      if(inner) return inner;
+    }
+  }
+  for(var k in j){ if(Array.isArray(j[k]) && j[k].length && typeof j[k][0] === "object") return j[k]; }
+  return null;
+}
+function saveHrfcoKey(){
+  var k = (val("f_hrfco") || "").trim();
+  try{ localStorage.setItem("okc6_hrfco", k); }catch(e){}
+  if(!k){ _wlOut("인증키를 먼저 입력해 주세요."); return; }
+  _wlOut("연결 시험 중… (관측소 목록을 받아오는 중)");
+  var url = HRFCO_BASE + encodeURIComponent(k) + "/waterlevel/info.json";
+  fetch(url, { cache: "no-store" })
+    .then(function(r){
+      return r.text().then(function(t){ return { ok:r.ok, status:r.status, text:t }; });
+    })
+    .then(function(res){
+      if(!res.ok){
+        _wlOut("서버가 오류를 돌려줬습니다. (HTTP " + res.status + ")\n" +
+               "인증키가 맞는지, 승인이 끝났는지 확인해 주세요.\n\n--- 응답 원문 ---\n" + res.text.slice(0, 1200));
+        return;
+      }
+      var j = null;
+      try{ j = JSON.parse(res.text); }catch(e){}
+      if(!j){
+        _wlOut("JSON으로 읽히지 않았습니다. 아래 원문을 그대로 알려주세요.\n\n--- 응답 원문 ---\n" + res.text.slice(0, 1500));
+        return;
+      }
+      var list = wlPickList(j);
+      if(!list || !list.length){
+        _wlOut("관측소 목록을 찾지 못했습니다. 아래 구조를 그대로 알려주세요.\n\n--- 응답 구조 ---\n" +
+               JSON.stringify(j).slice(0, 1500));
+        return;
+      }
+      var first = list[0];
+      var fields = Object.keys(first).map(function(f){
+        return "  " + f + " : " + JSON.stringify(first[f]);
+      }).join("\n");
+      _wlOut("✅ 연결 성공 — 브라우저에서 바로 호출됩니다 (CORS 열려 있음)\n" +
+             "관측소 " + list.length + "곳을 받았습니다.\n\n" +
+             "--- 첫 번째 관측소의 모든 항목 ---\n" + fields +
+             "\n\n이 내용을 그대로 복사해 알려주시면 옥천 관내 관측소 선별과\n임계치 알림을 바로 붙이겠습니다.");
+    })
+    .catch(function(err){
+      _wlOut("❌ 브라우저에서 직접 호출이 막혔습니다 (CORS).\n" +
+             "오류: " + (err && err.message ? err.message : err) + "\n\n" +
+             "이 경우 깃허브 액션으로 10분마다 수위를 받아 저장소에 파일로 저장하고,\n" +
+             "앱은 그 파일만 읽는 방식으로 우회합니다. 이 화면 내용을 알려주세요.\n\n" +
+             "참고: 아래 주소를 브라우저 주소창에 직접 넣으면 열리는지도 확인해 주세요.\n" + url);
+    });
+}
 </script>
 
 </body>
