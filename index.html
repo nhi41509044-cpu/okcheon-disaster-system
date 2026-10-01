@@ -1587,32 +1587,32 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
 <style>
 /* ===== 도로구역 레이어 (V-World 도로/용도구역) ===== */
-#roadpanel,#rivpanel,#uppanel,#rnpanel{position:absolute;top:52px;right:10px;z-index:1000;background:#fff;border:1px solid #d1d5db;
+#roadpanel,#rivpanel,#uppanel,#rnpanel,#wlpanel,#shpanel{position:absolute;top:52px;right:10px;z-index:1000;background:#fff;border:1px solid #d1d5db;
   border-radius:8px;padding:10px 12px;font-size:12px;display:none;min-width:206px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
-#roadpanel.show,#rivpanel.show,#uppanel.show,#rnpanel.show{display:block}
-#roadpanel .rzttl,#rivpanel .rzttl,#uppanel .rzttl{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#1e3a5f;margin-bottom:4px}
-#roadpanel .rzttl span,#rivpanel .rzttl span,#uppanel .rzttl span{font-weight:400;color:#9ca3af;font-size:10px}
-#roadpanel .rzclose,#rivpanel .rzclose,#uppanel .rzclose,#rnpanel .rzclose{margin-left:auto;border:0;background:transparent;color:#9ca3af;
+#roadpanel.show,#rivpanel.show,#uppanel.show,#rnpanel.show,#wlpanel.show,#shpanel.show{display:block}
+#roadpanel .rzttl,#rivpanel .rzttl,#uppanel .rzttl,#rnpanel .rzttl,#wlpanel .rzttl,#shpanel .rzttl{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#1e3a5f;margin-bottom:4px}
+#roadpanel .rzttl span,#rivpanel .rzttl span,#uppanel .rzttl span,#rnpanel .rzttl span,#wlpanel .rzttl span,#shpanel .rzttl span{font-weight:400;color:#9ca3af;font-size:10px}
+#roadpanel .rzclose,#rivpanel .rzclose,#uppanel .rzclose,#rnpanel .rzclose,#wlpanel .rzclose,#shpanel .rzclose{margin-left:auto;border:0;background:transparent;color:#9ca3af;
   font-size:17px;line-height:1;padding:2px 4px;cursor:pointer;flex:none}
 #roadpanel .rzclose:hover,#rivpanel .rzclose:hover,#uppanel .rzclose:hover,#rnpanel .rzclose:hover{color:#4b5563}
-#roadpanel label,#rivpanel label,#uppanel label,#rnpanel label{display:flex;align-items:center;gap:7px;padding:4px 0;cursor:pointer}
-#roadpanel .rzsep,#rivpanel .rzsep,#uppanel .rzsep,#rnpanel .rzsep{border-top:1px solid #e5e7eb;margin:7px 0}
+#roadpanel label,#rivpanel label,#uppanel label,#rnpanel label,#wlpanel label,#shpanel label{display:flex;align-items:center;gap:7px;padding:4px 0;cursor:pointer}
+#roadpanel .rzsep,#rivpanel .rzsep,#uppanel .rzsep,#rnpanel .rzsep,#wlpanel .rzsep,#shpanel .rzsep{border-top:1px solid #e5e7eb;margin:7px 0}
 #roadpanel .rzn,#rivpanel .rzn,#uppanel .rzn{margin-left:auto;color:#9ca3af;font-size:10.5px;font-variant-numeric:tabular-nums}
 #roadpanel .rzdot,#rivpanel .rzdot,#uppanel .rzdot{width:11px;height:11px;border-radius:3px;flex:none}
-#roadpanel .rzhint,#rivpanel .rzhint,#uppanel .rzhint,#rnpanel .rzhint{font-size:10.5px;color:#9ca3af;margin-top:6px;line-height:1.45}
+#roadpanel .rzhint,#rivpanel .rzhint,#uppanel .rzhint,#rnpanel .rzhint,#wlpanel .rzhint,#shpanel .rzhint{font-size:10.5px;color:#9ca3af;margin-top:6px;line-height:1.45}
 #roadpanel.busy,#rivpanel.busy,#uppanel.busy{opacity:.6;pointer-events:none}
 #uppanel .upstat{font-size:10.5px;color:#6b7280;margin-top:6px;line-height:1.45}
 #uppanel .upstat.err{color:#b91c1c}
 .rzpop b{font-size:13px;color:#1e3a5f}
 .rzpop div{font-size:11.5px;color:#4b5563;margin-top:2px}
-@media (max-width:860px){ #roadpanel,#rivpanel,#uppanel,#rnpanel{max-height:60vh;overflow-y:auto} }
+@media (max-width:860px){ #roadpanel,#rivpanel,#uppanel,#rnpanel,#wlpanel,#shpanel{max-height:60vh;overflow-y:auto} }
 @media (max-width:860px){
   /* 목록을 2단으로 접어 지도가 가려지지 않게 한다 */
   #roadpanel #rzzones,#roadpanel #rzgrades,#rivpanel #rvzones,#rivpanel #rvgrades,#uppanel #upkinds{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
   #roadpanel .rzclose,#rivpanel .rzclose,#uppanel .rzclose,#rnpanel .rzclose{font-size:22px;padding:4px 8px}
 }
 @media (max-width:600px){
-  #roadpanel,#rivpanel,#uppanel,#rnpanel{top:auto;left:10px;right:10px;width:auto;z-index:1450;max-height:42vh}
+  #roadpanel,#rivpanel,#uppanel,#rnpanel,#wlpanel,#shpanel{top:auto;left:10px;right:10px;width:auto;z-index:1450;max-height:42vh}
   #roadpanel label,#rivpanel label,#uppanel label,#rnpanel label{font-size:13px;padding:6px 0;color:#33465c;font-weight:600}
   #roadpanel .rzhint,#rivpanel .rzhint{display:none}
 }
@@ -1750,6 +1750,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <button class="lyb" id="upbtn" onclick="toggleUpPanel()">도시계획도로</button>
       <button class="lyb" id="rivbtn" onclick="toggleRiverPanel()">하천구역</button>
       <button class="lyb" id="rnbtn" onclick="toggleRoadNetPanel()">군·농어촌도로망</button>
+      <button class="lyb" id="wlbtn" onclick="toggleWlPanel()">하천수위</button>
+      <button class="lyb" id="shbtn" onclick="toggleShPanel()">대피소</button>
     </div>
       <label class="lblwrap" style="display:none"><input type="checkbox" id="lblchk" onchange="updLabels()"> 지명</label>
       <button class="lyb hidden-slot" id="gpsbtn" onclick="goMyLocation()" style="display:none">현위치</button>
@@ -1763,11 +1765,6 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div id="geocode_status" style="font-size:10.5px;color:#9ca3af;margin-top:3px"></div>
     <div class="ovlsep"></div>
     <button class="ovladd" onclick="openAddRiskSiteForm()">➕ 위험지역 추가 등록</button>
-    <div class="ovlsep"></div>
-    <div class="ovlttl">대피소</div>
-    <label><input type="checkbox" id="shelter_show" onchange="toggleShelter(this.checked)">
-      <span style="color:#16a34a">▲</span> 대피소 <span class="shn" id="shelter_n"></span></label>
-    <button class="ovladd" onclick="openShelterForm()">➕ 대피소 등록·관리</button>
   </div>
   <div id="roadpanel">
     <div class="rzttl">도로구역 <span>국토교통부 V-World 2026-09</span>
@@ -1794,6 +1791,36 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <label style="gap:8px"><span style="flex:none">진하기</span>
       <input type="range" id="rn_op" min="20" max="100" value="85" oninput="rnOpacity(this.value)" style="flex:1"></label>
     <div class="rzhint" id="rnhint">군·농어촌도로망도 총괄도를 지도 위에 겹쳐 놓은 그림 레이어입니다. 실제 도로 위치와는 최대 100m 내외 차이가 있을 수 있어 참고용으로만 사용하세요.</div>
+  </div>
+  <div id="wlpanel">
+    <div class="rzttl">하천 수위 <span>한강홍수통제소 실시간</span>
+      <button class="rzclose" onclick="closeWlPanel()" aria-label="하천수위 닫기">×</button></div>
+    <label><input type="checkbox" id="wl_on" onchange="wlShow(this.checked)"> <b>지도에 표시</b></label>
+    <label><input type="checkbox" id="wl_alarm" onchange="wlSetAlarm(this.checked)"> 기준 수위 넘으면 알림</label>
+    <div class="rzsep"></div>
+    <div id="wllist"></div>
+    <div class="rzsep"></div>
+    <div class="msel-actions" style="padding:0">
+      <button type="button" onclick="openWlPicker()">＋ 관측소 선택</button>
+      <button type="button" onclick="wlRefresh(true)">↻ 지금 갱신</button>
+    </div>
+    <div class="rzhint" id="wlhint"></div>
+  </div>
+  <div id="shpanel">
+    <div class="rzttl">대피소 <span>옥천군 풍수해 대피소</span>
+      <button class="rzclose" onclick="closeShPanel()" aria-label="대피소 닫기">×</button></div>
+    <label><input type="checkbox" id="sh_on" onchange="shShow(this.checked)"> <b>지도에 표시</b></label>
+    <div class="rzsep"></div>
+    <div id="shkinds"></div>
+    <div class="rzsep"></div>
+    <label style="gap:8px"><span style="flex:none">읍면</span>
+      <select id="sh_eup" onchange="shRender()" style="flex:1;font-size:12px;padding:3px"></select></label>
+    <div class="rzsep"></div>
+    <div id="shcount" style="font-size:11.5px;color:#22344a;font-weight:700"></div>
+    <div class="msel-actions" style="padding:4px 0 0">
+      <button type="button" onclick="openShelterForm()">＋ 대피소 추가</button>
+    </div>
+    <div class="rzhint" id="shhint"></div>
   </div>
   <div id="rivpanel">
     <div class="rzttl">하천구역 <span>국토교통부 V-World 2026-09</span>
@@ -3208,6 +3235,15 @@ function initFirebase(){
     // 담당자가 직접 추가 등록한 급경사지·산사태 위험지역을 모든 담당자와 실시간 공유
     // 담당자가 등록한 대피소를 모든 담당자와 실시간 공유
     try{
+      wlRef = db.ref("okc_wlwatch_v6");
+      wlRef.on("value", function(snap){
+        var v = snap.val();
+        var next = Array.isArray(v) ? v : (v ? Object.keys(v).map(function(k){ return v[k]; }) : []);
+        if(JSON.stringify(next) === JSON.stringify(wlWatch)) return;
+        wlWatch = next;
+        try{ localStorage.setItem(WL_WATCH_KEY, JSON.stringify(wlWatch)); }catch(e){}
+        if(typeof wlRender === "function"){ wlRender(); if(getKey("hrfco")) wlRefresh(); }
+      });
       shelterRef = db.ref("okc_shelters_v6");
       shelterRef.on("value", function(snap){
         var v = snap.val();
@@ -8310,7 +8346,7 @@ const RoadZone = (() => {
 var _rzLayer = null, _rzReady = false, _rzLoading = false;
 
 function closeMapPanels(except){
-  ["ovlpanel","roadpanel","rivpanel","uppanel","rnpanel"].forEach(function(id){
+  ["ovlpanel","roadpanel","rivpanel","uppanel","rnpanel","wlpanel","shpanel"].forEach(function(id){
     if(id !== except){ var el = document.getElementById(id); if(el) el.classList.remove("show"); }
   });
 }
@@ -8980,20 +9016,20 @@ map.on("zoomend", function(){ upStatus(); });
 }
 
 /* 2) 레이어 패널: 흰 카드 확보 + 날씨·특보 카드(z-index 1200)보다 위로 */
-#ovlpanel,#roadpanel,#rivpanel,#uppanel,#rnpanel{z-index:1500 !important;
+#ovlpanel,#roadpanel,#rivpanel,#uppanel,#rnpanel,#wlpanel,#shpanel{z-index:1500 !important;
   background:#fff !important;border:1px solid #e3e9f0 !important;border-radius:14px !important;
   box-shadow:0 10px 28px rgba(15,37,64,.20) !important}
 
 /* PC: 우상단(날씨 자리) 대신 테마 카드 아래 좌측으로 */
 @media (min-width:861px){
-  #ovlpanel,#roadpanel,#rivpanel,#uppanel,#rnpanel{right:auto !important;bottom:auto !important;
+  #ovlpanel,#roadpanel,#rivpanel,#uppanel,#rnpanel,#wlpanel,#shpanel{right:auto !important;bottom:auto !important;
     width:min(256px,calc(100% - 28px)) !important;min-width:0 !important;padding:11px 12px !important;
     max-height:calc(100% - 140px);overflow-y:auto}
 }
 
 /* 모바일: 테마 칩줄 아래 가로 꽉 채움 */
 @media (max-width:860px){
-  #ovlpanel,#roadpanel,#rivpanel,#uppanel,#rnpanel{left:8px !important;right:8px !important;bottom:auto !important;
+  #ovlpanel,#roadpanel,#rivpanel,#uppanel,#rnpanel,#wlpanel,#shpanel{left:8px !important;right:8px !important;bottom:auto !important;
     width:auto !important;max-height:46vh;overflow-y:auto}
 }
 </style>
@@ -10074,34 +10110,63 @@ function toggleRoadNetPanel(){
 
 <style id="shelter-style">
 /* ===== 대피소 ===== */
-#ovlpanel .shn{color:#9ca3af;font-size:10.5px;margin-left:auto;font-variant-numeric:tabular-nums}
-.shpin{background:none;border:0}
+#shpanel{width:286px;max-width:calc(100vw - 40px)}
+#shkinds label{padding:3px 0;font-size:12px}
+#shkinds .shn{margin-left:auto;color:#9ca3af;font-size:10.5px;font-variant-numeric:tabular-nums}
+#shcount b{color:#15803d}
 .shpop b{font-size:13px;color:#14532d}
 .shpop .shty{display:inline-block;background:#dcfce7;color:#15803d;border-radius:4px;
   padding:1px 6px;font-size:10.5px;font-weight:700;margin-left:4px}
 .shpop div{font-size:11.5px;color:#4b5563;margin-top:3px}
 .shpop a{display:inline-block;margin-top:6px;font-size:11.5px;color:#1d4ed8;text-decoration:none;font-weight:700}
-#shlist{max-height:210px;overflow:auto;border:1px solid #e5e7eb;border-radius:8px;padding:4px}
+#shlist{max-height:200px;overflow:auto;border:1px solid #e5e7eb;border-radius:8px;padding:4px}
 #shlist .shrow{display:flex;align-items:flex-start;gap:6px;padding:5px 4px;border-bottom:1px solid #f1f5f9;font-size:12px}
 #shlist .shrow:last-child{border-bottom:0}
-#shlist .shrow b{flex:none}
-#shlist .shrow .shad{color:#6b7f96;font-size:11px}
+#shlist .shad{color:#6b7f96;font-size:11px}
 #shlist .shdel{margin-left:auto;flex:none;border:0;background:#fef2f2;color:#be123c;
   border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer}
-#shbulk{width:100%;min-height:92px;font-family:inherit;font-size:12px;line-height:1.5}
-#shprog{font-size:11.5px;color:#6b7f96;margin-top:4px}
 </style>
 <script>
+var SHELTER_TYPES_B=["경로당", "마을회관", "무더위심터"];
+var SHELTER_EUPS=["옥천읍", "동이면", "안남면", "안내면", "청성면", "청산면", "이원면", "군서면", "군북면"];
+/* [종류비트, 읍면번호, 지번, 도로명, 위도, 경도, 면적] */
+var SHELTER_BASE=[[7,0,"죽향리 52-2","향수2길 46-11",36.316834,127.581292,92.82],[3,0,"죽향리 153-2번지 옥향@","성왕로 1274, 옥향@",36.316693,127.578805,70.0],[1,0,"죽향 196-2 향수마을@ 101","성왕로 1262, 향수마을@ 101",36.316164,127.577358,72.81],[7,0,"문정리 53","향수2길 9",36.313788,127.579278,109.16],[7,0,"문정리 446-23","문정2길13-15",36.305164,127.573279,83.45],[3,0,"문정리 430-1 하늘빛@105","동부로 16, 하늘빛@ 105",36.306082,127.57368,95.94],[7,0,"문정리 467-5 진달래@","관성로1길 18, 진달래@",36.303347,127.573025,60.0],[7,0,"문정리 374 주공2단지","문장로2길 9, 문정@2단지",36.303298,127.576698,65.0],[5,0,"문정리 376 주공3단지","문장로2길 10, 문정@3단지",36.30183,127.577229,65.0],[5,0,"상계리 96-3","향수3길 30",36.315231,127.580722,82.5],[1,0,"상계리97","향수4길 19",36.315377,127.581081,195.3],[1,0,"하계리17-4","향수4길 7-23",36.313929,127.581064,86.1],[1,0,"교동리314","향수길 111",36.317502,127.586947,69.12],[1,0,"동안리 75-23","동안2길11-1",36.311413,127.590582,77.0],[1,0,"수북리 118-1","수북길 11-2",36.317781,127.60759,99.0],[5,0,"수북리 64-8","수북1길 9-1",36.31619,127.608284,55.6],[1,0,"오대리 704-5","오대1길 39-1",36.331475,127.614111,49.92],[1,0,"매화리 141-23","매화길 26",36.304111,127.5958,135.45],[1,0,"구일리 639-1","서대구일로5길 34-6",36.291166,127.595742,85.23],[1,0,"구일리 630-1","서대구일로5길 27-7",36.290122,127.595801,42.0],[1,0,"구일리 201","서대구일로4길 37",36.286632,127.598887,49.6],[1,0,"구일리 318-4","서대구일로3길 37",36.282121,127.596563,87.53],[1,0,"서대리 194","송신길 90",36.285459,127.582161,82.45],[1,0,"서대리 178-1","송신1길 6",36.282255,127.581421,86.68],[1,0,"서대리 377-2","서대구일로 65",36.279979,127.586624,76.16],[1,0,"가풍리 855-4","청풍로 172",36.259155,127.584578,244.0],[5,0,"가풍리 223-2","원각1길 5-2",36.269574,127.591068,79.0],[1,0,"삼청리 595","삼청2길 283-1",36.263774,127.573335,76.0],[1,0,"삼청리 409-5","삼청2길 240",36.266098,127.575909,34.0],[1,0,"삼청리 412-4","삼청2길 246-4",36.265713,127.575899,392.37],[1,0,"삼청리 392","청풍로 367-64",36.268286,127.574747,49.0],[1,0,"삼청리 304-4","삼청2길 173",36.271539,127.577212,49.0],[1,0,"삼청리 822-1","삼청1길 113",36.276415,127.571369,84.0],[1,0,"삼청리 985-8","삼청1길 185-1",36.274457,127.565935,80.92],[1,0,"대천리 464-1","대천길 68",36.28777,127.563219,84.8],[1,0,"대천리 542-4","대천길 130",36.28259,127.561108,68.43],[1,0,"대천리 352-6","응천길14-4",36.28787,127.572064,89.97],[5,0,"마암리 108-9","마암로2길 23",36.292957,127.564483,141.0],[1,0,"마암리 180","마암로3길 66",36.289578,127.559587,99.62],[1,0,"마암리 343-1","마암로3길 127-29",36.284548,127.554196,99.0],[1,0,"마암리 20","성신로 29-8, 현대연립 가-113",36.295271,127.569065,64.0],[5,0,"마암리 43-19","성암3길 12-7",36.293953,127.571349,47.88],[1,0,"마암리 16","성암1길 30, 현대@",36.295514,127.570499,45.0],[1,0,"마암리 487","마장로 20, 양우내안에@",36.292312,127.570965,90.0],[1,0,"양수리 195-4","양수로5길 6",36.296675,127.555063,49.2],[5,0,"양수리 195-4","양수로5길 6",36.296675,127.555063,64.8],[1,0,"양수리 258-1","양수로6길 40",36.29373,127.554584,63.74],[1,0,"양수리 110-1","양수로 49",36.299321,127.560249,47.46],[1,0,"양수리 438","양수로 25-7, 지엘@",36.300591,127.562836,123.2],[1,0,"금구리 199-33","가화길 15",36.302317,127.563251,131.04],[5,0,"금구리 179-4","금장로 13",36.302722,127.565717,60.0],[1,0,"금구리 235-1","가화3길18, 현대@",36.304582,127.561353,76.0],[1,0,"금구리 235-26","가화3길 8, 다산금빛@",36.304975,127.56268,75.0],[1,0,"금구리 302","가화4길 65, 계룡리슈빌@",36.302015,127.561404,95.19],[1,0,"금구리 5-68","삼금로5길 5-14, 공설시장4층",36.302513,127.567915,100.8],[5,0,"금구리 149-6","중앙로 20-3",36.299383,127.568284,28.5],[5,0,"금구리 263-59","중앙로1길 25-6",36.296439,127.567473,83.68],[1,0,"문정리 365-6","대학1길 5-11",36.299971,127.574011,85.95],[1,0,"금구리 39-4","관성로3길 10",36.301187,127.571972,48.5],[1,0,"금구리 70-1","신기2길 1",36.29756,127.571392,104.0],[1,0,"금구리 59-11","신기3길 13-3",36.29836,127.57009,83.72],[1,0,"장야리 132-2","상야1길 4",36.294047,127.584981,83.82],[1,0,"장야리 241-5","옥천동이로 34-3",36.299003,127.579502,44.84],[1,0,"장야리 262-2","장야1길 10, 그린@",36.299061,127.577431,27.0],[5,0,"장야리 313","장야3길 9, 장야주공@ 1단지",36.296875,127.578321,76.0],[5,0,"장야리 311","장야3길 10, 장야주공@ 2단지",36.294993,127.578619,76.0],[1,0,"장야리 444","장야4길 51, 이안@ 101동",36.294886,127.580081,105.73],[1,0,"삼양리 222-197","삼양로7길 9-1",36.30341,127.567965,94.68],[1,0,"삼양리 220-10","삼양로 54",36.305834,127.567012,112.0],[1,0,"삼양리 46-7","삼양로2길 14-3 202호",36.309066,127.564522,51.26],[1,0,"서정리 261-4","서정1길 10",36.31277,127.555621,78.1],[1,0,"서정리 48-1","서정2길 15",36.313907,127.556983,69.39],[1,0,"옥각리 375-3","옥각길 16",36.320122,127.556279,103.54],[1,0,"옥각리 265, 옥각리 266","옥각2길 41-3",36.326918,127.559611,86.4],[5,1,"평산리 755","평산2길 28",36.284999,127.614339,82.2],[5,1,"평산리 805-2","평산길 41",36.282968,127.616595,173.62],[5,1,"평산리 668-6","평산1길 31-1",36.288479,127.617631,96.0],[5,1,"세산리 1049-3","세산2길 6",36.271427,127.604901,68.13],[1,1,"세산리 581","세산2길 74",36.265938,127.606113,88.2],[1,1,"세산리 1031","세산3길 52-1",36.275503,127.602855,0],[5,1,"세산리 323-1","세산4길 11",36.270375,127.614457,82.98],[1,1,"세산리 188","세산5길 13",36.272013,127.615628,79.24],[1,1,"적하리 1205-3","옥천동이로 653",36.277792,127.629267,129.01],[1,1,"적하리 1211, 1212-4, 1213, 1212-6","적하1길 13-14",36.279852,127.628308,69.0],[5,1,"적하리 656","적하3길 24",36.277741,127.636094,74.41],[1,1,"적하리 838-1","적하2길 39-18",36.272614,127.634993,70.2],[1,1,"적하리 523-2","적하4길 28",36.271376,127.639032,89.98],[1,1,"적하리 472-3","적하길 151",36.272817,127.641596,99.99],[1,1,"금암리 61","금암3길 5-3",36.290449,127.640995,65.6],[1,1,"금암리 433-2","옥천동이로 783",36.285856,127.638089,83.0],[1,1,"금암리 549-14","금암4길 69-14",36.293046,127.63567,49.0],[1,1,"금암리 590-6","금암4길 67-3",36.293613,127.635304,103.76],[1,1,"금암리 896-2","금암6길 135-2",36.291603,127.630439,72.4],[1,1,"조령리 601-5","조령2길 6",36.280177,127.671072,67.1],[1,1,"조령리 112-3","조령1길 4",36.290505,127.690939,89.26],[1,1,"청마리 870-1","청마1길 43-5",36.305036,127.660942,81.34],[1,1,"청마리 276","청마2길 50-8",36.309702,127.687408,85.6],[1,1,"우산리 683-1","우산로3길 63",36.271384,127.688662,79.2],[1,1,"우산리 801-1","우산로2길 48",36.277244,127.683862,97.39],[1,1,"우산리 522","우산로1길 153-2",36.267835,127.672117,83.85],[1,1,"지양리 610-3","지양2길 90-1",36.305606,127.62752,91.53],[1,1,"지양리 484-3","지양1길 113-2",36.31559,127.633511,71.74],[1,1,"석탄리 610-3","안터1길 14",36.319253,127.620871,63.0],[1,1,"석탄리 471-2","선사로 309",36.310023,127.62231,99.92],[1,1,"남곡리 294","선사로 83",36.309917,127.611465,348.9],[1,1,"남곡리 459-2","남곡3길 17",36.305773,127.602906,81.08],[5,2,"연주리 41-8","연주2길 9",36.356833,127.674665,97.15],[5,2,"연주리 635-8","연주길 150",36.348655,127.667082,57.1],[5,2,"연주리 418-17","연주길 70",36.354244,127.672206,82.5],[5,2,"종미리 515-1","종미3길 106",36.340821,127.670489,51.0],[5,2,"종미리554-6","종미1길 41",36.34452,127.674333,230.75],[5,2,"지수리 425-2","지수1길 212-1",36.341247,127.683927,118.34],[5,2,"지수리 146-1","지수2길 6",36.346044,127.689465,99.16],[5,2,"지수리 1121-2","안남로 919",36.323342,127.683364,84.0],[5,2,"지수리 753","지수3길 26",36.333265,127.684297,147.58],[5,2,"도덕리 715-1","도덕2길 64",36.353986,127.682674,145.12],[1,2,"도덕리 817","도덕2길 15-3",36.354036,127.677685,32.4],[1,2,"도덕리 326-11","도덕3길 1-2",36.35953,127.686764,106.12],[5,2,"도덕리 632-1","도덕1길 85",36.351764,127.685069,60.0],[5,2,"청정리 253-1","청정1길 27-7",36.364328,127.676652,98.56],[1,2,"청정리 433-16","청정2길 3",36.368261,127.682941,72.0],[1,2,"청정리 536-3","청정3길 29-8",36.368774,127.686261,86.56],[5,2,"화학리 479","화학2길 17",36.375807,127.672771,84.36],[1,2,"화학리 422-4","화학3길 29",36.378682,127.670558,167.15],[1,2,"화학리 557-2","화학1길 35-6",36.370695,127.673029,94.2],[5,2,"화학리 107-4","화학4길 88",36.377836,127.68273,154.06],[5,2,"도농리 640-1","도농2길 34",36.376329,127.694425,89.41],[5,2,"도농리 876-6","도농1길 88-10",36.383381,127.690946,84.14],[5,2,"도농리 361-1","도농4길 3",36.365701,127.701089,158.96],[5,3,"현리 113-3","현리길 84",36.393997,127.659881,131.81],[1,3,"현리 377-3","현리5길 15",36.393198,127.648684,77.76],[5,3,"현리 462-2","현리길 131",36.391642,127.655435,79.14],[5,3,"정방리 156-4","정방2길 8",36.397335,127.669905,101.65],[5,3,"정방리 206-3","정방1길 21",36.393585,127.671815,94.41],[5,3,"도이리 161-3","도이길 75",36.403601,127.67499,99.63],[5,3,"동대리 157-1","동대1길 15-2",36.40882,127.670017,135.94],[5,3,"동대리 337-1","동대5길 39-1",36.413773,127.667788,70.8],[5,3,"동대리 232-1","동대4길 19",36.41224,127.671563,69.31],[5,3,"서대리 540","서대1길 22",36.409028,127.66157,84.0],[5,3,"서대리 366-5","방하목로 79",36.411636,127.66378,99.6],[5,3,"오덕리 369-6","오덕2길 18-1",36.392523,127.717344,89.84],[5,3,"오덕리 732-1","오덕1길 27-4",36.39601,127.696031,108.0],[5,3,"인포리 283-43","인포1길 11",36.375913,127.654753,96.15],[5,3,"인포리 67-5","인포2길 67-6",36.371878,127.660151,53.22],[5,3,"장계리 78-1","장계1길 1-7",36.372542,127.633514,82.82],[5,3,"방하목리 154","방하목로1길 25",36.433141,127.665981,76.0],[5,3,"도율리 261","도율길 9",36.399454,127.642906,213.46],[5,3,"도율리 137","안내수한로 291",36.41,127.642145,131.8],[5,3,"월외리 315-1","월외2길 4",36.424881,127.645095,113.82],[5,3,"용촌리 68-2","용촌2길 16",36.427279,127.628142,67.86],[1,3,"용촌리 268-1","용촌1길 4-2",36.415078,127.625028,82.18],[5,3,"답양리 288-3","답양2길 11",36.397023,127.607242,120.1],[5,4,"산계리 217-1","산계길 42",36.32663,127.759916,97.5],[5,4,"산계리 166-1","산계길 81",36.329709,127.759288,97.2],[5,4,"산계리 633","산계2길 102",36.326335,127.751484,72.8],[5,4,"거포리 589-2","거포3길 8",36.331295,127.737149,50.49],[1,4,"거포리 361-7","거포2길 17",36.333949,127.739196,83.36],[5,4,"장수리 140","장수로1길 44",36.314361,127.745657,150.42],[5,4,"장수리 535","장수로2길 36-1",36.305999,127.735463,84.64],[5,4,"장수리 319-1","장수로 552-3",36.323158,127.724445,66.5],[5,4,"궁촌리 330-1","궁촌길 19-2",36.3089,127.757579,97.92],[5,4,"소서리 36","소서길 34",36.315821,127.771563,182.01],[5,4,"소서리 400","소서길 243",36.300975,127.774955,108.8],[5,4,"삼남리 176-6","삼남1길 23",36.296031,127.754022,84.06],[1,4,"삼남리 561-1","삼남2길 90-1",36.286537,127.741871,83.13],[5,4,"조천리 283-1","조천길 213",36.283109,127.75782,84.0],[5,4,"묘금리 488-1","묘금1길 127",36.27659,127.713052,76.5],[5,4,"묘금리 66-5","묘금3길 32",36.275464,127.733586,84.95],[5,4,"묘금리 119-2","묘금2길 39",36.269309,127.714667,168.0],[5,4,"고당리 78-6","고당로3길 16-4",36.297534,127.694948,86.76],[5,4,"합금리 475-1","합금로1길 14",36.294496,127.673016,197.04],[1,4,"양저리 303","양저로1길 14",36.294204,127.716984,79.6],[5,4,"양저리 76","양저로 216-52",36.293086,127.724115,110.14],[5,4,"양저리 431-2","양저로 538-17",36.304591,127.704573,13.22],[5,4,"구음리 368-2","구음2길 16",36.328612,127.71338,74.4],[5,4,"구음리 564-5","구음1길 31",36.324859,127.714962,64.97],[5,4,"구음리 241-4","구음길 151",36.33289,127.713469,98.34],[5,4,"대안리 840","대안로2길 97",36.353746,127.717063,76.0],[5,4,"대안리 616-1","대안로3길 17-4",36.364792,127.72117,87.6],[5,4,"대안리 380","대안로4길 36-2",36.364448,127.726901,91.72],[5,4,"대안리 1096","대안로5길 24-4",36.372129,127.725197,82.76],[5,4,"도장리 528-3","도장3길 5",36.374459,127.733578,73.5],[5,4,"도장리 110-1","도장1길 49",36.37997,127.729769,96.0],[5,4,"능월리 186-3","능월3길 20",36.380793,127.736681,73.5],[5,4,"능월리 480","능월1길 67-21",36.388602,127.741071,85.7],[5,4,"능월리 397-12","능월2길 23",36.389121,127.731907,72.0],[5,4,"화성리 176","화성1길 14",36.34943,127.74551,89.7],[5,4,"화성리 567-2","화성2길 32-1",36.343387,127.737454,168.0],[5,4,"화성리 286-5","남부로 2843-11",36.347684,127.736835,56.42],[5,4,"장연리 328-1","장연길 172-1",36.349534,127.76188,70.5],[1,4,"장연리 55-1","장연길 447",36.367788,127.768274,93.58],[1,5,"백운리 311-1","백운길 20-7",36.348962,127.793123,105.5],[1,5,"지전리 31-4","지전길 32-13",36.345481,127.793976,52.8],[1,5,"지전리 69-1","지전2길 27",36.346702,127.790525,247.0],[5,5,"지전리 69-1","지전2길 27",36.346702,127.790525,84.42],[1,5,"교평리 264-4","교평길 26",36.345065,127.797323,114.0],[1,5,"교평리 264-4","교평길 26",36.345065,127.797323,114.0],[1,5,"하서리 33","하서1길 14",36.346077,127.783101,106.2],[1,5,"하서리 370","하서2길 14",36.344282,127.778484,66.75],[5,5,"신매리 363-7","신매길 15-2",36.319637,127.770764,98.4],[1,5,"대덕리 255","대덕길 130-1",36.301407,127.785732,85.62],[1,5,"대덕리 32","신매길 200",36.313789,127.785305,132.0],[1,5,"장위리 410-1","장위길 124-1",36.329601,127.782242,145.11],[1,5,"장위리 503","장위3길 54-1",36.324674,127.785442,50.0],[1,5,"한곡리 98-2","한곡길 50",36.320773,127.792843,103.47],[1,5,"한곡리 369-3","한곡1길 96",36.313977,127.791156,94.6],[1,5,"인정리 583-1","인정길 130",36.325541,127.797952,90.0],[1,5,"판수리 621","판수2길 6",36.331958,127.80925,149.58],[1,5,"판수리 539","판수3길 48",36.32554,127.809975,88.83],[1,5,"효목리 652-1","효목2길 14",36.323816,127.817868,74.84],[1,5,"효목리 858-2","효목2길 169",36.313166,127.824967,69.14],[1,5,"효목리 143","효목1길 69-9",36.32381,127.834953,79.78],[1,5,"의지리 136","의지길 255",36.329076,127.834167,74.25],[1,5,"의지리 515-1","의지1길 96",36.34123,127.830441,100.84],[1,5,"예곡리 371-6","예곡1길 43",36.354393,127.823371,74.3],[5,5,"예곡리 142-3","예곡2길 8",36.355197,127.830791,99.1],[1,5,"삼방리 23-12","팔음로 337-3",36.355411,127.847019,42.0],[1,5,"삼방리 283","삼방길 12",36.341104,127.849315,100.0],[1,5,"명티리 276-6","팔음로 502",36.354739,127.861074,75.5],[1,5,"법화리 194-2","법화갈전길 147",36.366259,127.842058,102.5],[1,5,"법화리 53-2","법화3길 81",36.363175,127.852908,54.0],[1,5,"대성리 159-3","대성길 1",36.3728,127.817088,143.17],[1,5,"만월리 577","만월로 368-13",36.381196,127.778487,77.18],[5,5,"만월리 66-3","만월로 1길 9",36.376235,127.789278,98.64],[1,5,"만월리 737-4","만월로1길 28",36.376758,127.78949,48.2],[5,6,"건진리 363","건진1길 26",36.253748,127.614836,215.63],[5,6,"건진리 643-4","건진3길 83",36.248817,127.608118,199.51],[5,6,"장찬리 330","장찬길 376-18",36.245898,127.581413,65.67],[5,6,"강청리 299-8","강청4길 7-4",36.241022,127.610777,165.28],[5,6,"강청리 117-1","강청길 53",36.244103,127.613071,70.3],[5,6,"윤정리 99-4","윤정1길 22",36.238265,127.625276,83.38],[5,6,"윤정리 377-3","윤정2길 96",36.225881,127.618725,91.9],[5,6,"의평리 194-4","의평길 49",36.21328,127.625486,98.9],[5,6,"개심리 728-6","이원로 375",36.206527,127.630797,83.0],[5,6,"개심리 957","개심5길 17-1",36.193774,127.629355,232.41],[5,6,"평계리 712-1","평계1길 91-1",36.188353,127.643874,83.06],[5,6,"수묵리 254-1","수묵2길 24",36.19128,127.651654,65.52],[1,6,"수묵리 498","수묵1길 33-1",36.195628,127.643587,82.13],[5,6,"지정리 356-3","지정1길 5",36.2126,127.635317,91.3],[5,6,"미동리 208-1","미동3길 3",36.222669,127.637429,135.95],[5,6,"미동리 361-1","미동1길 84",36.234423,127.633296,119.5],[5,6,"이원리 173-32","이원4길 11",36.241345,127.634777,96.72],[5,6,"이원리 199-1","이원3길 42",36.24216,127.635688,129.4],[5,6,"이원리 585-3","이원2길 31-1",36.244134,127.631438,84.71],[5,6,"원동리 297-1","원동1길 10",36.241747,127.662693,119.62],[5,6,"원동리 781","원동3길 37",36.24166,127.656773,99.06],[1,6,"백지리 425-4","백지1길 31",36.235276,127.677304,72.42],[5,6,"백지리 602-4","백지2길 51",36.232868,127.679551,92.0],[1,6,"백지리 831-2","백지3길 44-3",36.230344,127.68104,92.84],[1,6,"지탄리 968-7","지탄길 97",36.248027,127.674266,85.23],[5,6,"지탄리 961-1","지탄6길 6",36.247295,127.685494,113.64],[5,6,"용방리 160-1","용방3길 92",36.253772,127.658987,159.05],[5,6,"용방리 833","용방2길 39",36.252895,127.642285,166.23],[5,6,"강청리 2-8","대흥3길 1-5",36.247782,127.624463,114.99],[5,6,"강청리 52-4","이원역길 28",36.245108,127.620543,200.56],[1,6,"강청리 10-13","이원역길 1-7",36.245219,127.624143,89.97],[5,6,"강청리 92-12","신흥3길 22",36.245831,127.617948,157.95],[1,6,"지탄리 904-1","지탄길 155",36.247345,127.678937,58.65],[1,6,"윤정리 225-6","윤정3길 11",36.226721,127.626373,84.6],[1,7,"동평리 491-10","동평1길 7",36.278086,127.528612,48.88],[5,7,"동평리 589-2","동평1길 20",36.27885,127.529395,107.3],[1,7,"동평리 410","동평5길 17",36.268706,127.53161,85.0],[5,7,"동평리 438-4","동평4길 9-8",36.27302,127.52776,97.54],[5,7,"금산리 451-4","금산1길 20-3",36.268899,127.533898,82.36],[5,7,"금산리 138-1","금산3길 23",36.250678,127.546879,79.33],[1,7,"사정리 313-4","사정4길 3",36.260946,127.520319,66.0],[1,7,"사정리 75-1","사정1길 18-5",36.266523,127.525329,86.1],[5,7,"상지리 59","상지1길 8-4",36.254054,127.512182,89.35],[1,7,"은행리 246-5","은행1길 23-6",36.270192,127.516682,90.3],[5,7,"은행리 450-5","은행3길 45",36.264798,127.516114,99.36],[1,7,"사양리 430-1","사양2길 4",36.274093,127.500161,94.54],[1,7,"상중리 326-3","상중길 92",36.28846,127.518337,83.74],[5,7,"상중리 77","상중1길 17",36.286671,127.522674,99.0],[5,7,"하동리 103-4","하동2길 11",36.292201,127.528283,85.68],[1,7,"하동리 248-4","하동2길 99",36.294245,127.51955,99.96],[5,7,"오동리 559-4","오동2길 172",36.306688,127.523251,67.22],[1,7,"오동리 182-1","성왕로 760",36.298233,127.53157,74.1],[5,7,"월전리 169","월전2길 85",36.306422,127.543613,110.0],[1,7,"상중리 473-1","상중길 209",36.294111,127.508316,84.0],[5,7,"사양리 295-4","사양1길 143",36.279497,127.505097,84.28],[1,7,"상지리 207-2","상지2길 127",36.240279,127.510864,65.16],[5,8,"이백리 362-22","이백3길15-7",36.330103,127.532026,174.98],[5,8,"이백리 256-11","이백1길 3-18",36.328969,127.536464,281.67],[5,8,"자모리 86-5","자모2길20-1",36.330022,127.513349,68.82],[5,8,"자모리 350-24","자모길186-1",36.323919,127.509552,86.4],[5,8,"증약리 754-8","증약1길10-7",36.338675,127.516082,273.1],[1,8,"증약리 248","감로길 30",36.347646,127.526885,109.89],[5,8,"증약리 332-1","비야대정로2길38",36.355801,127.528822,200.03],[1,8,"항곡리 132-12","항곡길22",36.373498,127.531877,86.1],[1,8,"대정리 524-1, 526-3","방아실길73",36.391101,127.543973,229.64],[1,8,"대정리 220-1","방아실길125-10",36.390293,127.54725,94.15],[1,8,"대정리 754-1","대정2길18",36.389457,127.530627,89.46],[1,8,"대정리 553-3","방아실길3-6",36.388695,127.537886,250.2],[5,8,"대정리 643","비야대정로 739",36.385011,127.540914,93.7],[3,8,"대정리 663-8","비야대정로 691-2",36.382177,127.538241,45.36],[5,8,"환평리 184-2","환산로 307-3",36.342153,127.551004,165.17],[5,8,"추소리 519","추소길28",36.348056,127.557879,100.0],[5,8,"지오리 502-2","지오2길 23",36.328838,127.565897,249.85],[5,8,"지오리 295-6","지오3길 18-3",36.338317,127.57376,128.31],[5,8,"이평리 100","이평1길 327",36.354354,127.57399,84.0],[1,8,"이평리 555-1","이평2길 92",36.382164,127.55811,87.27],[5,8,"석호리 505","석호1길74",36.360939,127.581964,147.69],[1,8,"석호리 84-2","석호길 419",36.378204,127.594056,88.45],[1,8,"국원리 108-12","국원1길11",36.339631,127.589566,92.64],[5,8,"국원리 232-1","국원2길1",36.350482,127.590941,182.04],[1,8,"국원리 250","국원3길45-2",36.350981,127.585848,87.2],[1,8,"소정리 384-1","소정2길 1",36.355808,127.596555,239.52],[5,8,"소정리 73-4","성왕로 1900",36.361847,127.605118,94.79],[5,8,"막지리 224-1","답양막지길404",36.375004,127.60689,89.11],[5,8,"막지리 641-1","답양막지길205",36.382665,127.601966,126.79],[2,8,"대정리 526","방아실길 75",36.391264,127.54409,139.98]];
 /* =========================================================
-   대피소 레이어
-   담당자가 직접 등록하고(한 건 또는 엑셀 붙여넣기) 모두가 함께 본다.
-   주소는 V-World 지오코딩으로 좌표를 찾으며, 한 번 찾은 좌표는 저장해 둔다.
+   대피소 (옥천군 풍수해 대피소 311곳 내장 + 담당자 추가분)
+   원자료: 옥천군 풍수해 대피소 목록 (2025-09-11) — 좌표 포함
    재난상황을 등록할 지점을 우클릭하면 가까운 대피소가 함께 뜬다.
    ========================================================= */
 var SHELTER_KEY = "okc6_shelters";
-var SHELTER_TYPES = ["민방위대피시설", "이재민임시주거시설", "지진옥외대피장소", "기타"];
 var shelters = [], shelterRef = null, shelterLayer = null;
+var shKind = [true, true, true], shEup = -1;
 
+/* 내장 목록을 공통 형태로 펼친다 */
+var SHELTER_ALL = SHELTER_BASE.map(function(r, i){
+  var ty = [];
+  for(var k = 0; k < SHELTER_TYPES_B.length; k++){ if(r[0] & (1 << k)) ty.push(SHELTER_TYPES_B[k]); }
+  var eup = SHELTER_EUPS[r[1]] || "";
+  return { id:"b" + i, base:true, mask:r[0], ty:ty, eup:eup,
+           name:(eup ? eup + " " : "") + r[2], road:r[3], jibun:r[2],
+           lat:r[4], lng:r[5], area:r[6] || 0 };
+});
+function shelterList(){
+  return SHELTER_ALL.concat(shelters.map(function(s){
+    return { id:s.id, base:false, mask:1, ty:[s.type || "기타"], eup:s.eup || "",
+             name:s.name || s.addr, road:s.addr || "", jibun:"", lat:s.lat, lng:s.lng,
+             area:0, cap:s.cap, tel:s.tel };
+  }));
+}
+function shVisible(){
+  return shelterList().filter(function(s){
+    if(shEup >= 0 && s.eup !== SHELTER_EUPS[shEup]) return false;
+    if(s.base){
+      var ok = false;
+      for(var k = 0; k < 3; k++){ if(shKind[k] && (s.mask & (1 << k))) ok = true; }
+      if(!ok) return false;
+    }
+    return true;
+  });
+}
 function loadShelters(){
   try{ shelters = JSON.parse(localStorage.getItem(SHELTER_KEY) || "[]"); }catch(e){ shelters = []; }
   if(!Array.isArray(shelters)) shelters = [];
@@ -10109,148 +10174,144 @@ function loadShelters(){
 function saveShelters(){
   try{ localStorage.setItem(SHELTER_KEY, JSON.stringify(shelters)); }catch(e){}
   if(shelterRef){ try{ shelterRef.set(shelters); }catch(e){} }
-  renderShelters();
+  shRender();
 }
-function shelterIcon(){
-  return L.divIcon({ className:"shpin", iconSize:[24,30], iconAnchor:[12,29],
-    html:'<svg width="24" height="30" viewBox="0 0 24 30">' +
-         '<path d="M12 29C12 29 22 17 22 10.5A10 10 0 0 0 2 10.5C2 17 12 29 12 29Z" fill="#16a34a" stroke="#fff" stroke-width="2"/>' +
-         '<path d="M7 12.5L12 8l5 4.5V17H7z" fill="#fff"/></svg>' });
+
+/* ---------- 그리기 ---------- */
+function shPopup(s){
+  return '<div class="shpop"><b>' + esc(s.name) + '</b>' +
+    s.ty.map(function(t){ return '<span class="shty">' + esc(t) + '</span>'; }).join("") +
+    (s.road ? '<div>' + esc((s.eup ? s.eup + " " : "") + s.road) + '</div>' : '') +
+    (s.area ? '<div>면적 ' + s.area.toLocaleString() + ' ㎡</div>' : '') +
+    (s.cap ? '<div>수용 인원 ' + esc(String(s.cap)) + '명</div>' : '') +
+    (s.tel ? '<div>연락처 ' + esc(s.tel) + '</div>' : '') +
+    '<a href="https://map.kakao.com/link/to/' + encodeURIComponent(s.name) +
+    ',' + s.lat + ',' + s.lng + '" target="_blank" rel="noopener">길찾기 ↗</a></div>';
 }
-function renderShelters(){
+function shRender(){
+  var sel = document.getElementById("sh_eup");
+  if(sel && !sel.options.length){
+    sel.innerHTML = '<option value="-1">전체</option>' +
+      SHELTER_EUPS.map(function(e, i){ return '<option value="' + i + '">' + e + '</option>'; }).join("");
+  }
+  if(sel) shEup = parseInt(sel.value, 10);
+  var box = document.getElementById("shkinds");
+  if(box && !box.children.length){
+    box.innerHTML = SHELTER_TYPES_B.map(function(t, i){
+      return '<label><input type="checkbox" checked onchange="shSetKind(' + i + ', this.checked)"> ' + t +
+             ' <span class="shn" id="shk' + i + '"></span></label>';
+    }).join("");
+  }
+  var vis = shVisible();
+  for(var k = 0; k < 3; k++){
+    var el = document.getElementById("shk" + k);
+    if(el) el.textContent = SHELTER_ALL.filter(function(s){
+      return (s.mask & (1 << k)) && (shEup < 0 || s.eup === SHELTER_EUPS[shEup]);
+    }).length + "곳";
+  }
+  var cnt = document.getElementById("shcount");
+  if(cnt) cnt.innerHTML = '지도에 <b>' + vis.length + '곳</b> / 전체 ' + shelterList().length + '곳';
+
   if(!shelterLayer) shelterLayer = L.layerGroup();
   shelterLayer.clearLayers();
-  shelters.forEach(function(s){
-    if(typeof s.lat !== "number" || typeof s.lng !== "number") return;
-    var html = '<div class="shpop"><b>' + esc(s.name || "대피소") + '</b>' +
-      '<span class="shty">' + esc(s.type || "기타") + '</span>' +
-      (s.addr ? '<div>' + esc(s.addr) + '</div>' : '') +
-      (s.cap ? '<div>수용 인원 ' + esc(String(s.cap)) + '명</div>' : '') +
-      (s.tel ? '<div>연락처 ' + esc(s.tel) + '</div>' : '') +
-      (s.note ? '<div>' + esc(s.note) + '</div>' : '') +
-      '<a href="https://map.kakao.com/link/to/' + encodeURIComponent(s.name || "대피소") +
-      ',' + s.lat + ',' + s.lng + '" target="_blank" rel="noopener">길찾기 ↗</a></div>';
-    L.marker([s.lat, s.lng], { icon: shelterIcon(), title: s.name || "대피소" })
-      .bindPopup(html).addTo(shelterLayer);
+  var hint = document.getElementById("shhint");
+  if(hint) hint.textContent = "점을 누르면 주소·면적과 길찾기가 나옵니다.";
+  // 군 전체가 보이는 배율에서는 점이 뭉치므로 작게, 확대할수록 크게 그린다
+  var z = map.getZoom();
+  var rad = z >= 15 ? 7 : z >= 13 ? 5.5 : z >= 12 ? 4 : 3;
+  vis.forEach(function(s){
+    L.circleMarker([s.lat, s.lng], { radius:rad, color:"#fff", weight: z >= 12 ? 1.5 : 1,
+      fillColor: s.base ? "#16a34a" : "#0ea5e9", fillOpacity:0.95 })
+      .bindPopup(shPopup(s)).addTo(shelterLayer);
   });
-  var n = document.getElementById("shelter_n");
-  if(n) n.textContent = shelters.length ? shelters.length + "곳" : "";
-  var chk = document.getElementById("shelter_show");
+  var chk = document.getElementById("sh_on");
   if(chk && chk.checked && !map.hasLayer(shelterLayer)) shelterLayer.addTo(map);
 }
-function toggleShelter(on){
-  if(!shelterLayer) renderShelters();
-  if(on){
-    if(!shelters.length){
-      alert("등록된 대피소가 없습니다.\n아래 [대피소 등록·관리]에서 먼저 등록해 주세요.");
-      var c = document.getElementById("shelter_show"); if(c) c.checked = false;
-      return;
-    }
-    shelterLayer.addTo(map);
-  } else if(map.hasLayer(shelterLayer)){
-    map.removeLayer(shelterLayer);
-  }
+function shSetKind(i, on){ shKind[i] = !!on; shRender(); }
+function shShow(on){
+  if(!shelterLayer) shRender();
+  var b = document.getElementById("shbtn");
+  if(b) b.classList.toggle("on", !!on);
+  if(on){ shRender(); shelterLayer.addTo(map); }
+  else if(map.hasLayer(shelterLayer)) map.removeLayer(shelterLayer);
 }
+function closeShPanel(){ document.getElementById("shpanel").classList.remove("show"); }
+function toggleShPanel(){
+  var p = document.getElementById("shpanel");
+  var chk = document.getElementById("sh_on");
+  var on = !!(chk && chk.checked);
+  closeMapPanels("shpanel");
+  if(on && p.classList.contains("show")){
+    chk.checked = false; shShow(false);
+    p.classList.remove("show");
+    return;
+  }
+  p.classList.add("show");
+  if(!on && chk){ chk.checked = true; shShow(true); }
+  shRender();
+}
+map.on("zoomend", function(){
+  var chk = document.getElementById("sh_on");
+  if(chk && chk.checked) shRender();
+});
 
 /* ---------- 가까운 대피소 (상황 판단 지원) ---------- */
 function nearestShelters(lat, lng, n){
-  return shelters.filter(function(s){ return typeof s.lat === "number"; })
-    .map(function(s){ return { s:s, d: map.distance([lat, lng], [s.lat, s.lng]) }; })
+  return shelterList().map(function(s){ return { s:s, d: map.distance([lat, lng], [s.lat, s.lng]) }; })
     .sort(function(a, b){ return a.d - b.d; })
-    .slice(0, n || 2);
+    .slice(0, n || 3);
 }
 function shelterInfoAt(lat, lng){
-  var near = nearestShelters(lat, lng, 2);
+  var near = nearestShelters(lat, lng, 3);
   if(!near.length) return "";
   var html = '<div style="margin-bottom:7px;padding:6px 8px;background:#f0fdf4;border:1px solid #dcfce7;border-radius:8px">' +
     '<div style="font-size:10.5px;color:#15803d;font-weight:700;margin-bottom:3px">가까운 대피소</div>';
   near.forEach(function(x){
-    html += '<div style="font-size:11.5px;color:#22344a;word-break:keep-all">' +
-      esc(x.s.name || "대피소") +
+    html += '<div style="font-size:11.5px;color:#22344a;word-break:keep-all">' + esc(x.s.name) +
       ' <span style="color:#6b7f96">' + (x.d < 1000 ? Math.round(x.d) + "m" : (Math.round(x.d/100)/10) + "km") +
-      (x.s.cap ? " · " + esc(String(x.s.cap)) + "명" : "") + '</span></div>';
+      (x.s.area ? " · " + Math.round(x.s.area) + "㎡" : "") + '</span></div>';
   });
   return html + '</div>';
 }
 
-/* ---------- 등록·관리 폼 ---------- */
+/* ---------- 담당자 추가분 ---------- */
 function openShelterForm(){
-  var opts = SHELTER_TYPES.map(function(t){ return '<option value="' + t + '">' + t + '</option>'; }).join("");
-  openModal("🏠 대피소 등록·관리",
-    '<div class="fitem"><label>종류</label><select id="sh_type">' + opts + '</select></div>' +
-    '<div class="fitem"><label>명칭</label><input type="text" id="sh_name" placeholder="예: 옥천읍사무소"></div>' +
+  openModal("🏠 대피소 추가",
+    '<div class="note">내장된 풍수해 대피소 ' + SHELTER_ALL.length + '곳 외에 학교·체육관 등을 더할 때 사용합니다. 추가한 곳은 모든 담당자에게 공유됩니다.</div>' +
+    '<div class="fitem"><label>명칭</label><input type="text" id="sh_name" placeholder="예: 옥천중학교 체육관"></div>' +
+    '<div class="fitem"><label>종류</label><input type="text" id="sh_type" value="기타" placeholder="예: 이재민임시주거시설"></div>' +
     '<div class="fitem"><label>주소 <span class="note" style="font-weight:400">(지번 주소)</span></label>' +
     '<input type="text" id="sh_addr" placeholder="충청북도 옥천군 ○○면 ○○리 ○○"></div>' +
     '<div class="fitem"><label>수용 인원 <span class="note" style="font-weight:400">(선택)</span></label>' +
     '<input type="text" id="sh_cap" placeholder="예: 120"></div>' +
     '<div class="fitem"><label>연락처 <span class="note" style="font-weight:400">(선택)</span></label>' +
     '<input type="text" id="sh_tel" placeholder="043-730-0000"></div>' +
-    '<div class="fitem"><label>엑셀에서 한꺼번에 등록 <span class="note" style="font-weight:400">(선택)</span></label>' +
-    '<textarea id="shbulk" placeholder="엑셀에서 여러 줄을 복사해 붙여넣으세요.&#10;열 순서: 명칭 → 주소 → 종류 → 수용인원 → 연락처&#10;옥천읍사무소&#9;충청북도 옥천군 옥천읍 금구리 123&#9;이재민임시주거시설&#9;120&#9;043-730-0000"></textarea>' +
-    '<div class="note">위 한 건 입력란을 비우고 여기에만 붙여넣으면 붙여넣은 것만 등록됩니다.</div>' +
-    '<div id="shprog"></div></div>' +
-    '<div class="fitem"><label>등록된 대피소</label><div id="shlist"></div></div>',
+    '<div class="fitem"><label>추가한 대피소</label><div id="shlist"></div></div>',
     function(){
-      var bulk = (val("shbulk") || "").trim();
-      var one = (val("sh_addr") || "").trim();
-      if(!bulk && !one){ alert("주소를 입력하거나, 엑셀 내용을 붙여넣어 주세요."); return false; }
+      var addr = (val("sh_addr") || "").trim();
+      if(!addr){ alert("주소를 입력해 주세요."); return false; }
       if(!getKey("vw")){ alert("⚙설정에서 VWorld 인증키를 먼저 등록해 주세요.\n주소를 좌표로 바꾸는 데 필요합니다."); return false; }
-      var rows = [];
-      if(one){
-        rows.push({ name: val("sh_name").trim(), addr: one, type: val("sh_type"),
-                    cap: val("sh_cap").trim(), tel: val("sh_tel").trim() });
-      }
-      bulk.split(/\r?\n/).forEach(function(line){
-        if(!line.trim()) return;
-        var c = line.split("\t");
-        if(c.length < 2) c = line.split(/\s{2,}/);
-        if(c.length < 2) return;
-        rows.push({ name:(c[0]||"").trim(), addr:(c[1]||"").trim(),
-                    type:(c[2]||"").trim() || "기타", cap:(c[3]||"").trim(), tel:(c[4]||"").trim() });
+      var rec = { name: val("sh_name").trim() || addr, type: val("sh_type").trim() || "기타",
+                  addr: addr, cap: val("sh_cap").trim(), tel: val("sh_tel").trim() };
+      vwGeocode(addr).then(function(g){
+        if(!g){ alert("주소의 좌표를 찾지 못했습니다. 지번 주소를 다시 확인해 주세요."); return; }
+        var m = addr.match(/옥천군\s*(\S+?[읍면])/);
+        shelters.push({ id:uid(), name:rec.name, type:rec.type, addr:addr, eup:m ? m[1] : "",
+                        lat:g.lat, lng:g.lng, cap:rec.cap, tel:rec.tel, at:Date.now() });
+        saveShelters(); saveGeocodeCache();
+        closeModal();
+        alert("대피소가 추가되었습니다: " + rec.name);
       });
-      shelterAddRows(rows);
-      return false;   // 지오코딩이 끝난 뒤 직접 닫는다
+      return false;
     });
   renderShelterList();
-}
-function shelterAddRows(rows){
-  var prog = document.getElementById("shprog");
-  var done = 0, added = 0, failed = [];
-  function step(){
-    if(done >= rows.length){
-      saveShelters();
-      saveGeocodeCache();
-      var chk = document.getElementById("shelter_show");
-      if(chk && !chk.checked && added){ chk.checked = true; toggleShelter(true); }
-      closeModal();
-      alert("대피소 " + added + "곳을 등록했습니다." +
-        (failed.length ? "\n\n주소를 찾지 못한 " + failed.length + "건:\n" + failed.slice(0,10).join("\n") : ""));
-      return;
-    }
-    var r = rows[done];
-    if(prog) prog.textContent = "주소 확인 중… (" + (done+1) + "/" + rows.length + ") " + (r.name || r.addr);
-    if(!r.addr){ done++; step(); return; }
-    if(shelters.some(function(x){ return x.addr === r.addr && x.name === r.name; })){ done++; step(); return; }
-    vwGeocode(r.addr).then(function(g){
-      if(g){
-        shelters.push({ id:uid(), name:r.name || r.addr, type:r.type || "기타", addr:r.addr,
-                        lat:g.lat, lng:g.lng, cap:r.cap || "", tel:r.tel || "", at:Date.now() });
-        added++;
-      } else {
-        failed.push((r.name ? r.name + " — " : "") + r.addr);
-      }
-      done++;
-      setTimeout(step, 60);
-    });
-  }
-  step();
 }
 function renderShelterList(){
   var el = document.getElementById("shlist");
   if(!el) return;
-  if(!shelters.length){ el.innerHTML = '<div class="note" style="padding:6px">등록된 대피소가 없습니다.</div>'; return; }
+  if(!shelters.length){ el.innerHTML = '<div class="note" style="padding:6px">추가한 대피소가 없습니다.</div>'; return; }
   el.innerHTML = shelters.slice().reverse().map(function(s){
-    return '<div class="shrow"><b>' + esc(s.name || "대피소") + '</b>' +
+    return '<div class="shrow"><b>' + esc(s.name) + '</b>' +
       '<span class="shad">' + esc(s.type || "") + (s.addr ? " · " + esc(s.addr) : "") + '</span>' +
       '<button class="shdel" onclick="removeShelter(\'' + s.id + '\')">삭제</button></div>';
   }).join("");
@@ -10264,8 +10325,9 @@ function removeShelter(id){
   renderShelterList();
 }
 loadShelters();
-renderShelters();
+shRender();
 </script>
+
 
 <script>
 /* =========================================================
@@ -10344,6 +10406,351 @@ function saveHrfcoKey(){
              "참고: 아래 주소를 브라우저 주소창에 직접 넣으면 열리는지도 확인해 주세요.\n" + url);
     });
 }
+</script>
+
+<style id="wl-style">
+/* ===== 하천 수위 ===== */
+#wlpanel{width:300px;max-width:calc(100vw - 40px)}
+#wllist .wlrow{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid #f1f5f9}
+#wllist .wlrow:last-child{border-bottom:0}
+#wllist .wldot{width:9px;height:9px;border-radius:50%;flex:none}
+#wllist .wlnm{font-weight:700;font-size:12px;color:#22344a;flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#wllist .wlv{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;flex:none}
+#wllist .wlst{font-size:10px;font-weight:800;border-radius:4px;padding:1px 5px;flex:none}
+#wllist .wldel{border:0;background:transparent;color:#cbd5e1;cursor:pointer;font-size:14px;padding:0 2px;flex:none}
+#wllist .wldel:hover{color:#be123c}
+#wllist .wlempty{font-size:11.5px;color:#9ca3af;padding:6px 0;line-height:1.5}
+.wlpop b{font-size:13px;color:#0f2540}
+.wlpop table{border-collapse:collapse;margin-top:5px;font-size:11.5px}
+.wlpop td{padding:1px 8px 1px 0;color:#4b5563}
+.wlpop td.v{font-weight:700;color:#22344a;font-variant-numeric:tabular-nums}
+#wlpick{max-height:300px;overflow:auto;border:1px solid #e5e7eb;border-radius:8px}
+#wlpick .wpr{display:flex;align-items:center;gap:7px;padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px;cursor:pointer}
+#wlpick .wpr:last-child{border-bottom:0}
+#wlpick .wpr:hover{background:#f6f8fb}
+#wlpick .wpr input{width:14px;height:14px;margin:0;flex:none;accent-color:#1d4ed8}
+#wlpick .wpa{color:#6b7f96;font-size:11px;margin-left:auto;white-space:nowrap}
+</style>
+<script>
+/* =========================================================
+   하천 수위 (한강홍수통제소 오픈API)
+     관측소 제원 : /waterlevel/info.json
+       wlobscd 코드 · obsnm 이름 · addr 주소 · lon/lat 도-분-초
+       attwl 주의보 · wrnwl 경보 · almwl 심각 · srswl 계획홍수위 (단위 m)
+     실시간 수위 : /waterlevel/list/10M.json  (전국 한 번에)
+   옥천군 경계 안이거나 가까운 관측소를 골라 보여주고,
+   기준 수위를 넘으면 알림을 띄운다.
+   ========================================================= */
+var WL_STN_KEY = "okc6_wlstn", WL_WATCH_KEY = "okc6_wlwatch", WL_ALARM_KEY = "okc6_wlalarm";
+var wlStations = [], wlWatch = [], wlLevels = {}, wlLayer = null, wlRef = null;
+var wlTimer = null, wlLastStage = {}, wlUpdatedAt = 0, wlBusy = false;
+
+/* "128-33-04" 같은 도-분-초 문자열을 십진 도로 바꾼다 */
+function wlDeg(v){
+  if(v == null) return NaN;
+  var t = String(v).trim();
+  if(!t) return NaN;
+  var m = t.match(/^(-?\d+)[-\s:](\d+)[-\s:]([\d.]+)/);
+  if(m){
+    var d = parseFloat(m[1]), sign = d < 0 ? -1 : 1;
+    return sign * (Math.abs(d) + parseFloat(m[2]) / 60 + parseFloat(m[3]) / 3600);
+  }
+  var f = parseFloat(t);
+  return isNaN(f) ? NaN : f;
+}
+function wlNum(v){
+  if(v == null || v === "") return null;
+  var f = parseFloat(String(v).trim());
+  return isNaN(f) ? null : f;
+}
+/* 옥천군 경계 안쪽인지 (regionFeats = 읍면 경계) */
+function wlInOkcheon(lat, lng){
+  try{
+    for(var k = 0; k < regionFeats.length; k++){
+      var g = regionFeats[k].geometry;
+      var polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+      for(var m = 0; m < polys.length; m++){ if(pip([lat, lng], polys[m][0])) return true; }
+    }
+  }catch(e){}
+  return false;
+}
+var OKC_CENTER = [36.306, 127.571];
+function wlDistKm(lat, lng){
+  var dy = (lat - OKC_CENTER[0]) * 110.94;
+  var dx = (lng - OKC_CENTER[1]) * 111.32 * Math.cos(OKC_CENTER[0] * Math.PI / 180);
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
+/* ---------- 저장 ---------- */
+function wlLoad(){
+  try{ wlStations = JSON.parse(localStorage.getItem(WL_STN_KEY) || "[]"); }catch(e){ wlStations = []; }
+  try{ wlWatch = JSON.parse(localStorage.getItem(WL_WATCH_KEY) || "[]"); }catch(e){ wlWatch = []; }
+  if(!Array.isArray(wlStations)) wlStations = [];
+  if(!Array.isArray(wlWatch)) wlWatch = [];
+}
+function wlSaveWatch(){
+  try{ localStorage.setItem(WL_WATCH_KEY, JSON.stringify(wlWatch)); }catch(e){}
+  if(wlRef){ try{ wlRef.set(wlWatch); }catch(e){} }
+  wlRender();
+}
+function wlStn(code){
+  for(var i = 0; i < wlStations.length; i++){ if(wlStations[i].c === code) return wlStations[i]; }
+  return null;
+}
+
+/* ---------- 관측소 제원 ---------- */
+function wlFetchStations(force){
+  if(wlStations.length && !force) return Promise.resolve(wlStations);
+  var k = getKey("hrfco");
+  if(!k) return Promise.reject(new Error("⚙설정에서 한강홍수통제소 인증키를 먼저 등록해 주세요."));
+  return fetch(HRFCO_BASE + encodeURIComponent(k) + "/waterlevel/info.json", { cache:"no-store" })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var list = wlPickList(j) || [];
+      wlStations = list.map(function(o){
+        return { c:o.wlobscd, n:o.obsnm || "", a:(o.addr || "") + (o.etcaddr ? " " + o.etcaddr : ""),
+                 lat:wlDeg(o.lat), lng:wlDeg(o.lon),
+                 att:wlNum(o.attwl), wrn:wlNum(o.wrnwl), alm:wlNum(o.almwl), srs:wlNum(o.srswl) };
+      }).filter(function(o){ return o.c && isFinite(o.lat) && isFinite(o.lng); });
+      try{ localStorage.setItem(WL_STN_KEY, JSON.stringify(wlStations)); }catch(e){}
+      return wlStations;
+    });
+}
+/* 옥천군 안 → 가까운 순. 상류 관측소까지 보도록 40km 안쪽을 후보로 둔다 */
+function wlNearby(){
+  return wlStations.map(function(s){
+      return { s:s, inside:wlInOkcheon(s.lat, s.lng), km:wlDistKm(s.lat, s.lng) };
+    })
+    .filter(function(x){ return x.inside || x.km <= 40; })
+    .sort(function(a, b){ return (b.inside - a.inside) || (a.km - b.km); });
+}
+
+/* ---------- 실시간 수위 ---------- */
+function wlPickLevel(r){
+  var cand = ["wl", "WL", "wlevel", "waterlevel"];
+  for(var i = 0; i < cand.length; i++){
+    var v = wlNum(r[cand[i]]);
+    if(v !== null) return v;
+  }
+  for(var k in r){                       // 항목 이름이 다를 때: 코드·시각이 아닌 첫 숫자
+    if(/obscd|ymd|time|date|fw/i.test(k)) continue;
+    var n = wlNum(r[k]);
+    if(n !== null) return n;
+  }
+  return null;
+}
+function wlPickTime(r){
+  var cand = ["ymdhm", "YMDHM", "ymdh", "obsdt", "time"];
+  for(var i = 0; i < cand.length; i++){ if(r[cand[i]]) return String(r[cand[i]]); }
+  return "";
+}
+function wlFmtTime(t){
+  var d = String(t).replace(/\D/g, "");
+  if(d.length < 12) return String(t || "");
+  return d.slice(4,6) + "-" + d.slice(6,8) + " " + d.slice(8,10) + ":" + d.slice(10,12);
+}
+function wlRefresh(manual){
+  if(wlBusy) return Promise.resolve();
+  var k = getKey("hrfco");
+  if(!k){ if(manual) alert("⚙설정에서 한강홍수통제소 인증키를 먼저 등록해 주세요."); return Promise.resolve(); }
+  wlBusy = true;
+  wlHint("수위를 받아오는 중…");
+  return wlFetchStations()
+    .then(function(){
+      return fetch(HRFCO_BASE + encodeURIComponent(k) + "/waterlevel/list/10M.json", { cache:"no-store" })
+        .then(function(r){ return r.json(); });
+    })
+    .then(function(j){
+      var list = wlPickList(j) || [];
+      var next = {};
+      list.forEach(function(r){
+        var c = r.wlobscd || r.WLOBSCD;
+        if(!c) return;
+        var t = wlPickTime(r);
+        if(next[c] && next[c].t > t) return;        // 같은 관측소는 가장 최근 것만
+        next[c] = { v: wlPickLevel(r), t: t };
+      });
+      wlLevels = next;
+      wlUpdatedAt = Date.now();
+      wlCheckAlarm();
+      wlRender();
+      wlHint("");
+      if(manual && !Object.keys(next).length){
+        alert("수위 자료를 읽지 못했습니다. ⚙설정의 연결 시험 결과를 알려주세요.");
+      }
+    })
+    .catch(function(err){
+      wlHint("수위를 받지 못했습니다: " + (err && err.message ? err.message : err));
+      if(manual) alert("수위를 받지 못했습니다.\n" + (err && err.message ? err.message : err));
+    })
+    .then(function(){ wlBusy = false; });
+}
+function wlHint(t){
+  var el = document.getElementById("wlhint");
+  if(!el) return;
+  el.textContent = t || (wlUpdatedAt
+    ? "마지막 갱신 " + new Date(wlUpdatedAt).toTimeString().slice(0,5) + " · 10분마다 자동 갱신"
+    : "관측소를 선택하면 수위를 받아옵니다.");
+}
+
+/* ---------- 단계 판정 ---------- */
+var WL_STAGE = [
+  { k:0, nm:"정상",   c:"#2563eb", bg:"#eff6ff" },
+  { k:1, nm:"주의보", c:"#ca8a04", bg:"#fefce8" },
+  { k:2, nm:"경보",   c:"#ea580c", bg:"#fff7ed" },
+  { k:3, nm:"심각",   c:"#dc2626", bg:"#fef2f2" }
+];
+function wlStage(s, v){
+  if(v === null || v === undefined) return WL_STAGE[0];
+  if(s.alm !== null && v >= s.alm) return WL_STAGE[3];
+  if(s.wrn !== null && v >= s.wrn) return WL_STAGE[2];
+  if(s.att !== null && v >= s.att) return WL_STAGE[1];
+  return WL_STAGE[0];
+}
+function wlCheckAlarm(){
+  var on = false;
+  try{ on = localStorage.getItem(WL_ALARM_KEY) === "1"; }catch(e){}
+  wlWatch.forEach(function(c){
+    var s = wlStn(c); if(!s) return;
+    var lv = wlLevels[c]; if(!lv || lv.v === null) return;
+    var st = wlStage(s, lv.v);
+    var prev = wlLastStage[c];
+    wlLastStage[c] = st.k;
+    if(!on || prev === undefined || st.k <= prev || st.k === 0) return;
+    try{
+      showAlarmNotification("🌊 " + s.n + " " + st.nm, {
+        body: "현재 수위 " + lv.v.toFixed(2) + "m" +
+              (st.k === 1 && s.att !== null ? " (주의보 " + s.att + "m)" :
+               st.k === 2 && s.wrn !== null ? " (경보 " + s.wrn + "m)" :
+               st.k === 3 && s.alm !== null ? " (심각 " + s.alm + "m)" : ""),
+        tag: "okc-wl-" + c
+      });
+    }catch(e){}
+  });
+}
+function wlSetAlarm(on){ try{ localStorage.setItem(WL_ALARM_KEY, on ? "1" : "0"); }catch(e){} }
+
+/* ---------- 그리기 ---------- */
+function wlRender(){
+  var box = document.getElementById("wllist");
+  if(box){
+    if(!wlWatch.length){
+      box.innerHTML = '<div class="wlempty">아직 선택한 관측소가 없습니다.<br>아래 [＋ 관측소 선택]에서 옥천 인근 관측소를 고르세요.</div>';
+    } else {
+      box.innerHTML = wlWatch.map(function(c){
+        var s = wlStn(c);
+        if(!s) return '<div class="wlrow"><span class="wlnm">' + esc(c) + '</span></div>';
+        var lv = wlLevels[c], v = lv ? lv.v : null, st = wlStage(s, v);
+        return '<div class="wlrow">' +
+          '<span class="wldot" style="background:' + st.c + '"></span>' +
+          '<span class="wlnm" title="' + esc(s.a) + '">' + esc(s.n) + '</span>' +
+          '<span class="wlv" style="color:' + st.c + '">' + (v === null ? "—" : v.toFixed(2) + "m") + '</span>' +
+          '<span class="wlst" style="color:' + st.c + ';background:' + st.bg + '">' + st.nm + '</span>' +
+          '<button class="wldel" title="목록에서 빼기" onclick="wlUnwatch(\'' + c + '\')">×</button>' +
+          '</div>';
+      }).join("");
+    }
+  }
+  wlHint("");
+  if(!wlLayer) wlLayer = L.layerGroup();
+  wlLayer.clearLayers();
+  wlWatch.forEach(function(c){
+    var s = wlStn(c); if(!s) return;
+    var lv = wlLevels[c], v = lv ? lv.v : null, st = wlStage(s, v);
+    var rows = [["현재 수위", v === null ? "—" : v.toFixed(2) + " m"],
+                ["주의보", s.att === null ? "—" : s.att + " m"],
+                ["경보", s.wrn === null ? "—" : s.wrn + " m"],
+                ["심각", s.alm === null ? "—" : s.alm + " m"]];
+    var html = '<div class="wlpop"><b>' + esc(s.n) + '</b> ' +
+      '<span style="color:' + st.c + ';font-weight:800">' + st.nm + '</span>' +
+      '<div style="font-size:11px;color:#6b7f96;margin-top:2px">' + esc(s.a) + '</div>' +
+      '<table>' + rows.map(function(r){
+        return '<tr><td>' + r[0] + '</td><td class="v">' + r[1] + '</td></tr>';
+      }).join("") + '</table>' +
+      (lv && lv.t ? '<div style="font-size:11px;color:#6b7f96;margin-top:4px">관측 ' + esc(wlFmtTime(lv.t)) + '</div>' : '') +
+      '</div>';
+    L.circleMarker([s.lat, s.lng], { radius:9, color:"#fff", weight:2,
+      fillColor:st.c, fillOpacity:0.95, pane:"markerPane" })
+      .bindPopup(html).addTo(wlLayer);
+  });
+  var chk = document.getElementById("wl_on");
+  if(chk && chk.checked && !map.hasLayer(wlLayer)) wlLayer.addTo(map);
+}
+function wlShow(on){
+  if(!wlLayer) wlRender();
+  var b = document.getElementById("wlbtn");
+  if(b) b.classList.toggle("on", !!on);
+  if(on){ wlLayer.addTo(map); wlRefresh(); }
+  else if(map.hasLayer(wlLayer)) map.removeLayer(wlLayer);
+}
+function wlUnwatch(c){
+  wlWatch = wlWatch.filter(function(x){ return x !== c; });
+  wlSaveWatch();
+}
+
+/* ---------- 관측소 선택 ---------- */
+function openWlPicker(){
+  openModal("🌊 수위 관측소 선택",
+    '<div class="note">옥천군 안에 있거나 40km 이내인 관측소입니다. 상류 관측소를 함께 보면 수위가 오르는 흐름을 미리 알 수 있습니다.</div>' +
+    '<div class="fitem"><label>이름·주소로 찾기 <span class="note" style="font-weight:400">(전국)</span></label>' +
+    '<input type="text" id="wlq" placeholder="예: 옥천, 보청천, 금강" oninput="renderWlPicker()"></div>' +
+    '<div id="wlpick"><div class="note" style="padding:8px">관측소 목록을 받아오는 중…</div></div>',
+    function(){ wlSaveWatch(); wlRefresh(true); return true; });
+  wlFetchStations()
+    .then(function(){ renderWlPicker(); })
+    .catch(function(err){
+      var el = document.getElementById("wlpick");
+      if(el) el.innerHTML = '<div class="note" style="padding:8px;color:#b91c1c">' + esc(err.message || String(err)) + '</div>';
+    });
+}
+function renderWlPicker(){
+  var el = document.getElementById("wlpick");
+  if(!el) return;
+  var q = (val("wlq") || "").trim();
+  var rows;
+  if(q){
+    rows = wlStations.filter(function(s){ return (s.n + " " + s.a).indexOf(q) !== -1; })
+                     .slice(0, 80)
+                     .map(function(s){ return { s:s, km:wlDistKm(s.lat, s.lng), inside:false }; });
+  } else {
+    rows = wlNearby();
+  }
+  if(!rows.length){ el.innerHTML = '<div class="note" style="padding:8px">찾는 관측소가 없습니다.</div>'; return; }
+  el.innerHTML = rows.map(function(x){
+    var s = x.s, on = wlWatch.indexOf(s.c) !== -1;
+    return '<label class="wpr"><input type="checkbox"' + (on ? " checked" : "") +
+      ' onchange="wlToggleWatch(\'' + s.c + '\', this.checked)">' +
+      '<span>' + esc(s.n) + (x.inside ? ' <b style="color:#16a34a">관내</b>' : '') + '</span>' +
+      '<span class="wpa">' + esc(s.a).slice(0, 22) + ' · ' + x.km.toFixed(0) + 'km</span></label>';
+  }).join("");
+}
+function wlToggleWatch(c, on){
+  var i = wlWatch.indexOf(c);
+  if(on && i === -1) wlWatch.push(c);
+  if(!on && i !== -1) wlWatch.splice(i, 1);
+}
+function closeWlPanel(){ document.getElementById("wlpanel").classList.remove("show"); }
+function toggleWlPanel(){
+  var p = document.getElementById("wlpanel");
+  var chk = document.getElementById("wl_on");
+  var on = !!(chk && chk.checked);
+  closeMapPanels("wlpanel");
+  if(on && p.classList.contains("show")){
+    chk.checked = false; wlShow(false);
+    p.classList.remove("show");
+    return;
+  }
+  p.classList.add("show");
+  if(!on && chk){ chk.checked = true; wlShow(true); }
+  wlRender();
+}
+wlLoad();
+try{ document.getElementById("wl_alarm").checked = (localStorage.getItem(WL_ALARM_KEY) === "1"); }catch(e){}
+wlRender();
+if(wlTimer) clearInterval(wlTimer);
+wlTimer = setInterval(function(){ if(wlWatch.length && getKey("hrfco")) wlRefresh(); }, 10 * 60 * 1000);
+if(wlWatch.length && getKey("hrfco")) wlRefresh();
 </script>
 
 </body>
