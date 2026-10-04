@@ -1970,10 +1970,54 @@ setTimeout(syncWarnHeight, 50);
 setTimeout(syncHeaderHeight, 300);
 setTimeout(syncWarnHeight, 300);
 // 사고 원인(기상 요인) — 재난 유형보다 상위 개념
-var DCAUSES = ["호우","강풍","대설","한파·결빙","폭염","태풍","지진","기타"];
-var DTYPES = ["침수","토사유출","산사태","낙석","강풍","수목 전도","전주 전도","결빙","포트홀","정전","단수","화재","산불","시설물 피해","병해충","AI감염","기타"];
+var DCAUSES = ["호우","강풍","대설","한파·결빙","폭염","가뭄","태풍","낙뢰","지진","대형사고·인위","가축전염병","기타"];
+var DTYPES = ["침수","하천 범람·제방 유실","토사유출","산사태","낙석","옹벽·석축 붕괴","강풍","수목 전도","전주 전도","결빙","포트홀","도로 유실·노면 파손","정전","단수","화재","산불","시설물 피해","농작물 피해","병해충","AI감염","구제역","인명 고립·구조","기타"];
+/* 대분류는 "보여줄 때만" 묶는 분류다. 상황 기록에는 지금처럼 세부 유형 글자만 저장하므로,
+   나중에 분류를 바꿔도 이미 등록된 자료는 그대로 살아 있다. */
+var DGROUPS = [
+  { g:"침수·수해",   t:["침수","하천 범람·제방 유실"] },
+  { g:"사면·붕괴",   t:["토사유출","산사태","낙석","옹벽·석축 붕괴"] },
+  { g:"도로",        t:["포트홀","도로 유실·노면 파손","결빙"] },
+  { g:"강풍·수목",   t:["강풍","수목 전도","전주 전도"] },
+  { g:"화재",        t:["화재","산불"] },
+  { g:"전기·상수도", t:["정전","단수"] },
+  { g:"농축산",      t:["농작물 피해","병해충","AI감염","구제역"] },
+  { g:"인명·시설",   t:["인명 고립·구조","시설물 피해","기타"] }
+];
+function dgroupOf(t){
+  for(var i = 0; i < DGROUPS.length; i++){ if(DGROUPS[i].t.indexOf(t) >= 0) return DGROUPS[i].g; }
+  return "인명·시설";   // 직접 입력한 유형 등 목록 밖은 마지막 묶음으로
+}
+/* 유형별 검색어 — 자동 분류와 등록 폼 검색이 같은 표를 쓴다 */
+var DTYPE_KW = [
+  ["옹벽","옹벽·석축 붕괴"],["석축","옹벽·석축 붕괴"],["축대","옹벽·석축 붕괴"],["담장","옹벽·석축 붕괴"],["무너","옹벽·석축 붕괴"],
+  ["범람","하천 범람·제방 유실"],["제방","하천 범람·제방 유실"],["둑이","하천 범람·제방 유실"],["월류","하천 범람·제방 유실"],["하천","하천 범람·제방 유실"],
+  ["도로 유실","도로 유실·노면 파손"],["도로유실","도로 유실·노면 파손"],["노면","도로 유실·노면 파손"],["도로 파손","도로 유실·노면 파손"],
+  ["고립","인명 고립·구조"],["갇힌","인명 고립·구조"],["갇혀","인명 고립·구조"],["실종","인명 고립·구조"],["구조","인명 고립·구조"],
+  ["우제류","구제역"],
+  ["농작물","농작물 피해"],["과수","농작물 피해"],["비닐하우스","농작물 피해"],["포도","농작물 피해"],["작물","농작물 피해"],
+  ["물에","침수"],["잠김","침수"],["침수","침수"],["토사","토사유출"],["붕괴","산사태"],["돌","낙석"],["바람","강풍"],
+  ["전주","전주 전도"],["전신주","전주 전도"],["통신주","전주 전도"],["가로등","전주 전도"],
+  ["나무","수목 전도"],["수목","수목 전도"],["쓰러","수목 전도"],
+  ["얼음","결빙"],["빙판","결빙"],["도로파임","포트홀"],["구멍","포트홀"],["파임","포트홀"],
+  ["전기","정전"],["정전","정전"],["불이","화재"],["산에 불","산불"],["단수","단수"],["누수","단수"],["파손","시설물 피해"],
+  ["해충","병해충"],["병충해","병해충"],["방제","병해충"],
+  ["조류독감","AI감염"],["조류인플루엔자","AI감염"],["가금","AI감염"],["살처분","AI감염"]
+];
+/* 자주 쓰는 유형 — 이 기기에서 최근에 등록한 순서 */
+var RECENT_TYPE_KEY = "okc6_recenttypes";
+function recentTypes(){
+  try{ var a = JSON.parse(localStorage.getItem(RECENT_TYPE_KEY) || "[]"); return Array.isArray(a) ? a : []; }
+  catch(e){ return []; }
+}
+function rememberType(t){
+  if(!t) return;
+  var a = recentTypes().filter(function(x){ return x !== t; });
+  a.unshift(t);
+  try{ localStorage.setItem(RECENT_TYPE_KEY, JSON.stringify(a.slice(0, 8))); }catch(e){}
+}
 // 재난 유형별 지도(위성) 표시 이모티콘. bg=배경(흐리게 크게 깔림) + fg=전경(진하게 위에 겹침)으로 하나의 아이콘처럼 합성
-var CREASONS = ["도로 침수","유실·붕괴","낙석·산사태","결빙·폭설","교량 통제","지하차도 통제","기타"];
+var CREASONS = ["도로 침수","유실·붕괴","낙석·산사태","결빙·폭설","산불","교통사고","교량 통제","지하차도 통제","기타"];
 var REGIONS = [["옥천읍",36.300,127.585],["동이면",36.285,127.646],["안남면",36.352,127.685],["안내면",36.395,127.639],["청성면",36.322,127.737],["청산면",36.342,127.816],["이원면",36.222,127.631],["군서면",36.265,127.527],["군북면",36.351,127.568]];
 var STATNAMES = {occur:"발생", action:"조치중", done:"완료", blocked:"차단중", reopened:"해제"};
 var STATCOLORS = {occur:"#dc2626", action:"#eab308", done:"#16a34a", blocked:"#1d4ed8", reopened:"#38bdf8"};
@@ -3485,6 +3529,7 @@ document.addEventListener("click", function(e){
 document.addEventListener("change", function(e){
   if(e.target.matches && e.target.matches('.msel-panel input[type=checkbox]')){
     var key = e.target.getAttribute("data-k"), v = e.target.getAttribute("data-v");
+    if(!key || !filters[key]) return;          // 대분류 묶음 체크박스는 따로 처리한다
     if(e.target.checked) filters[key].add(v); else filters[key].delete(v);
     renderAll();
     if(key === "eupmyeon") redrawMask(); // 읍면 필터 바뀌면 외곽 마스크 갱신
@@ -3502,6 +3547,40 @@ function buildMsel(key, panelId, optList, cntMap){
     h += '<label class="msel-opt"><input type="checkbox" data-k="' + key + '" data-v="' + v + '" ' + (sel.has(v) ? "checked" : "") + '>' + label + (c !== null ? '<span class="cnt">' + c + '</span>' : "") + "</label>";
   });
   panel.innerHTML = h;
+}
+/* 유형 필터는 23개라 그냥 늘어놓으면 못 읽는다. 대분류로 묶고, 묶음 체크로 하위를 한 번에 켜고 끈다. */
+function buildMselType(cntMap){
+  var panel = document.getElementById("mselpanel_type");
+  if(!panel) return;
+  var sel = filters.type;
+  var allChecked = DTYPES.every(function(t){ return sel.has(t); });
+  var h = '<label class="facc-selall"><input type="checkbox" ' + (allChecked ? "checked" : "") +
+          ' onclick="mselAll(\'type\',this.checked)">전체선택</label>';
+  DGROUPS.forEach(function(G){
+    var list = G.t.filter(function(t){ return DTYPES.indexOf(t) >= 0; });
+    if(!list.length) return;
+    var on = list.every(function(t){ return sel.has(t); });
+    var sum = list.reduce(function(a, t){ return a + (cntMap[t] || 0); }, 0);
+    h += '<div class="msel-grp">' +
+      '<label class="msel-ghd"><input type="checkbox" ' + (on ? "checked" : "") +
+      ' onclick="mselGroup(\'' + G.g + '\', this.checked)">' + G.g +
+      '<span class="cnt">' + sum + '</span></label>';
+    list.forEach(function(t){
+      h += '<label class="msel-opt msel-sub"><input type="checkbox" data-k="type" data-v="' + t + '" ' +
+        (sel.has(t) ? "checked" : "") + '>' + t + '<span class="cnt">' + (cntMap[t] || 0) + '</span></label>';
+    });
+    h += '</div>';
+  });
+  panel.innerHTML = h;
+}
+function mselGroup(g, on){
+  var grp = DGROUPS.filter(function(G){ return G.g === g; })[0];
+  if(!grp) return;
+  grp.t.forEach(function(t){
+    if(DTYPES.indexOf(t) < 0) return;
+    if(on) filters.type.add(t); else filters.type.delete(t);
+  });
+  renderAll();
 }
 function toggleFacc(key){
   var b = document.getElementById("faccb_" + key);
@@ -3550,7 +3629,7 @@ function renderFilters(){
     if(mgr){ mcnt[mgr] = (mcnt[mgr] || 0) + 1; }
   });
   buildMsel("status", "mselpanel_stat", STATFILTERS, cnt);
-  buildMsel("type", "mselpanel_type", DTYPES.map(function(t){return [t,t];}), tcnt);
+  buildMselType(tcnt);
   buildMsel("eupmyeon", "mselpanel_eupmyeon", REGIONS.map(function(r){return [r[0],r[0]];}), ecnt);
   // 담당자 필터: 데이터에 있는 담당자 목록으로 동적 생성
   var mgrList = Object.keys(mcnt).sort();
@@ -4462,14 +4541,66 @@ function causeVal(id){
 }
 
 function typeMultiHtml(id){
-  var h = '<div class="tmulti" id="' + id + '_multi">';
-  DTYPES.forEach(function(t){
-    h += '<label class="tm-opt"><input type="checkbox" class="' + id + '_chk" value="' + esc(t) + '" onchange="onTmChange(\'' + id + '\')"> ' + t + '</label>';
+  // 유형이 20개가 넘어 전부 훑기 어려우므로 ① 검색 ② 자주 쓰는 것 ③ 대분류 묶음 순으로 보여준다
+  var rec = recentTypes().filter(function(t){ return DTYPES.indexOf(t) >= 0; }).slice(0, 5);
+  var h = '<input type="text" class="tm-q" id="' + id + '_q" placeholder="🔍 유형 검색 (예: 옹벽, 범람, 고립)" ' +
+          'oninput="tmFilter(\'' + id + '\')">';
+  if(rec.length){
+    h += '<div class="tm-recent" id="' + id + '_recent"><span class="tm-rlbl">자주 쓰는 유형</span>' +
+      rec.map(function(t){
+        return '<button type="button" class="tm-chip" data-t="' + esc(t) + '" onclick="tmPick(\'' + id + '\',this)">' + esc(t) + '</button>';
+      }).join("") + '</div>';
+  }
+  h += '<div class="tmulti" id="' + id + '_multi">';
+  DGROUPS.forEach(function(G){
+    var list = G.t.filter(function(t){ return DTYPES.indexOf(t) >= 0; });
+    if(!list.length) return;
+    h += '<div class="tm-grp" data-g="' + esc(G.g) + '"><div class="tm-ghd">' + esc(G.g) + '</div>';
+    list.forEach(function(t){
+      h += '<label class="tm-opt" data-t="' + esc(t) + '"><input type="checkbox" class="' + id + '_chk" value="' + esc(t) +
+           '" onchange="onTmChange(\'' + id + '\')"> ' + esc(t) + '</label>';
+    });
+    h += '</div>';
   });
   h += '</div>';
+  h += '<div class="tm-none note" id="' + id + '_none" style="display:none">검색 결과가 없습니다. 아래 칸에 직접 입력하셔도 됩니다.</div>';
   h += '<input type="text" id="' + id + '_etc" placeholder="기타 유형을 직접 입력 (선택)" style="margin-top:6px">';
   h += '<div class="tm-sel note" id="' + id + '_sel">선택된 유형이 없습니다. 하나 이상 선택해주세요.</div>';
   return h;
+}
+/* 검색어로 유형을 좁힌다. 이름뿐 아니라 '무너', '잠김' 같은 말로도 찾아지도록 키워드 표를 함께 본다. */
+function tmFilter(id){
+  var q = (val(id + "_q") || "").trim();
+  var box = document.getElementById(id + "_multi");
+  if(!box) return;
+  var hit = {};
+  if(q){
+    DTYPE_KW.forEach(function(kv){ if(kv[0].indexOf(q) >= 0 || q.indexOf(kv[0]) >= 0) hit[kv[1]] = 1; });
+  }
+  var shown = 0;
+  box.querySelectorAll(".tm-opt").forEach(function(el){
+    var t = el.getAttribute("data-t");
+    var ok = !q || t.indexOf(q) >= 0 || hit[t];
+    el.style.display = ok ? "" : "none";
+    if(ok) shown++;
+  });
+  box.querySelectorAll(".tm-grp").forEach(function(g){
+    var any = Array.prototype.slice.call(g.querySelectorAll(".tm-opt"))
+      .some(function(e){ return e.style.display !== "none"; });
+    g.style.display = any ? "" : "none";
+  });
+  var none = document.getElementById(id + "_none");
+  if(none) none.style.display = shown ? "none" : "block";
+}
+/* 자주 쓰는 유형 단추를 눌러 바로 선택 */
+function tmPick(id, btn){
+  var t = btn.getAttribute("data-t");
+  var box = document.getElementById(id + "_multi");
+  if(!box) return;
+  box.querySelectorAll("." + id + "_chk").forEach(function(c){
+    if(c.value === t){ c.checked = !c.checked; btn.classList.toggle("on", c.checked); }
+  });
+  onTmChange(id);
 }
 function typeMultiVals(id){
   var out = [];
@@ -4481,6 +4612,12 @@ function typeMultiVals(id){
 }
 function onTmChange(id){
   var vals = typeMultiVals(id);
+  var rbox = document.getElementById(id + "_recent");
+  if(rbox){
+    rbox.querySelectorAll(".tm-chip").forEach(function(b){
+      b.classList.toggle("on", vals.indexOf(b.getAttribute("data-t")) >= 0);
+    });
+  }
   var box = document.getElementById(id + "_sel");
   if(box){
     box.innerHTML = vals.length
@@ -4741,13 +4878,22 @@ function goMyLocation(){
       }, 400);
     }
   }
+  var _gpsRetried = false;
   function fail(err){
-    var msg = "위치를 가져올 수 없습니다.";
-    if(err && err.code === 1) msg = "위치 권한이 거부되었습니다. 브라우저 설정 → 사이트 권한 → 위치를 '허용'으로 바꿔 주세요.";
-    else if(err && err.code === 2) msg = "위치 정보를 사용할 수 없습니다. 휴대폰의 위치(GPS) 기능이 켜져 있는지 확인해 주세요.";
-    else if(err && err.code === 3) msg = "위치 조회 시간이 초과되었습니다.\n\n실내에서는 GPS가 약할 수 있어요. 창가나 실외에서 다시 시도하거나, 휴대폰 '설정 → 위치'가 켜져 있는지 확인해 주세요.";
-    alert(msg);
     if(btn){ btn.textContent = "📍 내 위치"; btn.disabled = false; }
+    // PC에는 GPS 수신기가 없어 고정밀 요청이 자주 실패한다. 저정밀(네트워크 기반)로 한 번 더 시도.
+    if(err && (err.code === 2 || err.code === 3) && !_gpsRetried){
+      _gpsRetried = true;
+      if(btn){ btn.textContent = "📍 찾는중…"; btn.disabled = true; }
+      navigator.geolocation.getCurrentPosition(success, fail,
+        {enableHighAccuracy:false, timeout:15000, maximumAge:60000});
+      return;
+    }
+    if(err && err.code === 1){ gpsDeniedMsg(); return; }
+    var msg = "위치를 가져올 수 없습니다.";
+    if(err && err.code === 2) msg = "위치 정보를 사용할 수 없습니다.\n\n휴대폰이면 '설정 → 위치'가 켜져 있는지 확인해 주세요.\nPC라면 위치를 못 잡는 환경일 수 있으니, 지도에서 원하는 지점을 우클릭해 바로 등록하시면 됩니다.";
+    else if(err && err.code === 3) msg = "위치 조회 시간이 초과되었습니다.\n\n실내에서는 신호가 약할 수 있어요. 창가나 실외에서 다시 시도하거나, 지도에서 원하는 지점을 우클릭해 등록하셔도 됩니다.";
+    alert(msg);
   }
 
   // 정밀 GPS(위성) 우선 — 네트워크 기반보다 정확 (실외에서 정확)
@@ -4755,6 +4901,36 @@ function goMyLocation(){
     success, fail,
     {enableHighAccuracy:true, timeout:20000, maximumAge:0}
   );
+}
+/* 브라우저는 '허용'인데도 거부로 돌아오는 경우가 있다.
+   이때는 윈도우(운영체제) 위치 서비스가 꺼져 있는 것이므로, 어디를 봐야 하는지 정확히 알려준다. */
+function gpsDeniedMsg(){
+  function tell(state){
+    if(state === "granted"){
+      alert("브라우저에서는 위치가 '허용'으로 되어 있는데도 차단되었습니다.\n" +
+            "윈도우(운영체제)가 막고 있는 경우입니다.\n\n" +
+            "윈도우 설정 → 개인 정보 보호 및 보안 → 위치 에서 아래 세 가지를 모두 켜 주세요.\n" +
+            "  ① 위치 서비스\n" +
+            "  ② 앱이 사용자의 위치에 액세스하도록 허용\n" +
+            "  ③ 데스크톱 앱이 사용자의 위치에 액세스하도록 허용\n\n" +
+            "켠 뒤에는 브라우저를 완전히 닫았다가 다시 열어야 적용됩니다.\n\n" +
+            "업무용 PC는 보안 정책으로 잠겨 있어 못 켜는 경우도 있습니다.\n" +
+            "그럴 때는 지도에서 원하는 지점을 우클릭해 바로 상황을 등록하시면 됩니다.");
+    } else {
+      alert("위치 권한이 거부되어 있습니다.\n\n" +
+            "주소창 왼쪽의 자물쇠(또는 ⓘ) 아이콘 → 위치 → '허용'으로 바꾼 뒤\n" +
+            "화면을 새로고침하고 다시 눌러 주세요.");
+    }
+  }
+  try{
+    if(navigator.permissions && navigator.permissions.query){
+      navigator.permissions.query({name:"geolocation"})
+        .then(function(p){ tell(p.state); })
+        .catch(function(){ tell(""); });
+      return;
+    }
+  }catch(e){}
+  tell("");
 }
 var _rcId = 0;
 function openRclickMenu(ll){
@@ -5187,10 +5363,7 @@ function aiParseRemote(txt, key){
 }
 function guessType(txt){
   for(var i = 0; i < DTYPES.length; i++){ if(txt.indexOf(DTYPES[i]) >= 0) return DTYPES[i]; }
-  var kw = [["물에","침수"],["잠김","침수"],["토사","토사유출"],["붕괴","산사태"],["돌","낙석"],["바람","강풍"],
-    ["전주","전주 전도"],["전신주","전주 전도"],["통신주","전주 전도"],["가로등","전주 전도"],["나무","수목 전도"],["수목","수목 전도"],["쓰러","수목 전도"],["얼음","결빙"],["빙판","결빙"],["도로파임","포트홀"],["구멍","포트홀"],
-    ["전기","정전"],["불이","화재"],["산에 불","산불"],["단수","단수"],["파손","시설물 피해"],
-    ["해충","병해충"],["병충해","병해충"],["방제","병해충"],["조류독감","AI감염"],["조류인플루엔자","AI감염"],["가금","AI감염"],["살처분","AI감염"]];
+  var kw = DTYPE_KW;
   for(var j = 0; j < kw.length; j++){ if(txt.indexOf(kw[j][0]) >= 0) return kw[j][1]; }
   return "기타";
 }
@@ -5807,7 +5980,7 @@ function renderDashboard(){
   var byDay = dailySeries(live, 30);
 
   h += '<div class="dbrow">' +
-    '<div class="dbcard"><h4>🌊 재난유형별 발생 건수</h4>' + barChart(byType, "#3b82f6") + '</div>' +
+    '<div class="dbcard"><h4>🌊 재난유형별 발생 건수</h4>' + groupedBarChart(byType, "#3b82f6") + '</div>' +
     '<div class="dbcard"><h4>📍 읍면 지역별 발생 건수</h4>' + barChart(byRegion, "#8b5cf6") + '</div>' +
     '</div>';
 
@@ -5842,6 +6015,38 @@ function barChart(map, color){
     h += '<div class="dbbar"><span class="bl">' + esc(k) + '</span><span class="bt"><span class="bf" style="width:' + pct + '%;background:' + color + '"></span></span><span class="bv">' + map[k] + '</span></div>';
   });
   return h;
+}
+/* 세부 유형이 많아 막대가 20개를 넘으면 읽히지 않는다. 대분류로 합쳐 보여주고 누르면 안이 펼쳐진다. */
+var _gbcId = 0;
+function groupedBarChart(map, color){
+  var gsum = {}, gdetail = {};
+  Object.keys(map).forEach(function(t){
+    var g = dgroupOf(t);
+    gsum[g] = (gsum[g] || 0) + map[t];
+    (gdetail[g] = gdetail[g] || {})[t] = map[t];
+  });
+  var gkeys = Object.keys(gsum).sort(function(a, b){ return gsum[b] - gsum[a]; });
+  if(!gkeys.length) return '<div class="dbnote">데이터가 없습니다.</div>';
+  var max = Math.max.apply(null, gkeys.map(function(k){ return gsum[k]; }));
+  var h = "";
+  gkeys.forEach(function(g){
+    var pct = max ? Math.round(gsum[g] / max * 100) : 0;
+    var id = "gbc" + (++_gbcId);
+    h += '<div class="dbbar gbar" onclick="gbcToggle(\'' + id + '\')" title="눌러서 세부 유형 보기">' +
+      '<span class="bl">▸ ' + esc(g) + '</span>' +
+      '<span class="bt"><span class="bf" style="width:' + pct + '%;background:' + color + '"></span></span>' +
+      '<span class="bv">' + gsum[g] + '</span></div>';
+    h += '<div class="gbsub" id="' + id + '" style="display:none">' + barChart(gdetail[g], "#94a3b8") + '</div>';
+  });
+  return h;
+}
+function gbcToggle(id){
+  var el = document.getElementById(id);
+  if(!el) return;
+  var open = el.style.display !== "none";
+  el.style.display = open ? "none" : "block";
+  var bar = el.previousElementSibling;
+  if(bar){ var l = bar.querySelector(".bl"); if(l) l.textContent = (open ? "▸ " : "▾ ") + l.textContent.slice(2); }
 }
 function dailySeries(live, days){
   var map = {};
@@ -10766,6 +10971,44 @@ wlRender();
 if(wlTimer) clearInterval(wlTimer);
 wlTimer = setInterval(function(){ if(wlWatch.length && getKey("hrfco")) wlRefresh(); }, 10 * 60 * 1000);
 if(wlWatch.length && getKey("hrfco")) wlRefresh();
+</script>
+
+<style id="typegroup-style">
+/* ===== 유형 선택: 검색 · 자주 쓰는 것 · 대분류 묶음 ===== */
+.tm-q{width:100%;margin-bottom:6px}
+.tm-recent{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-bottom:7px}
+.tm-recent .tm-rlbl{font-size:10.5px;color:#6b7f96;font-weight:700;flex:none;margin-right:2px}
+.tm-chip{border:1px solid #d7e0ec;background:#f6f8fb;color:#33465c;border-radius:999px;
+  padding:4px 10px;font-size:11.5px;font-weight:700;cursor:pointer;letter-spacing:-.02em}
+.tm-chip:hover{background:#eaf0f8}
+.tm-chip.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+.tm-grp{margin-bottom:5px}
+.tm-ghd{font-size:10.5px;font-weight:800;color:#6b7f96;letter-spacing:.03em;
+  padding:3px 0 2px;border-bottom:1px solid #eef2f7;margin-bottom:3px}
+.tm-none{color:#b45309}
+/* ===== 유형 필터: 대분류 묶음 ===== */
+.msel-grp{margin-bottom:4px}
+.msel-ghd{display:flex;align-items:center;gap:6px;font-weight:800;font-size:11.5px;color:#33465c;
+  padding:4px 0 3px;border-bottom:1px solid #eef2f7;cursor:pointer}
+.msel-ghd .cnt{margin-left:auto;color:#9ca3af;font-weight:400;font-variant-numeric:tabular-nums}
+.msel-opt.msel-sub{padding-left:14px}
+/* ===== 대시보드: 대분류 막대 ===== */
+.dbbar.gbar{cursor:pointer}
+.dbbar.gbar:hover .bl{color:#1d4ed8}
+.dbbar.gbar .bl{font-weight:700}
+.gbsub{padding:2px 0 6px 14px;border-left:2px solid #eef2f7;margin-bottom:4px}
+.gbsub .dbbar .bl{font-size:11px;color:#6b7f96}
+</style>
+<script>
+/* 등록·수정할 때 고른 유형을 기억해, 다음 등록에서 '자주 쓰는 유형'으로 맨 위에 올린다. */
+(function(){
+  if(typeof saveItem !== "function") return;
+  var raw = saveItem;
+  window.saveItem = function(it){
+    try{ if(it && it.kind === "disaster" && it.type) rememberType(it.type); }catch(e){}
+    return raw.apply(this, arguments);
+  };
+})();
 </script>
 
 </body>
