@@ -11543,5 +11543,97 @@ map.on("moveend", function(){
 })();
 </script>
 
+<script>
+/* ===== 장시간 방치 대응: 연결 유지·자동 복구 (2026-10 추가) =====
+   - 4분마다 가벼운 요청으로 연결 점검 → 방화벽이 끊은 연결을 미리 정리
+   - 점검 실패 / 네트워크 복구 / PC 절전 해제 시 Firebase 실시간 연결 재접속
+   - 30분 이상 다른 탭·화면에 있다가 돌아오면, 연결이 정상일 때만 자동 새로고침
+     (입력 중이거나 등록·상세 창이 열려 있으면 새로고침하지 않음)            */
+(function(){
+  var PING_MS = 4 * 60 * 1000;
+  var IDLE_MS = 30 * 60 * 1000;
+  var hiddenAt = 0;
+
+  function ping(){
+    return new Promise(function(resolve){
+      var done = false;
+      var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      var t = setTimeout(function(){ if(ctrl) ctrl.abort(); if(!done){ done = true; resolve(false); } }, 8000);
+      fetch(location.pathname + "?ping=" + Date.now(), { method: "HEAD", cache: "no-store", signal: ctrl ? ctrl.signal : undefined })
+        .then(function(){ if(!done){ done = true; clearTimeout(t); resolve(true); } })
+        .catch(function(){ if(!done){ done = true; clearTimeout(t); resolve(false); } });
+    });
+  }
+
+  function kickFirebase(){
+    try{
+      if(window.firebase && firebase.apps && firebase.apps.length && firebase.database){
+        var db = firebase.database();
+        db.goOffline();
+        setTimeout(function(){ try{ db.goOnline(); }catch(e){} }, 500);
+      }
+    }catch(e){}
+  }
+
+  function isOpen(id){
+    var el = document.getElementById(id);
+    if(!el) return false;
+    var s = window.getComputedStyle(el);
+    return s.display !== "none" && s.visibility !== "hidden";
+  }
+  function isBusy(){
+    var a = document.activeElement;
+    if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;
+    if(a && a.isContentEditable) return true;
+    if(isOpen("ovl") || isOpen("dbovl") || isOpen("alarmovl")) return true;
+    var rp = document.getElementById("regpick");
+    if(rp && rp.classList.contains("open")) return true;
+    if(document.body.classList.contains("drawing") || document.body.classList.contains("trendpick")) return true;
+    return false;
+  }
+
+  function refreshSW(){
+    try{
+      if("serviceWorker" in navigator){
+        navigator.serviceWorker.getRegistration().then(function(r){ if(r) r.update(); }).catch(function(){});
+      }
+    }catch(e){}
+  }
+
+  // 1) 주기 점검
+  setInterval(function(){
+    if(document.hidden) return;
+    ping().then(function(ok){ if(!ok) kickFirebase(); });
+  }, PING_MS);
+
+  // 2) 화면 복귀
+  document.addEventListener("visibilitychange", function(){
+    if(document.hidden){ hiddenAt = Date.now(); return; }
+    var idle = hiddenAt && (Date.now() - hiddenAt > IDLE_MS);
+    hiddenAt = 0;
+    refreshSW();
+    ping().then(function(ok){
+      if(idle && ok && !isBusy()){ location.reload(); return; }
+      kickFirebase();
+    });
+  });
+
+  // 3) 네트워크 복구
+  window.addEventListener("online", function(){ kickFirebase(); refreshSW(); });
+
+  // 4) PC 절전·화면잠금 해제 감지 (타이머가 2분 이상 멈췄다 깨어난 경우)
+  var last = Date.now();
+  setInterval(function(){
+    var now = Date.now();
+    if(now - last > 2 * 60 * 1000){
+      kickFirebase();
+      if(now - last > IDLE_MS && !document.hidden && !isBusy()){
+        ping().then(function(ok){ if(ok) location.reload(); });
+      }
+    }
+    last = now;
+  }, 30 * 1000);
+})();
+</script>
 </body>
 </html>
