@@ -6480,7 +6480,7 @@ function hxCell(tplCell, texts, col, row){
   return res.replace(/colAddr="\d+" rowAddr="\d+"/, 'colAddr="' + col + '" rowAddr="' + row + '"');
 }
 
-function hxBuildSection(sec, rows, title, basis, dateline, damage){
+function hxBuildSection(sec, rows, title, basis, dateline, damage, staff){
   // 4번째 표(피해현황) 찾기
   var idx = [], re1 = /<hp:tbl /g, m;
   while((m = re1.exec(sec)) !== null) idx.push(m.index);
@@ -6512,6 +6512,13 @@ function hxBuildSection(sec, rows, title, basis, dateline, damage){
   sec = sec.replace("<hp:t>__DATE__</hp:t>", "<hp:t>" + hxEsc(dateline) + "</hp:t>");
   sec = sec.replace(/<hp:t>▣ 피해현황 \([^<]*기준\)<\/hp:t>/, "<hp:t>▣ 피해현황 (" + hxEsc(basis) + " 기준)</hp:t>");
   sec = sec.replace(/<hp:t>[^<]*피해상황 : [^<]*<\/hp:t>/, "<hp:t> ※ 피해상황 : " + hxEsc(damage) + "</hp:t>");
+  // 서식에 고정돼 있던 결재선을 입력한 작성자 정보로 교체
+  if(staff){
+    sec = sec.replace("안전건설과장 박지용</hp:t>", hxEsc(hxHeadName(staff)) + "</hp:t>");
+    sec = sec.replace("<hp:t>(\u260f3500)</hp:t>", "<hp:t>" + hxEsc(hxHeadTel(staff)) + "</hp:t>");
+    sec = sec.replace("<hp:t>자연재난팀장 연수호(\u260f3521), 장우영(\u260f3523)</hp:t>",
+                      "<hp:t>" + hxEsc(hxStaffLine(staff)) + "</hp:t>");
+  }
   return sec;
 }
 
@@ -6537,13 +6544,13 @@ function hxDamageSummary(list){
   return p + ", " + f;
 }
 
-function makeHwpxReport(from, to, title, damage){
-  if(!from || !to){ alert("기간을 입력하세요."); return false; }
+/* 기간 안의 건들을 표 행으로 만든다 (생성·미리보기 공용) */
+function hxCollectRows(from, to){
   var rows = [], picked = [];
   items.slice().sort(function(a,b){ return (a.t0||"") < (b.t0||"") ? -1 : 1; }).forEach(function(it){
     if(it.deleted || !inMode(it)) return;
     var d = (it.t0||"").slice(0,10);
-    if(d < from || d > to) return;
+    if(!from || !to || d < from || d > to) return;
     picked.push(it);
     var act = it.status === "done" || it.status === "reopened" ? ["조치","완료"] : ["조치","예정"];
     var note = stageDesc(it,"done") || stageDesc(it,"action") || (it.facilityDamage || "");
@@ -6556,6 +6563,11 @@ function makeHwpxReport(from, to, title, damage){
       note: note
     });
   });
+  return { rows: rows, picked: picked };
+}
+function makeHwpxReport(from, to, title, damage){
+  if(!from || !to){ alert("기간을 입력하세요."); return false; }
+  var _c = hxCollectRows(from, to), rows = _c.rows, picked = _c.picked;
   if(!rows.length){ alert("해당 기간에 등록된 건이 없습니다."); return false; }
   // 피해상황: 직접 입력이 없으면 등록된 인명·재산피해에서 자동 산출
   if(!damage || !damage.trim()) damage = hxDamageSummary(picked);
@@ -6567,9 +6579,10 @@ function makeHwpxReport(from, to, title, damage){
   for(var i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
 
   var now = new Date(serverNow());
+  var _hxStaff = saveTrStaff();   // 입력한 작성자 정보를 저장해 다음에도 그대로 쓴다
   JSZip.loadAsync(buf).then(function(zip){
     return hxRead(zip, "Contents/section0.xml").then(function(sec){
-      var out = hxBuildSection(sec, rows, title, hxBasis(now), hxDateLine(now), damage);
+      var out = hxBuildSection(sec, rows, title, hxBasis(now), hxDateLine(now), damage, _hxStaff);
       zip.file("Contents/section0.xml", out);
       return repackHwpx(zip);
     });
@@ -6649,12 +6662,15 @@ function getTrStaff(){
   }catch(e){}
   return Object.assign({}, TR_STAFF_DEF);
 }
-function saveTrStaff(){
-  var s = {
+function readTrStaff(){
+  return {
     headTitle: val("ts_ht"), headName: val("ts_hn"), headTel: val("ts_htel"),
     teamTitle: val("ts_tt"), teamName: val("ts_tn"), teamTel: val("ts_ttel"),
     ownName:   val("ts_on"), ownTel:   val("ts_otel")
   };
+}
+function saveTrStaff(){
+  var s = readTrStaff();
   try{ localStorage.setItem(TR_STAFF_KEY, JSON.stringify(s)); }catch(e){}
   return s;
 }
@@ -6664,6 +6680,22 @@ function trHeadLine(s){
   var n = (s.headName || "000").trim();
   var tel = (s.headTel || "").trim();
   return t + " " + n + "(\u260e" + (tel || "0000") + ")";
+}
+/* 약식보고 서식은 과장 이름과 전화번호가 서로 다른 글자꼴로 나뉘어 있어 따로 만든다.
+   전화 기호도 동향보고(☎)와 달리 ☏를 쓴다. */
+function hxHeadName(s){
+  return (s.headTitle || "00과장").trim() + " " + (s.headName || "000").trim();
+}
+function hxHeadTel(s){
+  return "(\u260f" + ((s.headTel || "").trim() || "0000") + ")";
+}
+function hxStaffLine(s){
+  var out = [(s.teamTitle || "00팀장").trim() + " " + (s.teamName || "000").trim() +
+             "(\u260f" + ((s.teamTel || "").trim() || "0000") + ")"];
+  if(s.ownName || s.ownTel){
+    out.push((s.ownName || "000").trim() + "(\u260f" + ((s.ownTel || "").trim() || "0000") + ")");
+  }
+  return out.join(", ");
 }
 function trStaffLine(s){
   var out = [];
@@ -6804,7 +6836,9 @@ function openTrendReport(id){
   });
   while(acts.length < 3) acts.push(["", ""]);
 
+  window._trItem = it;
   openModal("📄 동향보고 (HWPX)",
+    rpWrap(
     '<label>작성자 <span class="note" style="font-weight:400">(한 번 입력하면 다음에도 그대로 사용됩니다)</span></label>' +
     '<div class="staffrow"><input type="text" id="ts_ht" placeholder="직위(과장)" value="' + esc(_ts.headTitle) + '">' +
       '<input type="text" id="ts_hn" placeholder="성함" value="' + esc(_ts.headName) + '">' +
@@ -6842,8 +6876,8 @@ function openTrendReport(id){
     '<input type="file" id="tr_file" accept="image/*" style="display:none" onchange="pickTrLocFile(this)">' +
     '<div class="note">붙여넣지 않으면 해당 지점의 위성지도를 자동으로 넣습니다(브이월드는 보안 제한으로 자동 캡처가 안 되어 대체 영상 사용). ' +
     '사진대지에는 이 건에 등록된 사진을 최대 2장까지 넣고, 없으면 빈 칸으로 둡니다.</div>' +
-    '<input type="hidden" id="tr_zoom" value="17">',
-    function(){ return makeTrendReport(it); });
+    '<input type="hidden" id="tr_zoom" value="17">', "trprev"),
+    function(){ return makeTrendReport(it); }, null, true);
 
   // 입력 행 초기화: 대상 1행(등록 정보), 조치사항은 경과 이력만큼
   setTimeout(function(){
@@ -6858,6 +6892,7 @@ function openTrendReport(id){
     var made = 0;
     acts.forEach(function(a){ if(a[1]){ addActRow(a[0], a[1]); made++; } });
     while(made < 2){ addActRow("", ""); made++; }
+    rpBind(trPreview);
   }, 0);
 }
 
@@ -7255,18 +7290,23 @@ function trFixOrgSz(xml, imgId, px_w, px_h){
       '<hp:imgDim dimwidth="' + hwp.w + '" dimheight="' + hwp.h + '"/>');
   return xml.slice(0, picStart) + newBlock + xml.slice(picEnd);
 }
-function makeTrendReport(it){
-  if(typeof JSZip === "undefined"){ alert("압축 모듈을 불러오지 못했습니다."); return false; }
-  // 서식에는 조치사항 줄이 3개뿐이므로, 4번째부터는 세 번째 줄에 이어 붙인다
+/* 서식에는 조치사항 줄이 3개뿐이라 4번째부터는 셋째 줄에 이어 붙인다.
+   생성본과 미리보기가 어긋나지 않도록 이 함수를 양쪽에서 함께 쓴다. */
+function trActs3(){
   var actAll = collectActs();
   var acts = actAll.slice(0, 2);
   if(actAll.length > 2){
-    // 서식에는 조치사항 줄이 3개뿐이므로 나머지는 세 번째 줄에 이어 붙인다
     var rest = actAll.slice(2);
     acts.push([rest[0][0], rest.map(function(x, i){
       return (i === 0 ? "" : (x[0] ? x[0] + " " : "")) + x[1];
     }).join(" / ")]);
   }
+  return acts;
+}
+function makeTrendReport(it){
+  if(typeof JSZip === "undefined"){ alert("압축 모듈을 불러오지 못했습니다."); return false; }
+  // 서식에는 조치사항 줄이 3개뿐이므로, 4번째부터는 세 번째 줄에 이어 붙인다
+  var acts = trActs3();
   var now = new Date(serverNow());
   // 날짜만 오늘 날짜로 갱신 (부서·이름·전화번호는 서식 그대로 두고 담당자가 한글에서 직접 수정)
   var _st = saveTrStaff();   // 입력한 작성자 정보를 저장해 다음에도 그대로 쓴다
@@ -7453,7 +7493,19 @@ function openHwpxReport(){
       if(!cbest || ccnt[cz] > ccnt[cbest]) cbest = cz;
     });
   });
+  var _ts = getTrStaff();
   openModal("📄 약식보고 (HWPX)",
+    rpWrap(
+    '<label>작성자 <span class="note" style="font-weight:400">(동향보고와 같은 정보를 씁니다)</span></label>' +
+    '<div class="staffrow"><input type="text" id="ts_ht" placeholder="직위(과장)" value="' + esc(_ts.headTitle) + '">' +
+      '<input type="text" id="ts_hn" placeholder="성함" value="' + esc(_ts.headName) + '">' +
+      '<input type="text" id="ts_htel" class="stel" placeholder="내선" value="' + esc(_ts.headTel) + '"></div>' +
+    '<div class="staffrow"><input type="text" id="ts_tt" placeholder="직위(팀장)" value="' + esc(_ts.teamTitle) + '">' +
+      '<input type="text" id="ts_tn" placeholder="성함" value="' + esc(_ts.teamName) + '">' +
+      '<input type="text" id="ts_ttel" class="stel" placeholder="내선" value="' + esc(_ts.teamTel) + '"></div>' +
+    '<div class="staffrow"><span class="slbl">담당</span>' +
+      '<input type="text" id="ts_on" placeholder="성함" value="' + esc(_ts.ownName) + '">' +
+      '<input type="text" id="ts_otel" class="stel" placeholder="내선" value="' + esc(_ts.ownTel) + '"></div>' +
     '<label>시작일</label><input type="date" id="h_rfrom" value="' + today + '">' +
     '<label>종료일</label><input type="date" id="h_rto" value="' + today + '">' +
     '<label>재난 종류 <span class="note" style="font-weight:400">(제목에 들어갑니다)</span></label>' +
@@ -7462,14 +7514,15 @@ function openHwpxReport(){
     '<input type="text" id="h_rdmg" placeholder="비워두면 자동으로 산출됩니다">' +
     '<div class="msel-actions" style="padding:2px 0 8px"><button type="button" onclick="hxFillDamage()">↻ 현재 기간으로 미리 계산</button></div>' +
     '<div class="note">제목은 「' + mm + '월 ' + dd + '일 옥천군 ○○ 피해현황 보고」 형식으로 생성되며, ' +
-    '기상현황 표는 서식만 들어가므로 한글에서 직접 채워 넣으시면 됩니다.</div>',
+    '기상현황 표는 서식만 들어가므로 한글에서 직접 채워 넣으시면 됩니다.</div>', "hxprev"),
     function(){
       var f = val("h_rfrom"), t = val("h_rto");
       var kind = val("h_rkind") || "";
       var td = new Date(t.replace(/-/g,"/"));
       var title = (td.getMonth()+1) + "월 " + td.getDate() + "일 옥천군 " + kind + " 피해현황 보고";
       return makeHwpxReport(f, t, title, val("h_rdmg"));
-    });
+    }, null, true);
+  setTimeout(function(){ rpBind(hxPreview); }, 0);
 }
 
 function openReport(){
@@ -11009,6 +11062,180 @@ if(wlWatch.length && getKey("hrfco")) wlRefresh();
     return raw.apply(this, arguments);
   };
 })();
+</script>
+
+<style id="reportpreview-style">
+/* ===== 보고서 미리보기 ===== */
+#mbody.mbody-2col > .rpwrap{grid-column:1 / -1}
+.rpwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:0 22px;align-items:start}
+.rpform{min-width:0}
+.rppane{min-width:0;position:sticky;top:0}
+.rpttl{display:flex;align-items:baseline;gap:6px;font-size:11.5px;font-weight:800;color:#1e3a5f;margin-bottom:6px}
+.rpttl span{font-weight:400;color:#9ca3af;font-size:10.5px}
+.rpttl .rptog{margin-left:auto;display:none}
+.rppaper{background:#fff;border:1px solid #d7dee7;border-radius:3px;
+  box-shadow:0 2px 12px rgba(15,37,64,.12);padding:22px 24px;
+  font-family:"맑은 고딕","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  font-size:11.5px;line-height:1.85;color:#111;max-height:62vh;overflow-y:auto;word-break:keep-all}
+.rppaper .rpdate{display:flex;justify-content:space-between;gap:10px;font-size:10.5px;color:#333}
+.rppaper .rpstaff{text-align:right;font-size:10.5px;color:#333;margin-bottom:14px}
+.rppaper h3{text-align:center;font-size:15px;font-weight:800;margin:4px 0 16px;letter-spacing:-.02em;color:#000}
+.rppaper .rpline{display:flex;gap:4px;margin:1px 0}
+.rppaper .rpk{flex:none;white-space:pre}
+.rppaper .rpv{flex:1;min-width:0}
+.rppaper .rpsub{padding-left:12px}
+.rppaper .rpend{margin-top:14px}
+.rppaper .rpbreak{border-top:1px dashed #cbd5e1;margin:18px -24px;padding-top:14px}
+.rppaper .rpph{border:1px solid #d7dee7;background:#f8fafc;color:#9ca3af;
+  text-align:center;font-size:10.5px;padding:26px 8px;border-radius:3px;margin:6px 0}
+.rppaper .rpph img{max-width:100%;max-height:150px;display:block;margin:0 auto;border-radius:2px}
+.rppaper .rpmuted{color:#9ca3af}
+.rppaper table{border-collapse:collapse;width:100%;font-size:10.5px;margin:4px 0 10px}
+.rppaper th,.rppaper td{border:1px solid #9ca3af;padding:3px 4px;text-align:center;vertical-align:middle}
+.rppaper th{background:#eef2f7;font-weight:700}
+.rppaper td.lft{text-align:left}
+.rppaper .rphd{font-weight:800;margin:12px 0 3px;color:#000}
+.rpempty{color:#b45309;font-size:11px;padding:8px 0}
+@media (max-width:980px){
+  .rpwrap{grid-template-columns:1fr}
+  .rppane{position:static;margin-top:10px}
+  .rpttl .rptog{display:inline-block;border:1px solid #d7e0ec;background:#f6f8fb;color:#33465c;
+    border-radius:7px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer}
+  .rppane.folded .rppaper{display:none}
+  .rppaper{max-height:46vh}
+}
+</style>
+<script>
+/* =========================================================
+   동향보고 · 약식보고 미리보기
+   한글 서식과 "글자와 순서"가 같은 화면을 옆에 띄워, 내려받기 전에 확인한다.
+   값을 만드는 함수(trActs3·collectWho·hxCollectRows 등)를 생성본과 공유하므로
+   미리보기와 실제 파일이 어긋나지 않는다. 글꼴·줄나눔·쪽 넘김은 한글과 다를 수 있다.
+   ========================================================= */
+function rpWrap(formHtml, paperId){
+  return '<div class="rpwrap"><div class="rpform">' + formHtml + '</div>' +
+    '<div class="rppane" id="' + paperId + '_pane">' +
+      '<div class="rpttl">📄 미리보기 <span>글자·순서는 실제 문서와 같습니다</span>' +
+      '<button type="button" class="rptog" onclick="rpFold(\'' + paperId + '\')">접기</button></div>' +
+      '<div class="rppaper" id="' + paperId + '"></div></div></div>';
+}
+function rpFold(id){
+  var pane = document.getElementById(id + "_pane");
+  if(!pane) return;
+  pane.classList.toggle("folded");
+  var b = pane.querySelector(".rptog");
+  if(b) b.textContent = pane.classList.contains("folded") ? "펼치기" : "접기";
+}
+var _rpRender = null, _rpTimer = null;
+function rpBind(fn){
+  _rpRender = fn;
+  rpTick(0);
+}
+function rpTick(ms){
+  if(!_rpRender) return;
+  if(_rpTimer) clearTimeout(_rpTimer);
+  _rpTimer = setTimeout(function(){ try{ _rpRender(); }catch(e){ console.warn("미리보기 오류", e); } },
+                        ms === undefined ? 120 : ms);
+}
+(function(){
+  var body = document.getElementById("mbody");
+  if(!body) return;
+  ["input", "change", "click"].forEach(function(ev){
+    body.addEventListener(ev, function(){ rpTick(ev === "click" ? 60 : 120); });
+  });
+})();
+/* 창을 닫으면 미리보기 갱신을 멈춘다 */
+(function(){
+  if(typeof closeModal !== "function") return;
+  var raw = closeModal;
+  window.closeModal = function(){ _rpRender = null; return raw.apply(this, arguments); };
+})();
+
+/* ---------- 동향보고 ---------- */
+function trPreview(){
+  var box = document.getElementById("trprev");
+  if(!box) return;
+  var st = readTrStaff();
+  var acts = trActs3();
+  var now = new Date(serverNow());
+  var dateStr = "‘" + String(now.getFullYear()).slice(2) + ". " +
+                (now.getMonth()+1) + ". " + now.getDate() + ".(" + HX_DOW[now.getDay()] + ")";
+  function L(k, v, muted){
+    return '<div class="rpline"><span class="rpk">' + k + '</span>' +
+           '<span class="rpv' + (v ? "" : " rpmuted") + '">: ' + esc(v || (muted || "(비어 있음)")) + '</span></div>';
+  }
+  var h = '<div class="rpdate"><span>' + esc(dateStr) + '</span><span>' + esc(trHeadLine(st)) + '</span></div>' +
+          '<div class="rpstaff">' + esc(trStaffLine(st)) + '</div>' +
+          '<h3>' + esc(val("tr_title") || "(제목 없음)") + '</h3>';
+  h += L("1. 일    시", val("tr_when"));
+  h += L("2. 대    상", collectWho());
+  h += L("3. 장    소", val("tr_place"));
+  h += L("4. 피해원인", val("tr_cause"));
+  h += '<div class="rpline"><span class="rpk">5. 피해내용</span></div>';
+  h += '<div class="rpsub">' + L("- 인명피해", val("tr_damage_people"), "해당없음") +
+       L("- 재산피해", val("tr_damage_facility"), "해당없음") + '</div>';
+  h += '<div class="rpline"><span class="rpk">6. 조치사항</span></div><div class="rpsub">';
+  var any = false;
+  for(var i = 0; i < 3; i++){
+    var a = acts[i];
+    if(!a || !a[1]) continue;              // 내용이 빈 줄은 실제 문서에서도 통째로 지워진다
+    any = true;
+    h += '<div class="rpline"><span class="rpv">- ' + esc(a[0] ? a[0] + " " : "") + esc(a[1]) + '</span></div>';
+  }
+  if(!any) h += '<div class="rpline rpmuted">(조치사항이 비어 있어 이 줄들은 문서에서 지워집니다)</div>';
+  h += '</div>';
+  h += '<div class="rpend">붙임&nbsp;&nbsp;사진대지 1부.&nbsp;&nbsp;끝.</div>';
+  // 둘째 쪽 — 위치도 및 사진대지
+  h += '<div class="rpbreak"><div class="rphd" style="text-align:center">위치도 및 사진대지</div>' +
+       '<div style="text-align:center;margin-bottom:6px">' + esc(val("tr_addr") || "(주소 없음)") + '</div>' +
+       '<div class="rphd" style="text-align:center;font-weight:700">위 치 도</div>';
+  var li = (typeof _trLocImg !== "undefined" && _trLocImg) ? _trLocImg : null;
+  h += '<div class="rpph">' + (li ? '<img src="' + li + '">' : '붙여넣은 캡처가 없으면 위성 위치도를 자동으로 넣습니다') + '</div>';
+  var ph = [];
+  try{ (_trItem && _trItem.timeline || []).forEach(function(e){ (e.photos || []).forEach(function(p){ ph.push(p); }); }); }catch(e){}
+  h += '<div style="text-align:center;margin:6px 0 2px">' + esc(val("tr_cap") || "(사진 설명 없음)") + '</div>';
+  h += '<div class="rpph">' + (ph.length ? ph.length + '장이 들어갑니다 (2장을 넘으면 행이 늘어납니다)' : '등록된 사진이 없어 빈 칸으로 둡니다') + '</div>';
+  h += '</div>';
+  box.innerHTML = h;
+}
+
+/* ---------- 약식보고 ---------- */
+function hxPreview(){
+  var box = document.getElementById("hxprev");
+  if(!box) return;
+  var from = val("h_rfrom"), to = val("h_rto");
+  var kind = val("h_rkind") || "";
+  var now = new Date(serverNow());
+  var title = "(기간을 지정하세요)";
+  if(to){
+    var td = new Date(to.replace(/-/g, "/"));
+    if(!isNaN(td)) title = (td.getMonth()+1) + "월 " + td.getDate() + "일 옥천군 " + kind + " 피해현황 보고";
+  }
+  var c = hxCollectRows(from, to);
+  var damage = (val("h_rdmg") || "").trim() || (c.picked.length ? hxDamageSummary(c.picked) : "");
+  var _st = readTrStaff();
+  var h = '<div class="rpdate"><span>' + esc(hxDateLine(now)) + '</span></div>' +
+    '<div class="rpstaff">' + esc(hxHeadName(_st) + " " + hxHeadTel(_st)) + '<br>' + esc(hxStaffLine(_st)) + '</div>' +
+    '<h3>' + esc(title) + '</h3>';
+  h += '<div class="rphd">▣ 기상현황(기상특보)</div>' +
+       '<div class="rpmuted" style="font-size:10.5px">표 서식만 들어갑니다. 한글에서 직접 채워 넣으세요.</div>';
+  h += '<div class="rphd">▣ 피해현황 (' + esc(hxBasis(now)) + ' 기준)</div>';
+  if(!c.rows.length){
+    h += '<div class="rpempty">이 기간에 등록된 건이 없습니다. 이대로는 파일이 만들어지지 않습니다.</div>';
+  } else {
+    h += '<table><tr><th>읍면</th><th>피해유형</th><th>접수일시</th><th>위 치</th><th>조치<br>여부</th><th>비고</th></tr>' +
+         '<tr><td>계</td><td colspan="5">' + c.rows.length + '개소</td></tr>';
+    c.rows.forEach(function(r){
+      h += '<tr><td>' + esc(r.eup) + '</td><td>' + esc(r.type) + '</td><td>' + esc(r.time) + '</td>' +
+           '<td class="lft">' + esc(r.loc) + '</td><td>' + esc(r.act.join("")) + '</td>' +
+           '<td class="lft">' + esc(r.note) + '</td></tr>';
+    });
+    h += '</table>';
+  }
+  h += '<div>※ 피해상황 : ' + (damage ? esc(damage) : '<span class="rpmuted">(없음)</span>') + '</div>';
+  h += '<div class="rphd">▣ 향후계획</div><div class="rpsub">❍ 기상상황 지속 모니터링</div>';
+  box.innerHTML = h;
+}
 </script>
 
 </body>
