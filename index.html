@@ -91,6 +91,12 @@ main{flex:1;display:flex;min-height:0}
 .ftab.on{background:#1e3a5f;color:#fff}
 .srch{display:flex;gap:5px}
 .srch input{flex:1;border:1px solid #d1d5db;border-radius:6px;padding:6px 8px;font-size:12px}
+/* 좌측 주소검색 한 줄: 입력칸이 패널 폭을 모두 쓰고 버튼은 글자폭만 */
+.qrow{display:flex;align-items:center;gap:6px;width:100%}
+.qrow input{flex:1 1 auto;min-width:0;width:auto;border:1px solid #d1d5db;border-radius:6px;padding:7px 9px;font-size:12.5px;font-family:inherit;box-sizing:border-box}
+.qrow input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.14)}
+.qbtn{flex:0 0 auto;border:0;background:#0f2540;color:#fff;border-radius:6px;padding:7px 12px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap}
+.qbtn:hover{background:#1e3a5f}
 .srch button{border:0;background:#2563eb;color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer}
 #srs{margin-top:5px}
 .sr{padding:5px 6px;border-bottom:1px solid #f3f4f6;font-size:11px;cursor:pointer;color:#1f2937}
@@ -1606,6 +1612,32 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 .rzpop b{font-size:13px;color:#1e3a5f}
 .rzpop div{font-size:11.5px;color:#4b5563;margin-top:2px}
 @media (max-width:860px){ #roadpanel,#rivpanel,#uppanel,#rnpanel,#wlpanel,#shpanel{max-height:60vh;overflow-y:auto} }
+/* ===== 과거 위성영상 패널 ===== */
+#pastpanel{position:absolute;top:52px;right:10px;z-index:1000;background:#fff;border:1px solid #d1d5db;
+  border-radius:8px;padding:10px 12px;font-size:12px;display:none;min-width:226px;max-width:252px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+#pastpanel.show{display:block}
+#pastpanel{max-height:calc(100vh - 120px);overflow-y:auto}
+#pastpanel .rzttl{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#1e3a5f;margin-bottom:4px}
+#pastpanel .rzttl span{font-weight:400;color:#9ca3af;font-size:10px}
+#pastpanel .rzclose{margin-left:auto;border:0;background:transparent;color:#9ca3af;font-size:17px;line-height:1;padding:2px 4px;cursor:pointer;flex:none}
+#pastpanel .rzclose:hover{color:#4b5563}
+#pastpanel label{display:flex;align-items:center;gap:7px;padding:4px 0;cursor:pointer}
+#pastpanel .rzsep{border-top:1px solid #e5e7eb;margin:7px 0}
+#pastpanel .rzhint{font-size:10.5px;color:#9ca3af;margin-top:6px;line-height:1.45}
+#pastpanel .pwnav{display:flex;gap:5px;margin-top:5px}
+#pastpanel .pwnav button{flex:1;border:1px solid #d1d5db;background:#f9fafb;border-radius:6px;padding:5px 2px;
+  font-size:11px;font-family:inherit;color:#374151;cursor:pointer}
+#pastpanel .pwnav button:hover{background:#eef2f7;border-color:#94a3b8}
+#pastpanel .pwbtn{width:100%;border:1px solid #0f2540;background:#0f2540;color:#fff;border-radius:7px;
+  padding:7px 8px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer}
+#pastpanel .pwbtn:hover{background:#1e3a5f}
+#pastpanel .pwlink{width:100%;margin-top:4px;border:0;background:transparent;color:#2563eb;
+  font-size:10.5px;font-family:inherit;text-decoration:underline;cursor:pointer;padding:2px}
+#pastpanel #pwcoord{font-variant-numeric:tabular-nums}
+@media (max-width:860px){ #pastpanel{max-height:60vh;overflow-y:auto} }
+/* 테마 패널 안의 옵션 체크박스 */
+#lyrs .lyopt{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#334155;cursor:pointer;padding:1px 2px}
+#lyrs .lyopt input{width:13px;height:13px;margin:0;flex:none}
 @media (max-width:860px){
   /* 목록을 2단으로 접어 지도가 가려지지 않게 한다 */
   #roadpanel #rzzones,#roadpanel #rzgrades,#rivpanel #rvzones,#rivpanel #rvgrades,#uppanel #upkinds{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
@@ -1739,6 +1771,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div class="lyrsgrid">
       <button class="lyb" id="ly_osm" onclick="setBase('osm')">일반</button>
       <button class="lyb on" id="ly_vw" onclick="setBase('vw')" ondblclick="setBase('esri')" title="더블클릭: 대체 위성영상">위성</button>
+      <button class="lyb" id="pastbtn" onclick="togglePastPanel()" title="예전에 찍은 위성영상 보기">과거영상</button>
       <button class="lyb" id="cadbtn" onclick="toggleCadastral()">지적도</button>
       <button class="lyb" id="rvbtn" onclick="toggleRoadviewMode()">로드뷰</button>
       <button class="lyb" id="msbtn" onclick="toggleMeasureMode()">측량</button>
@@ -1753,6 +1786,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <button class="lyb" id="wlbtn" onclick="toggleWlPanel()">하천수위</button>
       <button class="lyb" id="shbtn" onclick="toggleShPanel()">대피소</button>
     </div>
+      <label class="lyopt" title="군 경계 밖을 회색으로 덮습니다"><input type="checkbox" id="maskchk" onchange="setMaskOn(this.checked)"> 군 경계 밖 회색처리</label>
       <label class="lblwrap" style="display:none"><input type="checkbox" id="lblchk" onchange="updLabels()"> 지명</label>
       <button class="lyb hidden-slot" id="gpsbtn" onclick="goMyLocation()" style="display:none">현위치</button>
     <button class="lyb hidden-slot" id="ly_esri" onclick="setBase('esri')" style="display:none"></button>
@@ -1821,6 +1855,29 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <button type="button" onclick="openShelterForm()">＋ 대피소 추가</button>
     </div>
     <div class="rzhint" id="shhint"></div>
+  </div>
+  <div id="pastpanel">
+    <div class="rzttl">과거 위성영상 <span>ESRI World Imagery Wayback</span>
+      <button class="rzclose" onclick="closePastPanel()" aria-label="과거 위성영상 닫기">×</button></div>
+    <label><input type="checkbox" id="pw_on" onchange="pwShow(this.checked)"> <b>지도에 표시</b></label>
+    <div class="rzsep"></div>
+    <label style="gap:8px"><span style="flex:none">촬영시기</span>
+      <select id="pw_rel" onchange="pwPick(this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px"></select></label>
+    <div class="pwnav">
+      <button type="button" onclick="pwStep(1)" title="한 시기 이전">◀ 이전</button>
+      <button type="button" onclick="pwStep(-1)" title="한 시기 이후">이후 ▶</button>
+    </div>
+    <div class="rzsep"></div>
+    <label style="gap:8px"><span style="flex:none">진하기</span>
+      <input type="range" id="pw_op" min="20" max="100" value="100" oninput="pwOpacity(this.value)" style="flex:1"></label>
+    <div class="rzhint">세계 위성영상 보관소입니다. 옥천 지역 사진이 그 시기에 갱신되지 않았으면 앞뒤 시기와 같은 사진이 보일 수 있습니다. 시기를 몇 번 옮겨 보면서 달라지는 지점을 찾으세요.</div>
+    <div class="rzsep"></div>
+    <div class="pwngii">
+      <button type="button" class="pwbtn" onclick="openNgii()">🛰 국토정보플랫폼에서 보기</button>
+      <div class="rzhint" id="pwcoord"></div>
+      <div class="rzhint" id="pwerr" style="display:none;color:#b91c1c"></div>
+      <button type="button" class="pwlink" onclick="copyCenter()">현재 지도 중심좌표 복사</button>
+    </div>
   </div>
   <div id="rivpanel">
     <div class="rzttl">하천구역 <span>국토교통부 V-World 2026-09</span>
@@ -2888,7 +2945,8 @@ function buildMask(feats){
       rings.push(p[0].map(function(pt){ return [pt[1], pt[0]]; }));
     });
   });
-  if(maskLayer){ map.removeLayer(maskLayer); }
+  if(maskLayer){ map.removeLayer(maskLayer); maskLayer = null; }
+  if(!maskOn()) return;   // 외곽 회색처리를 끈 상태면 아무것도 덮지 않는다
   if(!map.getPane("maskPane")){
     map.createPane("maskPane");
     map.getPane("maskPane").style.zIndex = 350;
@@ -2899,6 +2957,17 @@ function buildMask(feats){
 var _maskFeats = null; // 마스크 다시 그릴 때 쓸 경계 데이터 보관
 function redrawMask(){
   if(_maskFeats) buildMask(_maskFeats);
+}
+/* 군 경계 밖을 회색으로 덮는 기능은 기본 꺼짐.
+   위성영상·로드뷰로 인접 시군을 함께 봐야 할 때가 많아 기본값을 해제로 둔다. */
+var MASK_KEY = "okc6_maskon";
+function maskOn(){
+  try{ return localStorage.getItem(MASK_KEY) === "1"; }catch(e){ return false; }
+}
+function setMaskOn(on){
+  try{ localStorage.setItem(MASK_KEY, on ? "1" : "0"); }catch(e){}
+  if(!on && maskLayer){ map.removeLayer(maskLayer); maskLayer = null; return; }
+  redrawMask();
 }
 
 function centroid(g){
@@ -5571,19 +5640,19 @@ function resolveSearch(list, q, box, direct){
     list.forEach(function(r){ addSR(box, r.name, r.lat, r.lng); });
     return;
   }
-  if(list.length === 1){
-    document.getElementById("side").classList.add("collapsed");
-    goToSearchResult(list[0].name, list[0].lat, list[0].lng);
-    return;
-  }
-  document.getElementById("side").classList.remove("collapsed");
-  railMark("railb_list");
   if(!list.length){
+    document.getElementById("side").classList.remove("collapsed");
+    railMark("railb_list");
     box.innerHTML = '<div class="note">결과 없음 (⚙설정에 VWorld 키 등록 시 지번·도로명 정밀검색 가능)</div>';
     return;
   }
-  box.innerHTML = '<div class="note">검색 결과가 여러 건입니다. 지점을 선택해 주세요.</div>';
+  // 결과가 있으면 가장 잘 맞는 첫 번째 지점으로 곧바로 이동한다.
+  // 다른 후보는 좌측 검색 목록에 남겨 두어 필요하면 골라 볼 수 있게 한다.
+  box.innerHTML = list.length > 1
+    ? '<div class="note">가장 잘 맞는 곳으로 이동했습니다. 다른 지점은 아래에서 고르세요.</div>'
+    : "";
   list.forEach(function(r){ addSR(box, r.name, r.lat, r.lng); });
+  goToSearchResult(list[0].name, list[0].lat, list[0].lng);
 }
 function nmSearch(q, box, direct){
   var qq = q.indexOf("옥천") >= 0 ? q : "충청북도 옥천군 " + q;
@@ -8274,8 +8343,42 @@ function railMark(id){
 function headerSearch(){
   var hq = document.getElementById("hq"), q = document.getElementById("q");
   if(!hq || !q) return;
-  q.value = hq.value;
+  var kw = (hq.value || "").trim();
+  if(!kw) return;
+  // 1) 이미 등록된 상황 중 이름·위치·유형이 맞는 게 있으면 그 지점으로 바로 간다
+  if(headerJumpToItem(kw)) return;
+  // 2) 없으면 주소·지번 검색 → 가장 잘 맞는 한 곳으로 바로 이동
+  q.value = kw;
   if(typeof doSearch === "function") doSearch(true);
+}
+/* 등록된 상황 검색: 위치·유형·원인·담당자·조치내용에 검색어가 들어 있으면 그 상황으로 바로 이동.
+   현재 화면 필터에 걸러진 건은 지도에 없으므로 제외한다. */
+function itemHay(it){
+  var tl = (it.timeline || []).map(function(e){
+    return (e.desc || "") + " " + (e.manager || "");
+  }).join(" ");
+  return [it.location, it.type, it.cause, it.facilityDamage, it.reporterName, it.note, tl]
+    .filter(Boolean).join(" ").toLowerCase();
+}
+function headerJumpToItem(kw){
+  try{
+    if(typeof items === "undefined" || !items || !items.length) return false;
+    var low = kw.toLowerCase();
+    var hit = null;
+    items.forEach(function(it){
+      if(!it) return;
+      if(typeof shouldShow === "function" && !shouldShow(it)) return;
+      var pos = itemPos(it);
+      if(!pos || typeof pos[0] !== "number" || typeof pos[1] !== "number") return;
+      if(itemHay(it).indexOf(low) < 0) return;
+      if(!hit || (it.createdAt || 0) > (hit.createdAt || 0)) hit = it;   // 가장 최근 건
+    });
+    if(!hit) return false;
+    var p = itemPos(hit);
+    map.setView(p, 18);
+    openItemPopup(hit.id);
+    return true;
+  }catch(e){ return false; }
 }
 </script>
 <script>
@@ -8604,7 +8707,7 @@ const RoadZone = (() => {
 var _rzLayer = null, _rzReady = false, _rzLoading = false;
 
 function closeMapPanels(except){
-  ["ovlpanel","roadpanel","rivpanel","uppanel","rnpanel","wlpanel","shpanel"].forEach(function(id){
+  ["ovlpanel","roadpanel","rivpanel","uppanel","rnpanel","wlpanel","shpanel","pastpanel"].forEach(function(id){
     if(id !== except){ var el = document.getElementById(id); if(el) el.classList.remove("show"); }
   });
 }
@@ -11236,6 +11339,208 @@ function hxPreview(){
   h += '<div class="rphd">▣ 향후계획</div><div class="rpsub">❍ 기상상황 지속 모니터링</div>';
   box.innerHTML = h;
 }
+</script>
+
+<script>
+/* ===================================================================
+   과거 위성영상 (ESRI World Imagery Wayback)
+   - 타일 주소: .../WMTS/1.0.0/default028mm/MapServer/tile/{시기번호}/{z}/{y}/{x}
+   - 시기번호 목록은 ESRI 공개 설정파일(waybackconfig.json) 2026-08 기준으로 담아 둔 것이다.
+   - 전 세계 영상 보관소라 옥천 지역은 모든 시기에 새 사진이 있는 것은 아니다.
+     (갱신이 없던 시기는 앞 시기 사진이 그대로 보인다)
+   =================================================================== */
+var PW_URL = "https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/";
+/* "촬영시기|시기번호" — 최신이 앞 */
+var PW_RELEASES = [
+"2026-08-05|26334","2026-06-30|32246","2026-05-28|10842","2026-04-30|49059","2026-03-26|22869",
+"2026-02-26|64001","2026-01-29|22252","2025-12-18|13192","2025-11-20|51127","2025-10-23|20512",
+"2025-09-25|58924","2025-09-04|52304","2025-07-31|49999","2025-06-26|48925","2025-05-29|25285",
+"2025-04-24|27982","2025-03-27|6543","2025-02-27|34007","2025-01-30|36557","2024-12-12|16453",
+"2024-11-18|49849","2024-10-10|56450","2024-09-19|20337","2024-08-15|32553","2024-06-27|39767",
+"2024-06-06|12428","2024-05-09|52930","2024-03-28|13968","2024-03-07|60013","2024-02-08|37965",
+"2024-01-18|41468","2023-12-07|56102","2023-11-01|12457","2023-10-11|1034","2023-08-31|64776",
+"2023-08-10|17632","2023-06-29|47963","2023-06-13|25982","2023-05-03|46399","2023-04-05|37890",
+"2023-03-15|44873","2023-02-23|57965","2023-01-11|11475","2022-12-14|45134","2022-11-02|7110",
+"2022-10-12|44988","2022-09-21|47471","2022-08-31|45441","2022-08-10|17825","2022-07-21|13851",
+"2022-06-29|4905","2022-06-08|44710","2022-05-18|5314","2022-04-27|16245","2022-04-06|48232",
+"2022-03-16|10321","2022-02-24|10312","2022-02-02|26083","2022-01-12|42663","2021-12-21|26120",
+"2021-11-30|48624","2021-11-03|42403","2021-10-13|16749","2021-09-28|51313","2021-09-01|47568",
+"2021-08-11|51423","2021-07-21|8432","2021-06-30|13534","2021-06-09|48376","2021-05-19|15423",
+"2021-04-28|27659","2021-04-08|6863","2021-03-17|5359","2021-02-24|9812","2021-01-13|1049",
+"2020-12-16|29260","2020-11-18|20753","2020-10-14|119","2020-09-23|19187","2020-09-02|9181",
+"2020-08-12|6049","2020-07-22|9549","2020-07-01|18289","2020-06-10|11135","2020-05-20|32645",
+"2020-04-29|15045","2020-04-08|26751","2020-03-23|16062","2020-02-20|8495","2020-01-30|21485",
+"2020-01-08|23001","2019-12-12|4756","2019-10-30|11060","2019-10-09|11351","2019-09-18|9892",
+"2019-08-28|30442","2019-08-07|17216","2019-07-17|16681","2019-06-26|645","2019-06-05|12576",
+"2019-05-15|9598","2019-04-24|18063","2019-04-03|18691","2019-03-13|4383","2019-02-21|17677",
+"2019-01-09|6036","2018-11-29|239","2018-11-07|3201","2018-09-06|2168","2018-08-15|1858",
+"2018-06-06|8249","2018-04-25|1296","2018-03-28|7072","2017-07-14|3319","2017-06-27|4073",
+"2017-05-03|784","2017-04-19|1052","2017-03-29|5205","2017-01-11|577","2016-12-07|6678",
+"2016-10-25|4222","2016-09-14|6984","2016-07-20|5097","2016-04-28|5769","2016-04-20|388",
+"2016-02-04|6354","2016-01-13|3515","2015-09-30|3630","2015-09-16|1431","2015-03-25|2730",
+"2014-12-30|5844","2014-07-30|5232","2014-07-02|3026","2014-03-26|4230","2014-02-20|10"
+];
+var _pwLayer = null, _pwIdx = 0, _pwOn = false, _pwOp = 1;
+
+function pwRel(i){
+  var p = (PW_RELEASES[i] || "").split("|");
+  return {date: p[0] || "", id: p[1] || ""};
+}
+function pwFillSelect(){
+  var sel = document.getElementById("pw_rel");
+  if(!sel || sel.options.length) return;
+  var h = "", curYear = "";
+  for(var i = 0; i < PW_RELEASES.length; i++){
+    var r = pwRel(i), y = r.date.slice(0, 4);
+    if(y !== curYear){
+      if(curYear) h += "</optgroup>";
+      h += '<optgroup label="' + y + '년">';
+      curYear = y;
+    }
+    h += '<option value="' + i + '">' + r.date + "</option>";
+  }
+  if(curYear) h += "</optgroup>";
+  sel.innerHTML = h;
+  sel.value = String(_pwIdx);
+}
+function pwPane(){
+  if(!map.getPane("pastPane")){
+    map.createPane("pastPane");
+    map.getPane("pastPane").style.zIndex = 250;      // 배경지도 위, 도형·마커 아래
+    map.getPane("pastPane").style.pointerEvents = "none";
+  }
+  return "pastPane";
+}
+function pwDraw(){
+  if(_pwLayer){ map.removeLayer(_pwLayer); _pwLayer = null; }
+  if(!_pwOn){ pwBadge(""); return; }
+  var r = pwRel(_pwIdx);
+  if(!r.id) return;
+  _pwLayer = L.tileLayer(PW_URL + r.id + "/{z}/{y}/{x}", {
+    maxZoom: 22, maxNativeZoom: 19, opacity: _pwOp,
+    pane: pwPane(), attribution: "ESRI World Imagery Wayback"
+  });
+  var err = 0;
+  _pwLayer.on("tileerror", function(){
+    err++;
+    if(err === 10){ pwNote("이 시기 영상을 불러오지 못했습니다. 다른 시기를 선택해 보세요."); }
+  });
+  _pwLayer.addTo(map);
+  pwNote("");
+  pwBadge(r.date);
+}
+function pwNote(msg){
+  var el = document.getElementById("pwerr");
+  if(!el) return;
+  el.textContent = msg || "";
+  el.style.display = msg ? "block" : "none";
+}
+function pwBadge(date){
+  var el = document.getElementById("pwbadge");
+  if(!_pwOn || !date){ if(el) el.style.display = "none"; return; }
+  if(!el){
+    el = document.createElement("div");
+    el.id = "pwbadge";
+    var host = document.getElementById("mapwrap") || document.body;
+    host.appendChild(el);
+  }
+  el.textContent = "과거 위성영상 " + date;
+  el.style.display = "block";
+}
+function pwShow(on){
+  _pwOn = !!on;
+  var chk = document.getElementById("pw_on");
+  if(chk) chk.checked = _pwOn;
+  var b = document.getElementById("pastbtn");
+  if(b) b.classList.toggle("on", _pwOn);
+  pwDraw();
+}
+function pwPick(v){
+  _pwIdx = parseInt(v, 10) || 0;
+  if(!_pwOn) pwShow(true);
+  else pwDraw();
+}
+function pwStep(d){
+  var n = _pwIdx + d;
+  if(n < 0 || n >= PW_RELEASES.length) return;
+  _pwIdx = n;
+  var sel = document.getElementById("pw_rel");
+  if(sel) sel.value = String(_pwIdx);
+  if(!_pwOn) pwShow(true);
+  else pwDraw();
+}
+function pwOpacity(v){
+  _pwOp = (parseInt(v, 10) || 100) / 100;
+  if(_pwLayer) _pwLayer.setOpacity(_pwOp);
+}
+function togglePastPanel(){
+  var p = document.getElementById("pastpanel");
+  if(!p) return;
+  closeMapPanels("pastpanel");
+  pwFillSelect();
+  if(_pwOn && p.classList.contains("show")){
+    p.classList.remove("show");
+    pwShow(false);
+    return;
+  }
+  p.classList.add("show");
+  pwCoordText();
+  if(!_pwOn) pwShow(true);
+}
+function closePastPanel(){
+  var p = document.getElementById("pastpanel");
+  if(p) p.classList.remove("show");
+}
+
+/* ---------- 국토정보플랫폼(국토지리정보원) 바로가기 ---------- */
+function pwCenterText(){
+  var c = map.getCenter();
+  return c.lat.toFixed(6) + ", " + c.lng.toFixed(6);
+}
+function pwCoordText(){
+  var el = document.getElementById("pwcoord");
+  if(el) el.textContent = "현재 지도 중심 " + pwCenterText();
+}
+function openNgii(){
+  /* 국토정보플랫폼은 주소로 지도 위치를 지정하는 공개 규격이 없어
+     사이트를 새 창으로 열고 좌표는 따로 복사해 준다. */
+  copyCenter(true);
+  window.open("https://map.ngii.go.kr/ms/map/NlipMap.do", "_blank", "noopener");
+}
+function copyCenter(quiet){
+  var t = pwCenterText();
+  var done = function(){
+    var el = document.getElementById("pwcoord");
+    if(el) el.textContent = "복사됨 — " + t;
+    setTimeout(pwCoordText, 2500);
+  };
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(done, function(){ if(!quiet) prompt("좌표를 복사하세요", t); });
+      return;
+    }
+  }catch(e){}
+  if(!quiet) prompt("좌표를 복사하세요", t);
+}
+map.on("moveend", function(){
+  var p = document.getElementById("pastpanel");
+  if(p && p.classList.contains("show")) pwCoordText();
+});
+
+/* 지도 위 시기 표시 배지 */
+(function(){
+  var st = document.createElement("style");
+  st.textContent = "#pwbadge{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);" +
+    "background:rgba(15,37,64,.88);color:#fff;padding:5px 13px;border-radius:15px;font-size:11.5px;" +
+    "font-weight:700;z-index:800;white-space:nowrap;pointer-events:none;display:none}";
+  document.head.appendChild(st);
+})();
+
+/* 시작할 때 테마 패널의 '군 경계 밖 회색처리' 체크 상태를 저장값과 맞춘다 */
+(function(){
+  var c = document.getElementById("maskchk");
+  if(c && typeof maskOn === "function") c.checked = maskOn();
+})();
 </script>
 
 </body>
