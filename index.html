@@ -58,6 +58,37 @@ if(typeof firebase === "undefined" || !firebase.database){
   document.write('<scr'+'ipt src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"><\/scr'+'ipt>');
 }
 </script>
+<script>
+/* ===== 실시간 공유 서버 주소 고정 (2026-10) =====
+   Firebase는 첫 접속 때 받은 내부 서버 주소(s-gke-…firebasedatabase.app)를 기기에 저장해 두고,
+   새로고침이나 재접속 때는 그 주소로 바로 붙는다. 관공서 보안장비가 이 내부 주소를 막거나
+   다르게 검사하면 "처음엔 되는데 새로고침하면 끊기는" 증상이 생긴다.
+   그래서 저장된 주소를 지우고, 항상 기본 주소(okcheon3500-…firebasedatabase.app)로만 접속하게 한다. */
+(function(){
+  [window.localStorage, window.sessionStorage].forEach(function(st){
+    try{
+      if(!st) return;
+      for(var i = st.length - 1; i >= 0; i--){
+        var k = st.key(i);
+        if(k && k.indexOf("firebase:host:") === 0) st.removeItem(k);
+      }
+    }catch(e){}
+  });
+})();
+function okcPinFbHost(db){
+  try{
+    var d = db && (db._delegate || db);
+    var repo = d && (d._repo || d._repoInternal);
+    var ri = repo && repo.repoInfo_;
+    if(!ri || ri._okcPinned) return;
+    ri._okcPinned = true;
+    ri.internalHost = ri._host;
+    Object.defineProperty(ri, "host", { configurable:true,
+      get: function(){ return this._host; },
+      set: function(v){ /* 내부 서버 주소로 바꾸지 않는다 */ } });
+  }catch(e){}
+}
+</script>
 <style>
 :root{color-scheme:light only}
 html{-webkit-text-size-adjust:100%;forced-color-adjust:none}
@@ -3305,6 +3336,7 @@ function initFirebase(){
   try{
     if(!firebase.apps.length) firebase.initializeApp(cfg);
     var db = firebase.database();
+    okcPinFbHost(db);
     db.ref(".info/serverTimeOffset").on("value", function(snap){
       serverTimeOffset = snap.val() || 0;
     });
