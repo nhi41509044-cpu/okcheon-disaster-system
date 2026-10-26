@@ -1852,6 +1852,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div class="ovlttl">위험지역</div>
     <label><input type="checkbox" id="steep_show" onchange="toggleSteep(this.checked)"> <span style="color:#facc15">●</span> 급경사지</label>
     <label><input type="checkbox" id="landslide_show" onchange="toggleLandslide(this.checked)"> <span style="color:#a3e635">●</span> 산사태취약지역</label>
+    <label><input type="checkbox" id="hazard_show" onchange="toggleHazard(this.checked)"> <span style="color:#38bdf8">●</span> 재해우려지역</label>
     <div id="geocode_status" style="font-size:10.5px;color:#9ca3af;margin-top:3px"></div>
     <div class="ovlsep"></div>
     <button class="ovladd" onclick="openAddRiskSiteForm()">➕ 위험지역 추가 등록</button>
@@ -2620,6 +2621,61 @@ function toggleLandslide(on){
   if(!key){ alert("산사태취약지역 표시는 ⚙설정에서 VWorld 인증키가 필요합니다."); document.getElementById("landslide_show").checked = false; return; }
   renderRiskLayer("landslide", LAND_ADDRS.concat(customRiskAddrs("landslide")), landslideLayer, "#a3e635", "산사태취약지역");
 }
+/* ---------- 재해우려지역 (26년 여름철 인명피해우려지역 현황, 엑셀 좌표 그대로 사용) ----------
+   no 순번 / nm 지역명 / c1 분류(I열) / c2 세분류(J열) / dmg 피해유형 및 통계기준(K열) / sh 대피소 명칭(P열) / addr 주소(AB열) */
+var hazardLayer = L.layerGroup();
+var HAZARD_COLOR = "#38bdf8";
+var HAZARD_SITES = [
+  {"no": 1, "nm": "대동지구", "eup": "이원면", "c1": "인명피해우려지역-기타", "c2": "기타", "dmg": "급류휩쓸림", "sh": "대동 마을회관", "addr": "옥천군 이원면 미동리 711-52", "lng": 127.63185, "lat": 36.22317},
+  {"no": 2, "nm": "서정지구", "eup": "옥천읍", "c1": "인명피해우려지역-기타", "c2": "기타", "dmg": "급류휩쓸림", "sh": "서정 마을회관", "addr": "옥천군 옥천읍 서정리 313-1", "lng": 127.55903, "lat": 36.31347},
+  {"no": 3, "nm": "대성지구", "eup": "청산면", "c1": "인명피해우려지역-기타", "c2": "기타", "dmg": "급류휩쓸림", "sh": "대성 마을회관", "addr": "옥천군 청산면 대성리 439-1", "lng": 127.81798, "lat": 36.37688},
+  {"no": 4, "nm": "강청지구", "eup": "이원면", "c1": "지하차도", "c2": "침수위험 지하차도", "dmg": "침수피해", "sh": "", "addr": "강청리 330-9(강청지하차도)", "lng": 127.61229, "lat": 36.24392},
+  {"no": 5, "nm": "금구지구-둔치주차장", "eup": "옥천읍", "c1": "주차장", "c2": "둔치주차장", "dmg": "침수피해", "sh": "", "addr": "금구리 263-3(둔치주차장)", "lng": 127.565666, "lat": 36.301516},
+  {"no": 6, "nm": "예곡2지구", "eup": "청산면", "c1": "인명피해우려지역-기타", "c2": "기타", "dmg": "급류휩쓸림", "sh": "하예곡 마을회관", "addr": "예곡리 675-1", "lng": 127.81341, "lat": 36.34042},
+  {"no": 7, "nm": "양수지구", "eup": "옥천읍", "c1": "침수취약시설", "c2": "하천변 통로박스", "dmg": "침수피해", "sh": "", "addr": "양수리3-1 일원/통로박스", "lng": 127.566843, "lat": 36.299964},
+  {"no": 8, "nm": "적하지구", "eup": "동이면", "c1": "자연재해위험개선지구", "c2": "침수위험지구", "dmg": "침수피해", "sh": "학령2리, 학사골 경로당", "addr": "충청북도 옥천군 동이면 적하리 311번지 일원 / 용죽마을", "lng": 127.642255, "lat": 36.273136},
+  {"no": 9, "nm": "금강지구", "eup": "동이면", "c1": "저수지·댐", "c2": "위험라바댐", "dmg": "급류휩쓸림", "sh": "동이초등학교 우산분교장", "addr": "충청북도 옥천군 동이면 조령리 576-1번지 일원 / 라바댐 하천유원지", "lng": 127.67499, "lat": 36.286415},
+  {"no": 10, "nm": "수동지구", "eup": "안남면", "c1": "침수취약시설", "c2": "하천변", "dmg": "급류휩쓸림", "sh": "지수2리 마을회관", "addr": "충청북도 옥천군 안남면 지수리 1192-2 / 하천지역", "lng": 127.689312, "lat": 36.332742},
+  {"no": 11, "nm": "만명지구", "eup": "청성면", "c1": "인명피해우려지역-기타", "c2": "기타", "dmg": "급류휩쓸림", "sh": "만명 경로당", "addr": "충청북도 옥천군 청성면 장수리 751 / 세월교", "lng": 127.731717, "lat": 36.310043},
+  {"no": 12, "nm": "상지지구", "eup": "군서면", "c1": "침수취약시설", "c2": "하천변 마을", "dmg": "침수피해", "sh": "지경소 경로당", "addr": "충청북도 옥천군 군서면 상지리 216-4/ 지경소마을", "lng": 127.509234, "lat": 36.239555},
+  {"no": 13, "nm": "예곡지구", "eup": "청산면", "c1": "침수취약시설", "c2": "하천변", "dmg": "급류휩쓸림", "sh": "하예곡리 마을회관", "addr": "충청북도 옥천군 청산면 예곡리741-1 / 예곡교", "lng": 127.824083, "lat": 36.35644},
+  {"no": 14, "nm": "지탄지구", "eup": "이원면", "c1": "자연재해위험개선지구", "c2": "침수위험지구", "dmg": "급류휩쓸림", "sh": "백지리 경로당", "addr": "충청북도 옥천군 이원면 백지리 937(이원대교) / 하천지역", "lng": 127.679175, "lat": 36.235045},
+  {"no": 15, "nm": "소정지하차도", "eup": "옥천읍", "c1": "지하차도", "c2": "침수위험 지하차도", "dmg": "침수피해", "sh": "", "addr": "충청북도 옥천군 옥천읍 삼청리 946-21", "lng": 127.573781, "lat": 36.28343},
+  {"no": 16, "nm": "가화지하차도", "eup": "옥천읍", "c1": "지하차도", "c2": "침수위험 지하차도", "dmg": "침수피해", "sh": "", "addr": "충청북도 옥천군 옥천읍 금구리 182", "lng": 127.564609, "lat": 36.301467},
+  {"no": 17, "nm": "환평지구", "eup": "군북면", "c1": "저수지·댐", "c2": "재해위험저수지", "dmg": "주택침수,유실(매몰),저수지월류", "sh": "환평 마을회관", "addr": "환평리 403-2번지 일원/ 환평저수지", "lng": 127.545275, "lat": 36.336688},
+  {"no": 18, "nm": "증약지구", "eup": "군북면", "c1": "저수지·댐", "c2": "재해위험저수지", "dmg": "주택침수,유실(매몰),저수지월류", "sh": "증약 마을회관", "addr": "증약리 211번지 일원/ 증약저수지", "lng": 127.529762, "lat": 36.343523},
+  {"no": 19, "nm": "죽촌지구", "eup": "이원면", "c1": "저수지·댐", "c2": "재해위험저수지", "dmg": "주택침수,유실(매몰),저수지월류", "sh": "평계 마을회관", "addr": "평계리 799번지 일원/ 죽촌저수지", "lng": 127.644256, "lat": 36.190279},
+  {"no": 20, "nm": "도이지구", "eup": "안내면", "c1": "저수지·댐", "c2": "재해위험저수지", "dmg": "주택침수,유실(매몰),저수지월류", "sh": "도이리 마을회관", "addr": "도이리 58-1번지 일원/ 도이저수지", "lng": 127.676917, "lat": 36.404782},
+  {"no": 21, "nm": "농어촌도로 315(농도)", "eup": "청성면", "c1": "침수취약시설", "c2": "하천변", "dmg": "매몰", "sh": "", "addr": "고당리 230-8/원당교", "lng": 127.6908, "lat": 36.29329},
+  {"no": 22, "nm": "군도 15", "eup": "군북면", "c1": "침수취약시설", "c2": "하천변 통로박스", "dmg": "익수", "sh": "", "addr": "이백리 345-2/이백리 통로박스", "lng": 127.5346, "lat": 36.33131},
+  {"no": 23, "nm": "삼남지구", "eup": "청성면", "c1": "산사태", "c2": "급경사지", "dmg": "매몰", "sh": "삼남리 마을회관", "addr": "삼남리 657-1", "lng": 127.736701, "lat": 36.291448},
+  {"no": 24, "nm": "옥각지구", "eup": "옥천읍", "c1": "침수취약시설", "c2": "하천변 마을", "dmg": "하천범람", "sh": "옥각리 마을회관", "addr": "옥각리 421-4 일원", "lng": 127.556295, "lat": 36.318886},
+  {"no": 25, "nm": "가풍지구", "eup": "옥천읍", "c1": "침수취약시설", "c2": "하천변 통로박스", "dmg": "익수", "sh": "", "addr": "가풍리 578-2", "lng": 127.588176, "lat": 36.261204},
+  {"no": 26, "nm": "수북지구", "eup": "옥천읍", "c1": "산사태", "c2": "산사태 취약지역", "dmg": "산사태 및 토석류", "sh": "화계경로당", "addr": "충북 옥천군 옥천읍 수북리 산26", "lng": 127.607387, "lat": 36.315534},
+  {"no": 27, "nm": "예곡지구", "eup": "청산면", "c1": "산사태", "c2": "산사태 취약지역", "dmg": "산사태 및 토석류", "sh": "예곡 마을회관", "addr": "충북 옥천군 청산면 예곡리 655", "lng": 127.819566, "lat": 36.354748}
+];
+function toggleHazard(on){
+  var st = document.getElementById("geocode_status");
+  if(!on){ if(map.hasLayer(hazardLayer)) map.removeLayer(hazardLayer); return; }
+  if(!hazardLayer._builtCount){
+    hazardLayer.clearLayers();
+    HAZARD_SITES.forEach(addHazardMarker);
+    hazardLayer._builtCount = HAZARD_SITES.length;
+  }
+  if(!map.hasLayer(hazardLayer)) hazardLayer.addTo(map);
+  if(st) st.textContent = "재해우려지역 " + HAZARD_SITES.length + "곳 표시완료";
+}
+function addHazardMarker(s){
+  var info = {label:"재해우려지역", name:s.nm, addr:s.addr,
+    rows:[["분류", s.c1], ["세분류", s.c2], ["피해유형", s.dmg], ["대피소", s.sh], ["주소", s.addr]]};
+  var key = "hz:" + s.no + ":" + s.addr;
+  var pc = parcelCache[key];
+  if(pc && pc.r){ hazardLayer.addLayer(makeParcelPoly(pc.r, pc.j, HAZARD_COLOR, "", info)); return; }
+  var c = L.circle([s.lat, s.lng], {radius:40, color:HAZARD_COLOR, weight:1, fillColor:HAZARD_COLOR, fillOpacity:0.7, interactive:false});
+  c._riskInfo = {label:info.label, name:info.name, addr:info.addr, color:HAZARD_COLOR, jibun:"", rows:info.rows};
+  hazardLayer.addLayer(c);
+  queueParcelUpgrade({layer:hazardLayer, marker:c, pos:{lat:s.lat, lng:s.lng}, color:HAZARD_COLOR, popupHtml:"", addr:key, info:info});
+}
 // 위험지역 추가 등록 폼
 function openAddRiskSiteForm(){
   var body =
@@ -2752,7 +2808,7 @@ function makeParcelPoly(rings, jibun, color, popupHtml, info){
   // 구역 이름은 우클릭 메뉴에서 '재난상황 등록'과 함께 보여준다.
   var poly = L.polygon(rings, {color:color, weight:2, fillColor:color, fillOpacity:0.42,
     opacity:0.95, lineJoin:"round", smoothFactor:0.3, interactive:false});
-  poly._riskInfo = info ? {label:info.label, name:info.name, addr:info.addr, color:color, jibun:jibun ? String(jibun) : ""} : null;
+  poly._riskInfo = info ? {label:info.label, name:info.name, addr:info.addr, color:color, jibun:jibun ? String(jibun) : "", rows:info.rows || null} : null;
   return poly;
 }
 
@@ -5096,6 +5152,10 @@ function zoneInfoAt(lat, lng){
       '<span style="width:9px;height:9px;border-radius:2px;flex:none;background:' + r.c + ';margin-top:3px"></span>' +
       '<div style="min-width:0"><div style="font-size:11.5px;font-weight:700;color:#22344a;word-break:keep-all">' + esc(r.t) + '</div>' +
       (r.s ? '<div style="font-size:10.5px;color:#6b7f96;word-break:keep-all">' + esc(r.s) + '</div>' : '') +
+      (r.lines ? r.lines.map(function(kv){
+        return '<div style="font-size:10.5px;color:#4b5d73;word-break:keep-all;line-height:1.45">' +
+          '<span style="color:#8a9bb0;display:inline-block;min-width:46px">' + esc(kv[0]) + '</span>' + esc(kv[1] || "") + '</div>';
+      }).join("") : '') +
       '</div></div>';
   });
   html += '</div>';
@@ -5107,6 +5167,7 @@ function riskRowsAt(lat, lng){
   var out = [], seen = {}, groups = [];
   try{ if(typeof steepLayer !== "undefined" && steepLayer && map.hasLayer(steepLayer)) groups.push(steepLayer); }catch(e){}
   try{ if(typeof landslideLayer !== "undefined" && landslideLayer && map.hasLayer(landslideLayer)) groups.push(landslideLayer); }catch(e){}
+  try{ if(typeof hazardLayer !== "undefined" && hazardLayer && map.hasLayer(hazardLayer)) groups.push(hazardLayer); }catch(e){}
   groups.forEach(function(g){
     g.eachLayer(function(l){
       var info = l && l._riskInfo;
@@ -5121,7 +5182,11 @@ function riskRowsAt(lat, lng){
       }catch(e){}
       if(!hit) return;
       var t = "⚠ " + info.label + (info.name ? " / " + info.name : "");
-      if(seen[t]) return; seen[t] = 1;
+      if(seen[t + "|" + (info.addr || "")]) return; seen[t + "|" + (info.addr || "")] = 1;
+      if(info.rows){   // 재해우려지역: 분류·세분류·피해유형·대피소·주소를 줄마다 표시
+        out.push({ c: info.color || "#38bdf8", t: t, lines: info.rows });
+        return;
+      }
       out.push({ c: info.color || "#f59e0b", t: t,
                  s: (info.addr || "") + (info.jibun ? " · 필지 " + info.jibun : "") });
     });
