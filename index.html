@@ -11630,5 +11630,634 @@ function hxPreview(){
   }, 30 * 1000);
 })();
 </script>
+<!-- ================= 읍면별 대응 매뉴얼 ================= -->
+<style id="mnlcss">
+.mdoc{font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:10pt;color:#111;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;width:820px;margin:0 auto;padding:30px 36px 60px;background:#fff;box-sizing:border-box}
+.mdoc p{margin:0;min-height:1em}
+.mdoc table.mt{border-collapse:collapse;margin:4px 0;table-layout:auto}
+.mdoc table.mt td{padding:2px 5px;vertical-align:middle}
+.mdoc table.mt td p{text-indent:0!important}
+.mdoc .mimg{max-width:100%;height:auto;display:block;margin:6px auto}
+.mdoc .mgrp{position:relative;max-width:100%;margin:8px auto}
+.mdoc .mgi{position:absolute;box-sizing:border-box;display:flex}
+.mdoc .mgi>*{box-sizing:border-box}
+.mdoc .mbox{box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;padding:2px 4px;overflow:hidden;font-size:.92em;line-height:1.3}
+.mdoc .mbox.mfloat{margin:6px auto}
+.mdoc .msq{display:inline-block;vertical-align:middle;margin-right:4px;box-sizing:border-box}
+.mdoc svg.mln{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.mdoc hr.mpg{border:0;border-top:2px dashed #cbd5e1;margin:26px -12px}
+@media print{ .mdoc hr.mpg{border:0;margin:0;page-break-after:always} .mdoc{width:auto;padding:0} }
+</style>
+<style>
+/* 헤더 드롭다운 */
+#mnlmenu{position:relative;display:inline-flex}
+#mnldrop{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:178px;background:#fff;border:1px solid #dbe3ee;border-radius:10px;box-shadow:0 10px 28px rgba(15,37,64,.22);padding:6px;z-index:3000}
+#mnlmenu.open #mnldrop{display:block}
+#mnldrop .mnlhd{font-size:10.5px;font-weight:800;color:#6b7f96;padding:4px 8px 6px;letter-spacing:.02em}
+#mnldrop button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;border:0;background:none;padding:8px 10px;border-radius:7px;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;text-align:left}
+#mnldrop button:hover{background:#eef4fb}
+#mnldrop button i{font-style:normal;font-size:10.5px;font-weight:700;color:#b54708;background:#fef4e4;border-radius:999px;padding:1px 7px}
+/* 꽃잎 메뉴 8칸 배치 */
+#petalmenu:not(.petal-hidden) .petal[style*="--i:0"]{transform:translate(0px,-112px) scale(1)}
+#petalmenu:not(.petal-hidden) .petal[style*="--i:1"]{transform:translate(79.2px,-79.2px) scale(1)}
+#petalmenu:not(.petal-hidden) .petal[style*="--i:2"]{transform:translate(112px,0px) scale(1)}
+#petalmenu:not(.petal-hidden) .petal[style*="--i:3"]{transform:translate(79.2px,79.2px) scale(1)}
+#petalmenu:not(.petal-hidden) .petal[style*="--i:4"]{transform:translate(0px,112px) scale(1)}
+#petalmenu:not(.petal-hidden) .petal[style*="--i:5"]{transform:translate(-79.2px,79.2px) scale(1)}
+#petalmenu:not(.petal-hidden) .petal[style*="--i:6"]{transform:translate(-112px,0px) scale(1)}
+#petalmenu:not(.petal-hidden) .petal[style*="--i:7"]{transform:translate(-79.2px,-79.2px) scale(1)}
+/* 매뉴얼 보기 화면 */
+#mnlview{position:fixed;inset:0;z-index:4000;background:#e9edf2;display:flex;flex-direction:column}
+#mnlview.mnl-hidden{display:none}
+.mnlbar{display:flex;align-items:center;gap:10px;padding:9px 14px;background:#0f2540;color:#fff;flex:none;flex-wrap:wrap}
+.mnlttl{display:flex;flex-direction:column;min-width:0;flex:1 1 220px}
+.mnlttl b{font-size:15px;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mnlttl span{font-size:11px;color:#a9bdd6;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mnl_sel{font-size:13px;font-weight:700;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:#1c3f68;color:#fff}
+.mnlbtns{display:flex;gap:6px;flex-wrap:wrap}
+.mnlbtns button{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#fff;border-radius:8px;padding:7px 11px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.mnlbtns button:hover{background:rgba(255,255,255,.2)}
+.mnlbtns button.pri{background:#2563eb;border-color:#2563eb}
+.mnlbtns button.pri:hover{background:#1d4ed8}
+.mnlbtns button.warn{background:#fef4e4;color:#8a5411;border-color:#f2e0bd}
+#mnl_tools{display:none;flex:none;gap:4px;align-items:center;flex-wrap:wrap;padding:7px 12px;background:#fff;border-bottom:1px solid #d6dee8;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+#mnl_tools.on{display:flex}
+#mnl_tools button{border:1px solid #d6dee8;background:#f8fafc;color:#22344a;border-radius:7px;min-width:32px;height:32px;padding:0 9px;font-size:12.5px;font-weight:700;cursor:pointer}
+#mnl_tools button:hover{background:#eef4fb;border-color:#b9cbe2}
+#mnl_tools .tsep{width:1px;height:22px;background:#e2e8f0;margin:0 4px}
+#mnl_tools .thint{font-size:11.5px;color:#6b7f96;margin-left:auto}
+#mnl_notice{display:none;flex:none;padding:8px 14px;font-size:12.5px;font-weight:700;background:#fef4e4;color:#8a5411;border-bottom:1px solid #f2e0bd}
+#mnl_notice.on{display:block}
+#mnl_scroll{flex:1;overflow:auto;padding:18px 10px 40px;-webkit-overflow-scrolling:touch}
+#mnl_doc{box-shadow:0 2px 14px rgba(15,37,64,.12);border-radius:4px}
+#mnl_doc[contenteditable="true"]{outline:3px solid #93c5fd;outline-offset:2px;cursor:text}
+#mnl_doc[contenteditable="true"] td:hover{box-shadow:inset 0 0 0 9999px rgba(37,99,235,.04)}
+#mnl_doc img.mnl-pick{outline:3px solid #f97316}
+#mnl_doc .mnl-cur{box-shadow:inset 0 0 0 2px #2563eb}
+.mnlload{padding:80px 20px;text-align:center;color:#6b7f96;font-size:14px}
+#mnl_hist{position:fixed;inset:0;z-index:4100;background:rgba(15,37,64,.45);display:none;align-items:center;justify-content:center;padding:16px}
+#mnl_hist.on{display:flex}
+#mnl_hist .hbox{background:#fff;border-radius:12px;width:min(440px,100%);max-height:80vh;overflow:auto;padding:16px 18px;box-shadow:0 18px 40px rgba(0,0,0,.25)}
+#mnl_hist h4{margin:0 0 10px;font-size:15px;color:#0f2540}
+#mnl_hist .hrow{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid #eef2f7;font-size:12.5px;color:#33465c}
+#mnl_hist .hrow div{flex:1;min-width:0}
+#mnl_hist .hrow small{display:block;color:#8a9bb0;font-size:11px}
+#mnl_hist button{border:1px solid #d6dee8;background:#f8fafc;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;color:#1e3a5f}
+#mnl_hist .hclose{margin-top:12px;width:100%}
+@media (max-width:860px){
+  header #mnlmenu{display:none}
+  .mnlbar{padding:8px 10px;gap:7px}
+  .mnlttl{flex-basis:100%}
+  #mnl_sel{flex:1}
+  .mnlbtns button{padding:7px 9px;font-size:12px}
+  #mnl_scroll{padding:8px 4px 40px}
+  #mnl_tools .thint{display:none}
+}
+</style>
+<div id="mnlview" class="mnl-hidden" aria-hidden="true">
+  <div class="mnlbar">
+    <div class="mnlttl"><b id="mnl_title">읍면별 대응 매뉴얼</b><span id="mnl_meta"></span></div>
+    <select id="mnl_sel" onchange="mnlSwitch(this.value)" aria-label="읍면 선택"></select>
+    <div class="mnlbtns" id="mnl_viewbtns">
+      <button onclick="mnlZoom(-1)" title="축소" aria-label="축소">－</button>
+      <button onclick="mnlZoom(1)" title="확대" aria-label="확대">＋</button>
+      <button onclick="mnlPrint()">🖨 인쇄</button>
+      <button onclick="mnlOpenHistory()">🕘 이전 버전</button>
+      <button class="pri" onclick="mnlStartEdit()">✏ 수정</button>
+      <button onclick="closeManual()" aria-label="닫기">✕ 닫기</button>
+    </div>
+    <div class="mnlbtns" id="mnl_editbtns" style="display:none">
+      <button class="pri" onclick="mnlSave()">💾 저장</button>
+      <button onclick="mnlCancelEdit()">취소</button>
+    </div>
+  </div>
+  <div id="mnl_tools">
+    <button onmousedown="event.preventDefault()" onclick="mnlCmd('undo')" title="되돌리기">↶</button>
+    <button onmousedown="event.preventDefault()" onclick="mnlCmd('redo')" title="다시하기">↷</button>
+    <span class="tsep"></span>
+    <button onmousedown="event.preventDefault()" onclick="mnlCmd('bold')" title="굵게"><b>가</b></button>
+    <button onmousedown="event.preventDefault()" onclick="mnlCmd('underline')" title="밑줄"><u>가</u></button>
+    <button onmousedown="event.preventDefault()" onclick="mnlFont(1)" title="글자 크게">가＋</button>
+    <button onmousedown="event.preventDefault()" onclick="mnlFont(-1)" title="글자 작게">가－</button>
+    <button onmousedown="event.preventDefault()" onclick="mnlCmd('foreColor','#d92d20')" title="빨간 글자" style="color:#d92d20">가</button>
+    <button onmousedown="event.preventDefault()" onclick="mnlCmd('foreColor','#1d4ed8')" title="파란 글자" style="color:#1d4ed8">가</button>
+    <button onmousedown="event.preventDefault()" onclick="mnlCmd('foreColor','#111111')" title="검정 글자">가</button>
+    <button onmousedown="event.preventDefault()" onclick="mnlCmd('hiliteColor','#fff59d')" title="형광펜" style="background:#fff59d">형광</button>
+    <button onmousedown="event.preventDefault()" onclick="mnlCmd('removeFormat')" title="서식 지우기">서식✕</button>
+    <span class="tsep"></span>
+    <button onmousedown="event.preventDefault()" onclick="mnlCmd('justifyLeft')" title="왼쪽 정렬">⇤</button>
+    <button onmousedown="event.preventDefault()" onclick="mnlCmd('justifyCenter')" title="가운데 정렬">≡</button>
+    <span class="tsep"></span>
+    <button onmousedown="event.preventDefault()" onclick="mnlRow(1)" title="커서가 있는 표 줄 아래에 새 줄 추가">표 줄＋</button>
+    <button onmousedown="event.preventDefault()" onclick="mnlRow(-1)" title="커서가 있는 표 줄 삭제">표 줄－</button>
+    <button onmousedown="event.preventDefault()" onclick="document.getElementById('mnl_imgin').click()" title="사진 넣기">🖼 사진</button>
+    <button onmousedown="event.preventDefault()" onclick="mnlDelImg()" title="클릭해서 고른 사진 지우기">사진 삭제</button>
+    <input type="file" id="mnl_imgin" accept="image/*" style="display:none" onchange="mnlInsertImg(this)">
+    <span class="thint">글자를 눌러 바로 고치고, 끝나면 💾 저장</span>
+  </div>
+  <div id="mnl_notice"></div>
+  <div id="mnl_scroll"><div id="mnl_doc" class="mdoc"><div class="mnlload">매뉴얼을 불러오는 중…</div></div></div>
+</div>
+<div id="mnl_hist" onclick="if(event.target===this)mnlCloseHistory()"><div class="hbox" id="mnl_histbox"></div></div>
+<script>
+/* ---------- 읍면별 대응 매뉴얼 (태풍·집중호우시 비상조치 대응 매뉴얼) ----------
+   원본: data/manual/<코드>.html (한글 hwpx를 변환한 것, 그림은 data/manual/img/)
+   수정본: Firebase okc_manual_v6/<코드> = {html, at, by}  → 모든 담당자에게 실시간 공유
+   이전 버전: okc_manualhist_v6/<코드>/<키> = {html, at, by}, 목록은 okc_manualhidx_v6/<코드> (최근 10개 보관) */
+var MANUALS = [
+  {k:"okcheon", n:"옥천읍"}, {k:"dongi", n:"동이면"}, {k:"annam", n:"안남면"},
+  {k:"annae", n:"안내면"}, {k:"cheongseong", n:"청성면"}, {k:"cheongsan", n:"청산면"},
+  {k:"iwon", n:"이원면"}, {k:"gunseo", n:"군서면"}, {k:"gunbuk", n:"군북면"}
+];
+var MNL_HIST_KEEP = 10;
+var _mnl = {code:"", orig:{}, remote:{}, editing:false, baseAt:0, baseHtml:"", zoom:0, listen:null, picked:null};
+function mnlName(k){ for(var i=0;i<MANUALS.length;i++) if(MANUALS[i].k === k) return MANUALS[i].n; return k; }
+function mnlDb(){
+  try{ if(typeof firebase !== "undefined" && firebase.apps && firebase.apps.length) return firebase.database(); }catch(e){}
+  return null;
+}
+function mnlWho(){
+  var d = "", n = "";
+  try{ d = (localStorage.getItem("okc6_dept") || "").trim(); n = (localStorage.getItem("okc6_name") || "").trim(); }catch(e){}
+  return (d + " " + n).trim() || "담당자";
+}
+function mnlFmt(t){
+  if(!t) return "";
+  var d = new Date(t), p = function(x){ return (x < 10 ? "0" : "") + x; };
+  return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+function mnlNow(){ return (typeof serverNow === "function") ? serverNow() : Date.now(); }
+
+/* 헤더 드롭다운 · 읍면 선택 목록 만들기 */
+(function(){
+  var hb = document.querySelector("header .hbtns");
+  if(hb){
+    var w = document.createElement("div");
+    w.id = "mnlmenu";
+    w.innerHTML = '<button class="hbtn b-blue" id="mnlbtn" onclick="toggleManualMenu(event)" aria-haspopup="true" aria-expanded="false">📘 읍면별 매뉴얼 ▾</button>' +
+      '<div id="mnldrop" role="menu"><div class="mnlhd">태풍·집중호우시 비상조치 대응 매뉴얼</div>' +
+      MANUALS.map(function(m){ return '<button role="menuitem" onclick="openManual(\'' + m.k + '\')">' + m.n + ' <i id="mnlbadge_' + m.k + '" style="display:none">수정됨</i></button>'; }).join("") +
+      '</div>';
+    hb.insertBefore(w, hb.firstChild);
+  }
+  var sel = document.getElementById("mnl_sel");
+  if(sel) sel.innerHTML = MANUALS.map(function(m){ return '<option value="' + m.k + '">' + m.n + '</option>'; }).join("");
+  // 모바일 '더보기' 꽃잎 메뉴에 매뉴얼 추가
+  var pm = document.getElementById("petalmenu");
+  if(pm){
+    var b = document.createElement("button");
+    b.className = "petal"; b.setAttribute("style", "--i:7");
+    b.innerHTML = "<span>📘</span>매뉴얼";
+    b.onclick = function(){ petalRun(openManualPicker); };
+    var center = pm.querySelector(".petal-center");
+    pm.insertBefore(b, center);
+  }
+  document.addEventListener("click", function(e){
+    var m = document.getElementById("mnlmenu");
+    if(m && m.classList.contains("open") && !m.contains(e.target)) toggleManualMenu(null, false);
+  });
+  document.addEventListener("keydown", function(e){
+    if(e.key !== "Escape") return;
+    if(document.getElementById("mnl_hist").classList.contains("on")){ mnlCloseHistory(); return; }
+    var v = document.getElementById("mnlview");
+    if(v && !v.classList.contains("mnl-hidden") && !_mnl.editing) closeManual();
+  });
+  window.addEventListener("beforeunload", function(e){
+    if(_mnl.editing && mnlDirty()){ e.preventDefault(); e.returnValue = ""; }
+  });
+  // 어떤 매뉴얼이 수정됐는지 표시(목록에 '수정됨')
+  setTimeout(function(){
+    var db = mnlDb(); if(!db) return;
+    db.ref(".info/connected").on("value", function(s){ _mnl.online = !!s.val(); });
+    db.ref("okc_manualmeta_v6").on("value", function(s){
+      var v = s.val() || {};
+      MANUALS.forEach(function(m){
+        var el = document.getElementById("mnlbadge_" + m.k);
+        if(el) el.style.display = v[m.k] && v[m.k].at ? "" : "none";
+      });
+    });
+  }, 1500);
+})();
+function toggleManualMenu(e, force){
+  if(e) e.stopPropagation();
+  var m = document.getElementById("mnlmenu"); if(!m) return;
+  var on = typeof force === "boolean" ? force : !m.classList.contains("open");
+  m.classList.toggle("open", on);
+  var b = document.getElementById("mnlbtn"); if(b) b.setAttribute("aria-expanded", on ? "true" : "false");
+}
+/* 모바일: 읍면 고르기 */
+function openManualPicker(){
+  openModal("📘 읍면별 대응 매뉴얼",
+    '<div class="note">태풍·집중호우시 비상조치 대응 매뉴얼을 볼 읍면을 고르세요.</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">' +
+    MANUALS.map(function(m){
+      return '<button type="button" onclick="closeModal();openManual(\'' + m.k + '\')" style="border:1px solid #c9d7f6;background:#f5f8ff;color:#1740a6;border-radius:10px;padding:14px 4px;font-size:14px;font-weight:800;cursor:pointer">' + m.n + '</button>';
+    }).join("") + '</div>',
+    function(){ return true; });
+}
+
+/* 열기 · 닫기 · 읍면 전환 */
+function openManual(code){
+  toggleManualMenu(null, false);
+  var v = document.getElementById("mnlview");
+  v.classList.remove("mnl-hidden"); v.setAttribute("aria-hidden", "false");
+  if(!_mnl.zoom) _mnl.zoom = mnlFitZoom();
+  mnlSwitch(code, true);
+}
+function mnlSwitch(code, force){
+  if(_mnl.editing && mnlDirty() && !confirm("수정 중인 내용이 저장되지 않았습니다. 다른 읍면으로 이동할까요?")){
+    document.getElementById("mnl_sel").value = _mnl.code; return;
+  }
+  mnlEndEdit();
+  if(code === _mnl.code && !force){ return; }
+  _mnl.code = code;
+  document.getElementById("mnl_sel").value = code;
+  document.getElementById("mnl_title").textContent = "태풍·집중호우시 " + mnlName(code) + " 비상조치 대응 매뉴얼";
+  mnlNotice("");
+  mnlListen(code);
+  mnlLoadOrig(code).then(function(){ if(_mnl.code === code) mnlRender(); });
+  mnlRender();
+  document.getElementById("mnl_scroll").scrollTop = 0;
+}
+function closeManual(){
+  if(_mnl.editing && mnlDirty() && !confirm("수정 중인 내용이 저장되지 않았습니다. 닫을까요?")) return;
+  mnlEndEdit();
+  if(_mnl.listen){ try{ _mnl.listen.off(); }catch(e){} _mnl.listen = null; }
+  _mnl.code = "";
+  var v = document.getElementById("mnlview");
+  v.classList.add("mnl-hidden"); v.setAttribute("aria-hidden", "true");
+}
+function mnlLoadOrig(code){
+  if(_mnl.orig[code]) return Promise.resolve(_mnl.orig[code]);
+  return fetch("data/manual/" + code + ".html").then(function(r){
+    if(!r.ok) throw new Error(r.status);
+    return r.text();
+  }).then(function(t){ _mnl.orig[code] = t; return t; }).catch(function(){
+    _mnl.orig[code] = null;
+    return null;
+  });
+}
+function mnlListen(code){
+  if(_mnl.listen){ try{ _mnl.listen.off(); }catch(e){} _mnl.listen = null; }
+  var db = mnlDb();
+  if(!db){
+    try{ var l = localStorage.getItem("okc6_mnl_" + code); if(l) _mnl.remote[code] = JSON.parse(l); }catch(e){}
+    return;
+  }
+  var ref = db.ref("okc_manual_v6/" + code);
+  _mnl.listen = ref;
+  ref.on("value", function(s){
+    var v = s.val();
+    var prevAt = _mnl.remote[code] && _mnl.remote[code].at;
+    _mnl.remote[code] = v && v.html ? v : null;
+    if(_mnl.code !== code) return;
+    if(_mnl.editing){
+      if(v && v.at && v.at !== _mnl.baseAt && v.at !== prevAt)
+        mnlNotice("⚠ 수정하는 동안 " + (v.by || "다른 담당자") + "님이 이 매뉴얼을 저장했습니다(" + mnlFmt(v.at) + "). 저장하면 그 내용을 덮어씁니다.");
+      return;
+    }
+    mnlRender();
+  });
+}
+function mnlCurrent(code){
+  var r = _mnl.remote[code];
+  return r && r.html ? r.html : _mnl.orig[code];
+}
+function mnlRender(){
+  var code = _mnl.code; if(!code) return;
+  var doc = document.getElementById("mnl_doc");
+  var html = mnlCurrent(code);
+  if(html === undefined){ doc.innerHTML = '<div class="mnlload">매뉴얼을 불러오는 중…</div>'; return; }
+  if(html === null){
+    doc.innerHTML = '<div class="mnlload">매뉴얼 파일을 불러오지 못했습니다.<br><small>웹 주소로 접속했는지, data/manual 폴더가 함께 올라가 있는지 확인해 주세요.</small></div>';
+    return;
+  }
+  doc.innerHTML = html;
+  mnlApplyZoom();
+  var r = _mnl.remote[code];
+  document.getElementById("mnl_meta").textContent = r && r.at
+    ? "수정본 · " + mnlFmt(r.at) + " · " + (r.by || "") + " 저장"
+    : "원본 (2026년 읍면 제출본)";
+}
+function mnlNotice(msg){
+  var n = document.getElementById("mnl_notice");
+  n.textContent = msg || ""; n.classList.toggle("on", !!msg);
+}
+
+/* 확대·축소 (휴대폰은 화면 폭에 맞춤) */
+function mnlFitZoom(){
+  var w = window.innerWidth || 1000;
+  return w < 860 ? Math.max(0.4, Math.round((w - 10) / 820 * 100) / 100) : 1;
+}
+function mnlZoom(d){
+  _mnl.zoom = Math.max(0.4, Math.min(1.8, Math.round(((_mnl.zoom || 1) + d * 0.1) * 10) / 10));
+  mnlApplyZoom();
+}
+function mnlApplyZoom(){
+  var doc = document.getElementById("mnl_doc");
+  doc.style.zoom = _mnl.zoom && _mnl.zoom !== 1 ? String(_mnl.zoom) : "";
+}
+
+/* 인쇄 */
+function mnlPrint(){
+  var html = document.getElementById("mnl_doc").innerHTML;
+  var css = (document.getElementById("mnlcss") || {}).textContent || "";
+  var base = location.href.replace(/[#?].*$/, "").replace(/[^\/]*$/, "");
+  var w = window.open("", "_blank");
+  if(!w){ alert("팝업이 차단되어 인쇄 창을 열 수 없습니다."); return; }
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><base href="' + base + '"><title>' +
+    esc(document.getElementById("mnl_title").textContent) + '</title><style>' + css +
+    '@page{size:A4;margin:14mm 13mm} body{margin:0}</style></head><body><div class="mdoc">' + html + '</div></body></html>');
+  w.document.close();
+  w.onload = function(){ setTimeout(function(){ w.focus(); w.print(); }, 300); };
+}
+
+/* ---------- 수정 ---------- */
+function mnlStartEdit(){
+  var code = _mnl.code;
+  if(!code || mnlCurrent(code) == null){ alert("매뉴얼을 불러온 뒤에 수정할 수 있습니다."); return; }
+  var doc = document.getElementById("mnl_doc");
+  _mnl.editing = true;
+  _mnl.baseAt = (_mnl.remote[code] && _mnl.remote[code].at) || 0;
+  _mnl.baseHtml = doc.innerHTML;
+  doc.setAttribute("contenteditable", "true");
+  doc.setAttribute("spellcheck", "false");
+  try{ document.execCommand("styleWithCSS", false, true); }catch(e){}
+  document.getElementById("mnl_tools").classList.add("on");
+  document.getElementById("mnl_viewbtns").style.display = "none";
+  document.getElementById("mnl_editbtns").style.display = "";
+  document.getElementById("mnl_sel").disabled = true;
+  mnlNotice(mnlDb() ? "" : "⚠ 공유 서버에 연결되어 있지 않아 저장하면 이 기기에만 보관됩니다.");
+  doc.addEventListener("paste", mnlPaste);
+  doc.addEventListener("click", mnlPick);
+}
+function mnlEndEdit(){
+  if(!_mnl.editing) return;
+  var doc = document.getElementById("mnl_doc");
+  _mnl.editing = false;
+  doc.removeAttribute("contenteditable");
+  doc.removeEventListener("paste", mnlPaste);
+  doc.removeEventListener("click", mnlPick);
+  mnlUnpick();
+  document.getElementById("mnl_tools").classList.remove("on");
+  document.getElementById("mnl_viewbtns").style.display = "";
+  document.getElementById("mnl_editbtns").style.display = "none";
+  document.getElementById("mnl_sel").disabled = false;
+}
+function mnlDirty(){ return _mnl.editing && mnlCleanHtml() !== mnlCleanHtml(_mnl.baseHtml); }
+function mnlCleanHtml(h){
+  var box = document.createElement("div");
+  box.innerHTML = h === undefined ? document.getElementById("mnl_doc").innerHTML : h;
+  box.querySelectorAll(".mnl-pick,.mnl-cur").forEach(function(el){ el.classList.remove("mnl-pick", "mnl-cur"); if(!el.className) el.removeAttribute("class"); });
+  return box.innerHTML;
+}
+function mnlCancelEdit(){
+  if(mnlDirty() && !confirm("수정한 내용을 버리고 원래대로 돌릴까요?")) return;
+  mnlEndEdit(); mnlNotice(""); mnlRender();
+}
+function mnlSave(){
+  var code = _mnl.code;
+  if(!mnlDirty()){ mnlEndEdit(); mnlNotice(""); mnlRender(); return; }
+  var cur = _mnl.remote[code];
+  if(cur && cur.at && cur.at !== _mnl.baseAt &&
+     !confirm((cur.by || "다른 담당자") + "님이 " + mnlFmt(cur.at) + "에 먼저 저장한 내용이 있습니다.\n그대로 저장하면 그 내용을 덮어씁니다. (덮어쓴 내용은 '이전 버전'에 남습니다)\n\n저장할까요?")) return;
+  var html = mnlCleanHtml();
+  var rec = {html:html, at:mnlNow(), by:mnlWho()};
+  var db = mnlDb();
+  if(!db){
+    try{ localStorage.setItem("okc6_mnl_" + code, JSON.stringify(rec)); }
+    catch(e){ alert("이 기기 저장 공간이 부족해 저장하지 못했습니다."); return; }
+    _mnl.remote[code] = rec;
+    mnlEndEdit(); mnlRender(); mnlNotice("이 기기에만 저장했습니다 (공유 서버 미연결).");
+    return;
+  }
+  // 화면에는 바로 반영하고, 서버 확인은 따로 알린다 (연결이 잠깐 끊겨도 Firebase가 다시 연결되면 올려 준다)
+  _mnl.remote[code] = rec;
+  mnlEndEdit(); mnlRender();
+  mnlNotice(_mnl.online === false ? "⏳ 인터넷 연결이 끊겨 있습니다. 연결되면 자동으로 저장되니 이 창을 닫지 마세요." : "저장 중…");
+  mnlPushHist(code, cur);
+  Promise.all([
+    db.ref("okc_manual_v6/" + code).set(rec),
+    db.ref("okc_manualmeta_v6/" + code).set({at:rec.at, by:rec.by})
+  ]).then(function(){
+    mnlNotice("✅ 저장했습니다. 모든 담당자 화면에 바로 반영됩니다.");
+    setTimeout(function(){ if(!_mnl.editing) mnlNotice(""); }, 3500);
+  }).catch(function(err){
+    mnlNotice("⚠ 서버에 저장하지 못했습니다. 다시 [수정] → [저장] 해 주세요.");
+    alert("저장하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 저장해 주세요.\n(" + (err && err.message || err) + ")");
+  });
+}
+/* 덮어쓰기 전 내용을 이전 버전으로 보관 (원본은 항상 남아 있으므로 수정본만 보관) */
+function mnlPushHist(code, prev){
+  var db = mnlDb();
+  if(!db || !prev || !prev.html) return Promise.resolve();
+  var key = db.ref("okc_manualhist_v6/" + code).push().key;
+  return Promise.all([
+    db.ref("okc_manualhist_v6/" + code + "/" + key).set(prev),
+    db.ref("okc_manualhidx_v6/" + code + "/" + key).set({at:prev.at || 0, by:prev.by || ""})
+  ]).then(function(){
+    return db.ref("okc_manualhidx_v6/" + code).once("value");
+  }).then(function(s){
+    var v = s.val() || {};
+    var keys = Object.keys(v).sort(function(a, b){ return (v[a].at || 0) - (v[b].at || 0); });
+    var drop = keys.slice(0, Math.max(0, keys.length - MNL_HIST_KEEP));
+    return Promise.all(drop.map(function(k){
+      return Promise.all([db.ref("okc_manualhist_v6/" + code + "/" + k).remove(), db.ref("okc_manualhidx_v6/" + code + "/" + k).remove()]);
+    }));
+  }).catch(function(){});
+}
+
+/* 이전 버전 · 원본 복원 */
+function mnlOpenHistory(){
+  var code = _mnl.code; if(!code) return;
+  var box = document.getElementById("mnl_histbox");
+  var cur = _mnl.remote[code];
+  box.innerHTML = '<h4>🕘 ' + esc(mnlName(code)) + ' 매뉴얼 버전</h4>' +
+    '<div class="hrow"><div><b>지금 보는 버전</b><small>' + (cur && cur.at ? "수정본 · " + esc(mnlFmt(cur.at)) + " · " + esc(cur.by || "") : "원본") + '</small></div></div>' +
+    '<div id="mnl_histlist"><div class="hrow"><div>불러오는 중…</div></div></div>' +
+    '<div class="hrow"><div><b>원본</b><small>2026년 읍면 제출본 (한글 파일 변환)</small></div>' +
+    (cur && cur.at ? '<button onclick="mnlRestore(\'orig\')">원본으로 되돌리기</button>' : '') + '</div>' +
+    '<button class="hclose" onclick="mnlCloseHistory()">닫기</button>';
+  document.getElementById("mnl_hist").classList.add("on");
+  var db = mnlDb();
+  var list = document.getElementById("mnl_histlist");
+  if(!db){ list.innerHTML = '<div class="hrow"><div><small>공유 서버에 연결되어 있지 않아 이전 버전을 볼 수 없습니다.</small></div></div>'; return; }
+  db.ref("okc_manualhidx_v6/" + code).once("value").then(function(s){
+    var v = s.val() || {};
+    var keys = Object.keys(v).sort(function(a, b){ return (v[b].at || 0) - (v[a].at || 0); });
+    list.innerHTML = keys.length ? keys.map(function(k){
+      return '<div class="hrow"><div><b>수정본</b><small>' + esc(mnlFmt(v[k].at)) + ' · ' + esc(v[k].by || "") + '</small></div>' +
+        '<button onclick="mnlRestore(\'' + k + '\')">이 버전으로</button></div>';
+    }).join("") : '<div class="hrow"><div><small>보관된 이전 수정본이 없습니다.</small></div></div>';
+  });
+}
+function mnlCloseHistory(){ document.getElementById("mnl_hist").classList.remove("on"); }
+function mnlRestore(key){
+  var code = _mnl.code, db = mnlDb();
+  var label = key === "orig" ? "원본" : "선택한 이전 버전";
+  if(!confirm(label + "으로 되돌릴까요?\n지금 내용은 '이전 버전'에 보관됩니다.")) return;
+  var cur = _mnl.remote[code];
+  if(!db){
+    try{ localStorage.removeItem("okc6_mnl_" + code); }catch(e){}
+    _mnl.remote[code] = null; mnlCloseHistory(); mnlRender(); return;
+  }
+  var get = key === "orig" ? Promise.resolve(null)
+    : db.ref("okc_manualhist_v6/" + code + "/" + key).once("value").then(function(s){ return s.val(); });
+  get.then(function(old){
+    return mnlPushHist(code, cur).then(function(){
+      if(!old){
+        return Promise.all([db.ref("okc_manual_v6/" + code).remove(), db.ref("okc_manualmeta_v6/" + code).remove()]);
+      }
+      var rec = {html:old.html, at:mnlNow(), by:mnlWho() + " (" + mnlFmt(old.at) + " 버전 복원)"};
+      return Promise.all([db.ref("okc_manual_v6/" + code).set(rec), db.ref("okc_manualmeta_v6/" + code).set({at:rec.at, by:rec.by})]);
+    });
+  }).then(function(){
+    mnlCloseHistory();
+    mnlNotice("✅ " + label + "으로 되돌렸습니다.");
+    setTimeout(function(){ if(!_mnl.editing) mnlNotice(""); }, 3500);
+  }).catch(function(err){ alert("되돌리지 못했습니다: " + (err && err.message || err)); });
+}
+
+/* 편집 도구 */
+function mnlCmd(cmd, val){
+  if(!_mnl.editing) return;
+  try{ document.execCommand("styleWithCSS", false, true); }catch(e){}
+  document.execCommand(cmd, false, val || null);
+}
+function mnlFont(dir){
+  if(!_mnl.editing) return;
+  var doc = document.getElementById("mnl_doc");
+  try{ document.execCommand("styleWithCSS", false, false); }catch(e){}
+  document.execCommand("fontSize", false, "7");
+  doc.querySelectorAll('font[size="7"]').forEach(function(f){
+    var base = parseFloat(getComputedStyle(f.parentNode).fontSize) || 13;
+    var s = document.createElement("span");
+    s.style.fontSize = (Math.round(base * (dir > 0 ? 1.15 : 0.87) * 10) / 10) + "px";
+    while(f.firstChild) s.appendChild(f.firstChild);
+    f.parentNode.replaceChild(s, f);
+  });
+  try{ document.execCommand("styleWithCSS", false, true); }catch(e){}
+}
+/* 한글·엑셀에서 붙여넣으면 서식 찌꺼기가 많이 따라오므로 글자만 붙인다 */
+function mnlPaste(e){
+  var t = (e.clipboardData || window.clipboardData);
+  if(!t) return;
+  e.preventDefault();
+  var text = t.getData("text/plain") || "";
+  document.execCommand("insertText", false, text);
+}
+function mnlSelCell(){
+  var sel = window.getSelection();
+  var n = sel && sel.rangeCount ? sel.getRangeAt(0).startContainer : null;
+  while(n && n.nodeType !== 1) n = n.parentNode;
+  var doc = document.getElementById("mnl_doc");
+  var td = n && n.closest ? n.closest("td") : null;
+  return td && doc.contains(td) ? td : null;
+}
+/* 표를 칸 지도로 펼친다: grid[r][c] = 그 자리를 차지한 td */
+function mnlGrid(table){
+  var rows = Array.prototype.filter.call(table.rows, function(r){ return r.parentNode.parentNode === table; });
+  var grid = [];
+  rows.forEach(function(tr, r){
+    grid[r] = grid[r] || [];
+    var c = 0;
+    Array.prototype.forEach.call(tr.cells, function(td){
+      while(grid[r][c]) c++;
+      var rs = td.rowSpan || 1, cs = td.colSpan || 1;
+      for(var i = 0; i < rs; i++){
+        grid[r + i] = grid[r + i] || [];
+        for(var j = 0; j < cs; j++) grid[r + i][c + j] = {td:td, r0:r, c0:c};
+      }
+      c += cs;
+    });
+  });
+  return {rows:rows, grid:grid};
+}
+function mnlRow(dir){
+  if(!_mnl.editing) return;
+  var td = mnlSelCell();
+  if(!td){ alert("먼저 표 안의 글자를 한 번 눌러 커서를 놓아 주세요."); return; }
+  var tr = td.parentNode, table = tr.closest("table");
+  var g = mnlGrid(table), r = g.rows.indexOf(tr);
+  if(r < 0) return;
+  var row = g.grid[r] || [];
+  if(dir > 0){
+    var nr = document.createElement("tr"), seen = [];
+    var below = r + 1;
+    for(var c = 0; c < row.length; c++){
+      var cell = row[c]; if(!cell || seen.indexOf(cell.td) >= 0) continue;
+      seen.push(cell.td);
+      var rs = cell.td.rowSpan || 1;
+      if(cell.r0 + rs - 1 >= below){ cell.td.rowSpan = rs + 1; continue; }   // 아래까지 합쳐진 칸은 늘리기만
+      var n = document.createElement("td");
+      n.setAttribute("style", cell.td.getAttribute("style") || "");
+      if((cell.td.colSpan || 1) > 1) n.colSpan = cell.td.colSpan;
+      var p = cell.td.querySelector("p");
+      var np = document.createElement("p");
+      if(p && p.getAttribute("style")) np.setAttribute("style", p.getAttribute("style"));
+      np.innerHTML = "<br>";
+      n.appendChild(np);
+      nr.appendChild(n);
+    }
+    tr.parentNode.insertBefore(nr, tr.nextSibling);
+    var first = nr.querySelector("p");
+    if(first){ var rg = document.createRange(); rg.setStart(first, 0); rg.collapse(true); var s = window.getSelection(); s.removeAllRanges(); s.addRange(rg); }
+  } else {
+    if(g.rows.length <= 1){ alert("표의 마지막 한 줄은 지울 수 없습니다."); return; }
+    tr.classList.add("mnl-cur");
+    var ok = confirm("커서가 있는 표 줄을 지울까요?");
+    tr.classList.remove("mnl-cur"); if(!tr.className) tr.removeAttribute("class");
+    if(!ok) return;
+    var next = g.rows[r + 1], done = [];
+    for(var c2 = 0; c2 < row.length; c2++){
+      var ce = row[c2]; if(!ce || done.indexOf(ce.td) >= 0) continue;
+      done.push(ce.td);
+      var rs2 = ce.td.rowSpan || 1;
+      if(rs2 <= 1) continue;
+      if(ce.r0 < r){ ce.td.rowSpan = rs2 - 1; continue; }          // 위에서 내려온 합친 칸은 줄이기만
+      // 이 줄에서 시작해 아래로 합쳐진 칸은 다음 줄로 내려 보낸다
+      ce.td.rowSpan = rs2 - 1;
+      if(next){
+        var ref = null, nrow = g.grid[r + 1] || [];
+        for(var k = c2 + (ce.td.colSpan || 1); k < nrow.length; k++){
+          if(nrow[k] && nrow[k].r0 === r + 1 && nrow[k].td.parentNode === next){ ref = nrow[k].td; break; }
+        }
+        next.insertBefore(ce.td, ref);
+      }
+    }
+    tr.parentNode.removeChild(tr);
+  }
+}
+function mnlInsertImg(inp){
+  var f = inp.files && inp.files[0]; inp.value = "";
+  if(!f || !_mnl.editing) return;
+  var doc = document.getElementById("mnl_doc");
+  var sel = window.getSelection();
+  var inDoc = sel.rangeCount && doc.contains(sel.getRangeAt(0).startContainer);
+  compress(f).then(function(data){
+    var html = '<img class="mimg" src="' + data + '" alt="" style="width:100%;max-width:560px">';
+    if(inDoc){ document.execCommand("insertHTML", false, html); }
+    else { doc.insertAdjacentHTML("beforeend", html); }
+  });
+}
+function mnlPick(e){
+  mnlUnpick();
+  if(e.target && e.target.tagName === "IMG"){ e.target.classList.add("mnl-pick"); _mnl.picked = e.target; }
+}
+function mnlUnpick(){
+  if(_mnl.picked){ _mnl.picked.classList.remove("mnl-pick"); if(!_mnl.picked.className) _mnl.picked.removeAttribute("class"); }
+  _mnl.picked = null;
+}
+function mnlDelImg(){
+  var im = _mnl.picked;
+  if(!im){ alert("지울 사진을 먼저 한 번 눌러 주세요 (주황색 테두리가 생깁니다)."); return; }
+  if(!confirm("고른 사진을 지울까요?")) return;
+  var holder = im.closest(".mgi") || im;
+  holder.parentNode.removeChild(holder);
+  _mnl.picked = null;
+}
+</script>
+<!-- ================= /읍면별 대응 매뉴얼 ================= -->
+
 </body>
 </html>
