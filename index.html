@@ -11632,21 +11632,32 @@ function hxPreview(){
 </script>
 <!-- ================= 읍면별 대응 매뉴얼 ================= -->
 <style id="mnlcss">
-.mdoc{font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:10pt;color:#111;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;width:820px;margin:0 auto;padding:30px 36px 60px;background:#fff;box-sizing:border-box}
+.mdoc{font-family:"맑은 고딕","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:10pt;color:#000;line-height:1.6;word-break:keep-all;overflow-wrap:anywhere;width:794px;margin:0 auto;padding:75.6px 75.6px 75.6px;background:#fff;box-sizing:border-box}
 .mdoc p{margin:0;min-height:1em}
-.mdoc table.mt{border-collapse:collapse;margin:4px 0;table-layout:auto}
-.mdoc table.mt td{padding:2px 5px;vertical-align:middle}
-.mdoc table.mt td p{text-indent:0!important}
-.mdoc .mimg{max-width:100%;height:auto;display:block;margin:6px auto}
-.mdoc .mgrp{position:relative;max-width:100%;margin:8px auto}
+.mdoc p.nw{white-space:nowrap}
+.mdoc div.p{margin:0}
+.mdoc p.hl > .ln{display:block;white-space:nowrap}
+.mdoc p.hl > .lj{text-align:justify;text-align-last:justify}
+.mdoc div.p > table.mt,.mdoc .fl > table.mt{display:inline-table;vertical-align:top}
+.mdoc div.p > .mimg,.mdoc .fl > .mimg,.mdoc div.p > .mgrp,.mdoc .fl > .mgrp{display:inline-block;vertical-align:top;margin:0}
+.mdoc div.p > .mbox.mfloat,.mdoc .fl > .mbox.mfloat{display:inline-flex;vertical-align:top;margin:0}
+.mdoc table.mt td{text-indent:0;white-space:normal}
+.mdoc .fl{margin:0}
+.mdoc table.mt{border-collapse:collapse;margin:1.9px 0;table-layout:fixed}
+.mdoc table.mt td{vertical-align:middle;box-sizing:border-box;overflow-wrap:anywhere}
+.mdoc .mimg{max-width:100%;display:block;margin:2px auto;object-fit:fill}
+.mdoc .mgrp{position:relative;max-width:100%;margin:2px auto}
 .mdoc .mgi{position:absolute;box-sizing:border-box;display:flex}
 .mdoc .mgi>*{box-sizing:border-box}
-.mdoc .mbox{box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;padding:2px 4px;overflow:hidden;font-size:.92em;line-height:1.3}
-.mdoc .mbox.mfloat{margin:6px auto}
+.mdoc .mbox{box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;overflow:visible}
+.mdoc .mbox.mfloat{margin:2px auto}
+.mdoc .mgi .mbox{padding-top:0!important;padding-bottom:0!important}
+.mdoc .mgi .mbox p{line-height:1.2!important}
 .mdoc .msq{display:inline-block;vertical-align:middle;margin-right:4px;box-sizing:border-box}
 .mdoc svg.mln{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
-.mdoc hr.mpg{border:0;border-top:2px dashed #cbd5e1;margin:26px -12px}
-@media print{ .mdoc hr.mpg{border:0;margin:0;page-break-after:always} .mdoc{width:auto;padding:0} }
+.mdoc hr.mpg{box-sizing:content-box;height:18px;margin:0 -75.6px;border:0;border-top:75.6px solid #fff;border-bottom:75.6px solid #fff;background:#e9edf2;box-shadow:inset 0 6px 6px -6px rgba(15,37,64,.25),inset 0 -6px 6px -6px rgba(15,37,64,.25)}
+.mdoc.no-hyh .fh{font-weight:700}
+@media print{ .mdoc [data-ovf]{display:none} .mdoc hr.mpg{border:0;height:0;margin:0;background:none;box-shadow:none;break-after:page;page-break-after:always} .mdoc{width:auto;padding:0;box-shadow:none} }
 </style>
 <style>
 /* 헤더 드롭다운 */
@@ -11933,11 +11944,169 @@ function mnlRender(){
     return;
   }
   doc.innerHTML = html;
+  doc.classList.toggle("no-hyh", !mnlHasFont("HY헤드라인M") && !mnlHasFont("HYHeadLine M"));
+  mnlFit(doc);
+  mnlPin(doc);
   mnlApplyZoom();
+  // 글꼴·그림이 다 들어온 뒤 한 번 더 맞춘다
+  var code0 = code;
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ if(_mnl.code === code0 && !_mnl.editing) mnlPin(doc); });
+  setTimeout(function(){ if(_mnl.code === code0 && !_mnl.editing) mnlPin(doc); }, 1200);
   var r = _mnl.remote[code];
   document.getElementById("mnl_meta").textContent = r && r.at
     ? "수정본 · " + mnlFmt(r.at) + " · " + (r.by || "") + " 저장"
     : "원본 (2026년 읍면 제출본)";
+}
+/* 이 PC에 글꼴이 깔려 있는지 (한글 프로그램이 설치된 PC에는 휴먼명조·HY헤드라인M 등이 있다) */
+var _mnlFontOk = {};
+function mnlHasFont(name){
+  if(name in _mnlFontOk) return _mnlFontOk[name];
+  var c = document.createElement("canvas").getContext("2d"), s = "가나다라ABCabc123";
+  var ok = ["monospace", "serif"].some(function(b){
+    c.font = "40px " + b; var w0 = c.measureText(s).width;
+    c.font = "40px '" + name + "'," + b; return c.measureText(s).width !== w0;
+  });
+  return (_mnlFontOk[name] = ok);
+}
+/* 한글에서 한 줄이던 문단이 칸을 넘치면 글자 폭을 줄여(장평처럼) 한 줄에 맞춘다 — 보기 전용, 저장되지 않음 */
+function mnlFit(doc){
+  var ps = doc.querySelectorAll("p.nw, p.hl > .ln"), over = [];
+  for(var i = 0; i < ps.length; i++){
+    var p = ps[i], cw = p.clientWidth, sw = p.scrollWidth;
+    if(cw > 0 && sw > cw + 1) over.push([p, cw / sw]);
+  }
+  over.forEach(function(x){
+    var s = Math.max(0.6, x[1]);
+    x[0].setAttribute("data-fit", "1");
+    x[0].style.transform = "scaleX(" + s.toFixed(3) + ")";
+    x[0].style.transformOrigin = "0 50%";
+  });
+}
+/* 한글이 기록한 쪽 안 세로 위치(data-vp)에 각 문단을 맞춘다.
+   브라우저에서 어떤 칸이 조금 더 커져도, 그 아래 빈 줄이 차이를 흡수해 다음 내용은 원본 위치에 놓인다 (한글과 같은 방식).
+   쪽 아래를 넘는 긴 표는 한글처럼 그 자리에서 나눠 다음 쪽으로 잇는다(머리 행 반복).
+   보기 전용 — 저장되지 않고, 수정 중에는 풀린다. */
+var MNL_PAGE_H = 971.4;   // A4 297mm − 위 20mm − 아래 20mm
+function mnlPin(doc){
+  mnlUnpin(doc);
+  var z = doc.style.zoom; doc.style.zoom = "";
+  for(var pass = 0; pass < 40; pass++){
+    var r = mnlLayoutPass(doc, false);
+    if(!r || !mnlSplitTable(r.el, r.limit)) break;
+  }
+  mnlLayoutPass(doc, true);
+  doc.style.zoom = z;
+}
+function mnlBlank(k){
+  return !k.textContent.replace(/ /g, " ").trim() && !k.querySelector("img,table,.mgrp,.mbox,.msq");
+}
+/* 한 번 훑으며 각 문단의 원본 위치를 계산. apply=false면 쪽을 넘는 첫 표를 찾아 돌려주고, true면 위치를 적용한다 */
+function mnlLayoutPass(doc, apply){
+  var kids = Array.prototype.slice.call(doc.children).filter(function(k){ return k.style.display !== "none"; });
+  var rects = kids.map(function(k){ return k.getBoundingClientRect(); });
+  var info = kids.map(function(k){
+    var cs = getComputedStyle(k);
+    return {pt: parseFloat(cs.paddingTop) || 0, pb: parseFloat(cs.paddingBottom) || 0, mt: parseFloat(cs.marginTop) || 0, blank: mnlBlank(k)};
+  });
+  var top = doc.getBoundingClientRect().top + (parseFloat(getComputedStyle(doc).paddingTop) || 0);
+  var pageTop = top, floor = top, shift = 0, writes = [], found = null;
+  for(var i = 0; i < kids.length; i++){
+    var k = kids[i], r = rects[i], inf = info[i];
+    if(k.tagName === "HR"){ pageTop = r.bottom + shift; floor = pageTop; continue; }
+    var vp = k.getAttribute("data-vp"), d = 0;
+    if(vp !== null){
+      var ct = r.top + shift + inf.pt;
+      var target = pageTop + parseFloat(vp);
+      var want = inf.blank ? Math.max(target, pageTop) : Math.max(target, floor);
+      d = want - ct;
+      if(Math.abs(d) >= 0.5){ writes.push([k, inf.mt + d]); shift += d; } else d = 0;
+    }
+    var bottom = r.bottom + shift;
+    if(!inf.blank) floor = Math.max(floor, bottom - (vp !== null ? inf.pb : 0));
+    var limit = pageTop + MNL_PAGE_H;
+    if(bottom > limit + 1){
+      if(inf.blank){ if(apply) k.setAttribute("data-ovf", "1"); }
+      else if(!apply && !found && !k.hasAttribute("data-nosplit") && k.querySelector(":scope > table.mt")){
+        found = {el: k, limit: limit - shift};   // 표 행 위치는 아직 적용 전 좌표이므로 shift를 빼서 넘긴다
+        break;
+      }
+    }
+  }
+  if(apply){
+    writes.forEach(function(w){
+      w[0].setAttribute("data-pin", w[0].style.marginTop || "");
+      w[0].style.marginTop = w[1].toFixed(1) + "px";
+    });
+  }
+  return found;
+}
+/* 표를 쪽 끝(limit) 직전 행에서 나눈다. 합친 칸이 걸치지 않는 행 경계에서만 자른다 */
+function mnlSplitTable(c, limit){
+  var t = c.querySelector(":scope > table.mt");
+  var tb = t && t.tBodies[0];
+  if(!tb){ c.setAttribute("data-nosplit", "1"); return true; }
+  var rows = Array.prototype.slice.call(tb.rows);
+  var heads = 0; while(heads < rows.length && rows[heads].classList.contains("mh")) heads++;
+  var g = mnlGrid(t), s = -1;
+  for(var i = heads; i < rows.length; i++){
+    if(rows[i].getBoundingClientRect().bottom > limit){ s = i; break; }
+  }
+  // 합친 칸이 경계를 가로지르면 위로 물린다
+  while(s > heads){
+    var ok = true, row = g.grid[s] || [];
+    for(var j = 0; j < row.length; j++){ if(row[j] && row[j].r0 < s){ ok = false; break; } }
+    if(ok) break;
+    s--;
+  }
+  if(s <= heads){ c.setAttribute("data-nosplit", "1"); return true; }
+  var nt = t.cloneNode(false), cg = t.querySelector(":scope > colgroup"), nb = document.createElement("tbody");
+  if(cg) nt.appendChild(cg.cloneNode(true));
+  for(var h = 0; h < heads; h++){ var hc = rows[h].cloneNode(true); hc.setAttribute("data-hclone", "1"); nb.appendChild(hc); }
+  for(var m = s; m < rows.length; m++) nb.appendChild(rows[m]);
+  nt.appendChild(nb);
+  var nc = c.cloneNode(false);
+  ["data-vp", "data-pin", "data-ovf", "data-nosplit"].forEach(function(a){ nc.removeAttribute(a); });
+  nc.style.marginTop = ""; nc.style.paddingTop = ""; nc.style.textIndent = "";
+  nc.setAttribute("data-auto", "1");
+  nc.appendChild(nt);
+  var hr = document.createElement("hr"); hr.className = "mpg"; hr.setAttribute("data-auto", "1");
+  c.parentNode.insertBefore(hr, c.nextSibling);
+  hr.parentNode.insertBefore(nc, hr.nextSibling);
+  // 표가 쪽을 넘으면서 생긴 쪽 경계는 방금 나눈 자리이므로, 표 뒤에 따로 있던 쪽 경계는 감춘다
+  if(!c.hasAttribute("data-auto")){
+    var nx = nc.nextElementSibling;
+    if(nx && nx.tagName === "HR" && !nx.hasAttribute("data-auto")){ nx.setAttribute("data-autohide", "1"); nx.style.display = "none"; }
+  }
+  return true;
+}
+function mnlUnpin(doc){
+  // 나눠 놓은 표를 원래대로 합친다 (뒤에서부터)
+  var autos = Array.prototype.slice.call(doc.querySelectorAll(":scope > [data-auto]:not(hr)")).reverse();
+  autos.forEach(function(nc){
+    var hr = nc.previousElementSibling, c = hr && hr.previousElementSibling;
+    var t = c && c.querySelector(":scope > table.mt"), nt = nc.querySelector(":scope > table.mt");
+    if(t && nt && t.tBodies[0] && nt.tBodies[0]){
+      Array.prototype.slice.call(nt.tBodies[0].rows).forEach(function(r){
+        if(r.hasAttribute("data-hclone")) return;
+        t.tBodies[0].appendChild(r);
+      });
+    }
+    nc.parentNode.removeChild(nc);
+    if(hr && hr.hasAttribute("data-auto")) hr.parentNode.removeChild(hr);
+  });
+  doc.querySelectorAll("[data-autohide]").forEach(function(h){ h.style.display = ""; h.removeAttribute("data-autohide"); if(!h.getAttribute("style")) h.removeAttribute("style"); });
+  doc.querySelectorAll("[data-nosplit],[data-ovf]").forEach(function(k){ k.removeAttribute("data-nosplit"); k.removeAttribute("data-ovf"); });
+  doc.querySelectorAll("[data-pin]").forEach(function(k){
+    k.style.marginTop = k.getAttribute("data-pin"); k.removeAttribute("data-pin");
+    if(!k.getAttribute("style")) k.removeAttribute("style");
+  });
+}
+function mnlUnfit(doc){
+  mnlUnpin(doc);
+  doc.querySelectorAll("[data-fit]").forEach(function(p){
+    p.removeAttribute("data-fit"); p.style.transform = ""; p.style.transformOrigin = "";
+    if(!p.getAttribute("style")) p.removeAttribute("style");
+  });
 }
 function mnlNotice(msg){
   var n = document.getElementById("mnl_notice");
@@ -11947,7 +12116,7 @@ function mnlNotice(msg){
 /* 확대·축소 (휴대폰은 화면 폭에 맞춤) */
 function mnlFitZoom(){
   var w = window.innerWidth || 1000;
-  return w < 860 ? Math.max(0.4, Math.round((w - 10) / 820 * 100) / 100) : 1;
+  return w < 860 ? Math.max(0.4, Math.round((w - 10) / 794 * 100) / 100) : 1;
 }
 function mnlZoom(d){
   _mnl.zoom = Math.max(0.4, Math.min(1.8, Math.round(((_mnl.zoom || 1) + d * 0.1) * 10) / 10));
@@ -11967,7 +12136,7 @@ function mnlPrint(){
   if(!w){ alert("팝업이 차단되어 인쇄 창을 열 수 없습니다."); return; }
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><base href="' + base + '"><title>' +
     esc(document.getElementById("mnl_title").textContent) + '</title><style>' + css +
-    '@page{size:A4;margin:14mm 13mm} body{margin:0}</style></head><body><div class="mdoc">' + html + '</div></body></html>');
+    '@page{size:A4;margin:20mm 20mm 20mm 20mm} body{margin:0} *{-webkit-print-color-adjust:exact;print-color-adjust:exact} .mdoc{width:auto!important;padding:0!important;zoom:1!important}</style></head><body><div class="mdoc">' + html + '</div></body></html>');
   w.document.close();
   w.onload = function(){ setTimeout(function(){ w.focus(); w.print(); }, 300); };
 }
@@ -11979,6 +12148,7 @@ function mnlStartEdit(){
   var doc = document.getElementById("mnl_doc");
   _mnl.editing = true;
   _mnl.baseAt = (_mnl.remote[code] && _mnl.remote[code].at) || 0;
+  mnlUnfit(doc);
   _mnl.baseHtml = doc.innerHTML;
   doc.setAttribute("contenteditable", "true");
   doc.setAttribute("spellcheck", "false");
@@ -11990,6 +12160,29 @@ function mnlStartEdit(){
   mnlNotice(mnlDb() ? "" : "⚠ 공유 서버에 연결되어 있지 않아 저장하면 이 기기에만 보관됩니다.");
   doc.addEventListener("paste", mnlPaste);
   doc.addEventListener("click", mnlPick);
+  doc.addEventListener("input", mnlUnwrap);
+  doc.addEventListener("beforeinput", mnlUnwrap);
+}
+function mnlUnwrap(){
+  var s = window.getSelection(), n = s && s.rangeCount ? s.getRangeAt(0).startContainer : null;
+  while(n && n.nodeType !== 1) n = n.parentNode;
+  if(!n || !n.closest) return;
+  var p = n.closest("p.nw");
+  if(p){ p.classList.remove("nw"); if(!p.className) p.removeAttribute("class"); }
+  /* 한글 줄 배치를 그대로 옮긴 문단을 고치기 시작하면, 그 문단만 자유롭게 줄바꿈되게 푼다 (글자 노드는 그대로 두어 커서 유지) */
+  var h = n.closest("p.hl");
+  if(h){
+    var lines = h.querySelectorAll(":scope > .ln");
+    var first = lines[0] && lines[0].style.marginLeft;
+    lines.forEach(function(s){
+      s.removeAttribute("class"); s.removeAttribute("data-fit");
+      s.style.marginLeft = ""; s.style.transform = ""; s.style.transformOrigin = "";
+      if(!s.getAttribute("style")) s.removeAttribute("style");
+      if(s.lastChild && s.lastChild.nodeType === 3 && !/\s$/.test(s.lastChild.data) && s.nextSibling) {}
+    });
+    if(first) h.style.textIndent = first;
+    h.classList.remove("hl"); if(!h.className) h.removeAttribute("class");
+  }
 }
 function mnlEndEdit(){
   if(!_mnl.editing) return;
@@ -11998,6 +12191,8 @@ function mnlEndEdit(){
   doc.removeAttribute("contenteditable");
   doc.removeEventListener("paste", mnlPaste);
   doc.removeEventListener("click", mnlPick);
+  doc.removeEventListener("input", mnlUnwrap);
+  doc.removeEventListener("beforeinput", mnlUnwrap);
   mnlUnpick();
   document.getElementById("mnl_tools").classList.remove("on");
   document.getElementById("mnl_viewbtns").style.display = "";
@@ -12008,6 +12203,7 @@ function mnlDirty(){ return _mnl.editing && mnlCleanHtml() !== mnlCleanHtml(_mnl
 function mnlCleanHtml(h){
   var box = document.createElement("div");
   box.innerHTML = h === undefined ? document.getElementById("mnl_doc").innerHTML : h;
+  mnlUnfit(box);
   box.querySelectorAll(".mnl-pick,.mnl-cur").forEach(function(el){ el.classList.remove("mnl-pick", "mnl-cur"); if(!el.className) el.removeAttribute("class"); });
   return box.innerHTML;
 }
