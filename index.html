@@ -113,7 +113,7 @@ if(typeof firebase === "undefined" || !firebase.auth){
 
   /* ---------------- 암호화 ---------------- */
   var te = new TextEncoder(), td = new TextDecoder();
-  function b64(buf){ var b = new Uint8Array(buf), s = ""; for(var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); }
+  function b64(buf){ var b = new Uint8Array(buf), s = "", C = 0x8000; for(var i = 0; i < b.length; i += C) s += String.fromCharCode.apply(null, b.subarray(i, i + C)); return btoa(s); }
   function unb64(s){ var r = atob(s), b = new Uint8Array(r.length); for(var i = 0; i < r.length; i++) b[i] = r.charCodeAt(i); return b; }
   function cryptoOk(){ return !!(window.crypto && crypto.subtle); }
   function deriveKey(pass, saltB64, iter){
@@ -134,7 +134,7 @@ if(typeof firebase === "undefined" || !firebase.auth){
     if(_decCache[s] !== undefined) return Promise.resolve(_decCache[s]);
     var raw = unb64(s.slice(ENC.length));
     return crypto.subtle.decrypt({name:"AES-GCM", iv:raw.slice(0, 12)}, key, raw.slice(12)).then(function(pt){
-      var t = td.decode(pt); _decCache[s] = t; return t;
+      var t = td.decode(pt); if(s.length < 4000) _decCache[s] = t; return t;
     });
   }
   function isEnc(v){ return typeof v === "string" && v.indexOf(ENC) === 0; }
@@ -257,6 +257,12 @@ if(typeof firebase === "undefined" || !firebase.auth){
 
   // 서버 쓰기 가로채기: 상황 항목(공유·개인)을 저장할 때 자동 암호화
   var RE_ITEM = /^\/?(okc_items_v6\/[^\/]+|okc_personal_v6\/[^\/]+\/items\/[^\/]+)$/;
+  // 매뉴얼: 본문(html)과 그림도 공유 암호로 잠근다
+  var RE_MNLDOC = /^\/?(okc_manual_v6\/[^\/]+|okc_manualhist_v6\/[^\/]+\/[^\/]+|okc_mnlsrc_v6\/[^\/]+)$/;
+  var RE_MNLIMG = /^\/?okc_mnlimg_v6\/[^\/]+$/;
+  var MNL_LOCK = "<!--okc-locked-->";
+  function cryptOn(){ return !!(S.meta && S.meta.salt); }
+  function needKeyErr(){ var e = new Error("공유 암호를 이 기기에 입력해야 매뉴얼을 저장할 수 있습니다."); e.code = "OKC_NEED_KEY"; return e; }
   function refPath(ref){
     try{ return decodeURIComponent(ref.toString().substring(ref.root.toString().length)).replace(/^\/+/, ""); }catch(e){ return ""; }
   }
@@ -267,8 +273,23 @@ if(typeof firebase === "undefined" || !firebase.auth){
     var orig = P.set;
     P.set = function(value, onComplete){
       var self = this;
-      if(value && typeof value === "object" && RE_ITEM.test(refPath(self))){
+      var path = refPath(self);
+      if(value && typeof value === "object" && RE_ITEM.test(path)){
         return encryptItemForUpload(value).then(function(v){ return orig.call(self, v, onComplete); });
+      }
+      if(cryptOn() && value && typeof value === "object" && typeof value.html === "string" && RE_MNLDOC.test(path)){
+        if(value.html.indexOf(MNL_LOCK) >= 0) return Promise.reject(needKeyErr());   // 잠김 안내문을 본문으로 저장하지 않는다
+        if(isEnc(value.html)) return orig.apply(this, arguments);
+        if(!S.key) return Promise.reject(needKeyErr());
+        return encWith(S.key, value.html).then(function(c){
+          var v = {}; for(var k in value) v[k] = value[k]; v.html = c;
+          return orig.call(self, v, onComplete);
+        });
+      }
+      if(cryptOn() && typeof value === "string" && value && RE_MNLIMG.test(path)){
+        if(isEnc(value)) return orig.apply(this, arguments);
+        if(!S.key) return Promise.reject(needKeyErr());
+        return encWith(S.key, value).then(function(c){ return orig.call(self, c, onComplete); });
       }
       return orig.apply(this, arguments);
     };
@@ -292,6 +313,12 @@ if(typeof firebase === "undefined" || !firebase.auth){
 
   // 키가 생기거나 바뀌면: 화면의 잠긴 칸 다시 풀기 + 이 기기 보관분을 서버로
   function resyncAll(){
+    try{
+      if(typeof _mnl !== "undefined" && _mnl.code){
+        var c0 = _mnl.code; _mnl.orig = {}; _mnl.remote = {};
+        if(!_mnl.editing){ mnlListen(c0); mnlLoadOrig(c0).then(function(){ if(_mnl.code === c0) mnlRender(); }); }
+      }
+    }catch(e){}
     if(!window.items) return;
     var list = (window.items || []);
     Promise.all(list.map(function(it){
@@ -353,7 +380,28 @@ if(typeof firebase === "undefined" || !firebase.auth){
       // 가로채기를 거치지 않고 그대로 쓴다 (이미 새 키로 잠근 값)
       return Promise.all(jobs).then(function(){ return S._rawSet.call(d.ref(path), it); });
     }
-    return d.ref("okc_items_v6").once("value").then(function(s){
+    function reStr(path, val){   // 암호문 문자열 하나를 새 키로
+      if(!isEnc(val)) return encWith(newKey, val).then(function(c){ return S._rawSet.call(d.ref(path), c); });
+      return decWith(oldKey, val).then(function(t){ return encWith(newKey, t); }).then(function(c){ return S._rawSet.call(d.ref(path), c); }, function(){});
+    }
+    function seqEach(list, fn){ return list.reduce(function(p, x){ return p.then(function(){ return fn(x); }); }, Promise.resolve()); }
+    function reManuals(){
+      return d.ref("okc_mnlsrc_v6").once("value").then(function(s){
+        var v = s.val() || {};
+        return seqEach(Object.keys(v).filter(function(k){ return v[k] && v[k].html; }), function(k){ return reStr("okc_mnlsrc_v6/" + k + "/html", v[k].html); });
+      }).then(function(){ return d.ref("okc_manual_v6").once("value"); }).then(function(s){
+        var v = s.val() || {};
+        return seqEach(Object.keys(v).filter(function(k){ return v[k] && v[k].html; }), function(k){ return reStr("okc_manual_v6/" + k + "/html", v[k].html); });
+      }).then(function(){ return d.ref("okc_manualhist_v6").once("value"); }).then(function(s){
+        var v = s.val() || {}, jobs = [];
+        Object.keys(v).forEach(function(c){ Object.keys(v[c] || {}).forEach(function(k){ if(v[c][k] && v[c][k].html) jobs.push(["okc_manualhist_v6/" + c + "/" + k + "/html", v[c][k].html]); }); });
+        return seqEach(jobs, function(j){ return reStr(j[0], j[1]); });
+      }).then(function(){ return d.ref("okc_mnlimg_v6").once("value"); }).then(function(s){
+        var v = s.val() || {};
+        return seqEach(Object.keys(v), function(k){ return reStr("okc_mnlimg_v6/" + k, v[k]); });
+      });
+    }
+    return reManuals().then(function(){ return d.ref("okc_items_v6").once("value"); }).then(function(s){
       var v = s.val() || {};
       return Promise.all(Object.keys(v).map(function(k){ return fix("okc_items_v6/" + k, v[k]); }));
     }).then(function(){
@@ -373,8 +421,17 @@ if(typeof firebase === "undefined" || !firebase.auth){
   S.onChange = function(fn){ _authCbs.push(fn); };
   function fire(){ _authCbs.forEach(function(fn){ try{ fn(S); }catch(e){} }); try{ renderGateAuth(); }catch(e){} }
 
+  // 보안 창은 접속 화면·매뉴얼 화면보다 위에 띄운다 (다른 창을 열 때는 원래대로)
+  function raise(){ var ov = document.getElementById("ovl"); if(ov) ov.style.zIndex = "100001"; }
+  function hookModal(){
+    if(S._modalHooked || typeof window.openModal !== "function") return;
+    S._modalHooked = true;
+    var om = window.openModal;
+    window.openModal = function(){ var ov = document.getElementById("ovl"); if(ov) ov.style.zIndex = ""; return om.apply(this, arguments); };
+  }
   S.start = function(){
     if(S._started) return; S._started = true;
+    hookModal();
     patchSet();
     var d = db(), a = auth();
     loadKey();
@@ -567,18 +624,17 @@ if(typeof firebase === "undefined" || !firebase.auth){
       return false;
     });
     var ok = document.getElementById("mok"); if(ok) ok.textContent = "확인";
+    raise();
     setTimeout(function(){ var i = document.getElementById("sec_pp"); if(i) i.focus(); }, 50);
   };
 
   /* ---------------- 보안 관리 창 ---------------- */
   S.openPanel = function(){
     S._panelOpen = true;
-    var gate = document.getElementById("gate");
-    var fromGate = gate && !gate.classList.contains("hide");
     var body = '<div id="sec_panel"><div class="note">불러오는 중…</div></div>';
     openModal("🔐 보안 관리", body, function(){ S._panelOpen = false; return true; });
     var ok = document.getElementById("mok"); if(ok) ok.textContent = "닫기";
-    if(fromGate){ var ov = document.getElementById("ovl"); if(ov) ov.style.zIndex = "100000"; }
+    raise();
     renderPanel();
   };
   function sec(title, inner){ return '<div class="secbox"><div class="secttl">' + title + '</div>' + inner + '</div>'; }
@@ -653,25 +709,30 @@ if(typeof firebase === "undefined" || !firebase.auth){
           '<span>' + h(u.email || "") + (u.at ? ' · ' + h(fmtT(u.at)) : '') + '</span></div><div class="sr-act">' + actions + '</div></div>';
       };
       var inner = '<div class="secsub">승인 대기 ' + pk.length + '명</div>' +
-        (pk.length ? pk.map(function(k){ return row(pend[k], btn("승인", "OKCSEC.approve('" + k + "')") + btn("거절", "OKCSEC.reject('" + k + "')", "ghost")); }).join("")
+        (pk.length ? pk.map(function(k){ return row(pend[k], btn("승인", "OKCSEC.approve('" + k + "')") + btn("관리자로 승인", "OKCSEC.approve('" + k + "','admin')", "ghost") + btn("거절", "OKCSEC.reject('" + k + "')", "ghost")); }).join("")
                    : '<div class="note">대기 중인 신청이 없습니다.</div>') +
-        '<div class="secsub" style="margin-top:10px">승인된 사용자 ' + ak.length + '명</div>' +
+        '<div class="secsub" style="margin-top:10px">승인된 사용자 ' + ak.length + '명 (관리자 ' + ak.filter(function(k){ return allow[k].role === "admin"; }).length + '명)</div>' +
+        '<div class="note" style="margin-bottom:4px">등급: <b>관리자</b>는 가입 승인·차단, 등급 변경, 공유 암호 변경, 로그인 필수 설정을 할 수 있습니다. 관리자는 여러 명 둘 수 있습니다. <b>일반</b>은 상황·대화·매뉴얼 사용만 합니다.</div>' +
         ak.map(function(k){
           var u = allow[k], me = S.user && k === S.user.uid;
           var tag = u.role === "admin" ? '<em class="rsi-tag" style="background:#dbeafe;color:#1e40af">관리자</em>' : '';
           var acts = me ? '<span class="note">본인</span>' :
-            (u.role === "admin" ? btn("관리자 해제", "OKCSEC.setRole('" + k + "','user')", "ghost") : btn("관리자 지정", "OKCSEC.setRole('" + k + "','admin')", "ghost")) +
+            '<select class="secrole" onchange="OKCSEC.setRole(\'' + k + '\', this.value)" aria-label="등급">' +
+            '<option value="user"' + (u.role === "admin" ? '' : ' selected') + '>일반</option>' +
+            '<option value="admin"' + (u.role === "admin" ? ' selected' : '') + '>관리자</option></select>' +
             btn("차단", "OKCSEC.revoke('" + k + "')", "danger");
           return row(u, acts, tag);
         }).join("");
       box.innerHTML = sec("👥 가입 신청 · 사용자", inner);
     }, function(e){ box.innerHTML = sec("👥 가입 신청 · 사용자", '<div class="note">불러오지 못했습니다: ' + h(errMsg(e)) + '</div>'); });
   }
-  S.approve = function(uid){
+  S.approve = function(uid, role){
     var d = db();
+    role = role === "admin" ? "admin" : "user";
+    if(role === "admin" && !confirm("이 사람을 관리자로 승인할까요?\n관리자는 다른 사용자의 승인·차단과 공유 암호 변경을 할 수 있습니다.")) return;
     d.ref("okc_pending/" + uid).once("value").then(function(s){
       var p = s.val() || {};
-      return d.ref("okc_allow/" + uid).set({email:p.email || "", dept:p.dept || "", name:p.name || "", role:"user", at:Date.now(), by:who()});
+      return d.ref("okc_allow/" + uid).set({email:p.email || "", dept:p.dept || "", name:p.name || "", role:role, at:Date.now(), by:who()});
     }).then(function(){ return d.ref("okc_pending/" + uid).remove(); }).then(renderUsers).catch(function(e){ alert(errMsg(e)); });
   };
   S.reject = function(uid){
@@ -679,8 +740,9 @@ if(typeof firebase === "undefined" || !firebase.auth){
     db().ref("okc_pending/" + uid).remove().then(renderUsers).catch(function(e){ alert(errMsg(e)); });
   };
   S.setRole = function(uid, role){
-    if(!confirm(role === "admin" ? "관리자로 지정할까요?" : "관리자 권한을 해제할까요?")) return;
-    db().ref("okc_allow/" + uid + "/role").set(role).then(renderUsers).catch(function(e){ alert(errMsg(e)); });
+    role = role === "admin" ? "admin" : "user";
+    if(!confirm(role === "admin" ? "이 사람의 등급을 관리자로 바꿀까요?\n관리자는 다른 사용자의 승인·차단과 공유 암호 변경을 할 수 있습니다." : "이 사람의 등급을 일반으로 바꿀까요?")){ renderUsers(); return; }
+    db().ref("okc_allow/" + uid + "/role").set(role).then(renderUsers).catch(function(e){ alert(errMsg(e)); renderUsers(); });
   };
   S.revoke = function(uid){
     if(!confirm("이 사용자를 차단할까요?\n공유 데이터에 더 이상 접근할 수 없습니다. (다시 가입 신청하면 승인할 수 있습니다)\n\n※ 차단해도 이 사람이 알고 있는 공유 암호는 바뀌지 않습니다. 퇴직·전보 등으로 차단했다면 공유 암호도 바꾸세요.")) return;
@@ -708,6 +770,7 @@ if(typeof firebase === "undefined" || !firebase.auth){
       return false;
     });
     var ok = document.getElementById("mok"); if(ok) ok.textContent = "저장";
+    raise();
   };
   function renderEncStatus(){
     var d = db(), st = document.getElementById("sec_encst"), bt = document.getElementById("sec_encbtn"); if(!d || !st) return;
@@ -733,9 +796,31 @@ if(typeof firebase === "undefined" || !firebase.auth){
   function imgKey(src){ var f = String(src).split("/").pop().split("?")[0]; return f.replace(/[.#$\[\]\/]/g, "_"); }
   S.mnlImgKey = imgKey;
   // 서버 보관 원본 불러오기 (없으면 null)
+  function lockHtml(){
+    return MNL_LOCK + '<div class="mnlload">🔒 이 매뉴얼은 공유 암호로 잠겨 있습니다.<br><small>공유 암호를 입력하면 바로 볼 수 있습니다.</small><br>' +
+      '<button type="button" onclick="OKCSEC.askPassphrase(false)" style="margin-top:10px;border:1px solid #1e3a5f;background:#1e3a5f;color:#fff;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer">🔑 공유 암호 입력</button></div>';
+  }
+  S.mnlIsLocked = function(html){ return typeof html === "string" && html.indexOf(MNL_LOCK) >= 0; };
+  S.mnlNeedKey = function(){ return cryptOn() && !S.key; };
+  // 매뉴얼 본문 풀기 (암호문이 아니면 그대로)
+  function mnlOpen(html){
+    if(!isEnc(html)) return Promise.resolve(html);
+    if(!S.key) return Promise.resolve(lockHtml());
+    return decWith(S.key, html).catch(function(){ return lockHtml(); });
+  }
   S.mnlLoadSrc = function(code){
     var d = db(); if(!d) return Promise.resolve(null);
-    return d.ref("okc_mnlsrc_v6/" + code + "/html").once("value").then(function(s){ return s.val() || null; }, function(){ return null; });
+    return d.ref("okc_mnlsrc_v6/" + code + "/html").once("value").then(function(s){ var v = s.val(); return v ? mnlOpen(v) : null; }, function(){ return null; });
+  };
+  // 수정본 받기(onValue) 감싸기: html을 풀어서 넘긴다
+  S.wrapManual = function(handler){
+    var seq = 0;
+    return function(snap){
+      var my = ++seq, v = snap.val();
+      var go = function(val){ if(my === seq) handler({ val:function(){ return val; }, key:snap.key, exists:function(){ return val != null; } }); };
+      if(!v || !isEnc(v.html)){ go(v); return; }
+      mnlOpen(v.html).then(function(h2){ var c = {}; for(var k in v) c[k] = v[k]; c.html = h2; go(c); });
+    };
   };
   // 매뉴얼 안의 그림을 서버 보관본으로 바꿔 끼우기 (원래 경로는 data-msrc에 둔다)
   S.mnlHydrate = function(root){
@@ -748,7 +833,13 @@ if(typeof firebase === "undefined" || !firebase.auth){
       var put = function(u){ if(u) img.setAttribute("src", u); };
       if(_mnlImg[k]){ put(_mnlImg[k]); return; }
       if(!_mnlImgWait[k]){
-        _mnlImgWait[k] = d.ref("okc_mnlimg_v6/" + k).once("value").then(function(s){ var u = s.val(); if(u) _mnlImg[k] = u; return u; }, function(){ return null; });
+        _mnlImgWait[k] = d.ref("okc_mnlimg_v6/" + k).once("value").then(function(s){
+          var u = s.val();
+          if(!u) return null;
+          if(!isEnc(u)){ _mnlImg[k] = u; return u; }
+          if(!S.key){ delete _mnlImgWait[k]; return null; }
+          return decWith(S.key, u).then(function(p){ _mnlImg[k] = p; return p; }, function(){ delete _mnlImgWait[k]; return null; });
+        }, function(){ delete _mnlImgWait[k]; return null; });
       }
       _mnlImgWait[k].then(put);
     });
@@ -758,16 +849,53 @@ if(typeof firebase === "undefined" || !firebase.auth){
     if(!root) return;
     root.querySelectorAll("img[data-msrc]").forEach(function(img){ img.setAttribute("src", img.getAttribute("data-msrc")); img.removeAttribute("data-msrc"); });
   };
+  // 서버의 매뉴얼 자료 중 아직 평문인 것 찾기 → [[경로, 값, 종류]]
+  function mnlPlainList(){
+    var d = db(), out = [];
+    return Promise.all(["okc_mnlsrc_v6", "okc_manual_v6", "okc_manualhist_v6", "okc_mnlimg_v6"].map(function(p){ return d.ref(p).once("value"); })).then(function(r){
+      var src = r[0].val() || {}, cur = r[1].val() || {}, hist = r[2].val() || {}, img = r[3].val() || {};
+      Object.keys(src).forEach(function(k){ if(src[k] && src[k].html && !isEnc(src[k].html)) out.push(["okc_mnlsrc_v6/" + k, src[k], "doc"]); });
+      Object.keys(cur).forEach(function(k){ if(cur[k] && cur[k].html && !isEnc(cur[k].html)) out.push(["okc_manual_v6/" + k, cur[k], "doc"]); });
+      Object.keys(hist).forEach(function(c){ Object.keys(hist[c] || {}).forEach(function(k){ var x = hist[c][k]; if(x && x.html && !isEnc(x.html)) out.push(["okc_manualhist_v6/" + c + "/" + k, x, "doc"]); }); });
+      Object.keys(img).forEach(function(k){ if(img[k] && !isEnc(img[k])) out.push(["okc_mnlimg_v6/" + k, img[k], "img"]); });
+      return {plain:out, srcCount:Object.keys(src).filter(function(k){ return src[k] && src[k].html; }).length,
+              total:Object.keys(src).length + Object.keys(cur).length + Object.keys(img).length};
+    });
+  }
   function renderMnlStatus(){
     var d = db(), st = document.getElementById("sec_mnlst"), bt = document.getElementById("sec_mnlbtn"); if(!d || !st || typeof MANUALS === "undefined") return;
-    d.ref("okc_mnlsrc_v6").once("value").then(function(s){
-      var v = s.val() || {}, n = MANUALS.filter(function(m){ return v[m.k] && v[m.k].html; }).length;
-      st.innerHTML = n === MANUALS.length
-        ? '<span class="ok">✔ 9개 읍면 매뉴얼 원본이 서버(로그인 뒤)에 보관되어 있습니다.</span> 이제 GitHub 저장소의 <code>data/manual</code> 폴더를 지워도 됩니다.'
-        : '서버 보관 ' + n + '/' + MANUALS.length + '개. 공개 저장소(<code>data/manual</code>)에 있는 원본과 그림을 서버로 옮깁니다.';
-      if(bt) bt.innerHTML = btn(n === MANUALS.length ? "다시 옮기기(덮어쓰기)" : "매뉴얼 원본 서버로 옮기기", "OKCSEC.migrateManuals()", n === MANUALS.length ? "ghost" : "");
+    mnlPlainList().then(function(r){
+      var n = r.srcCount, all = n === MANUALS.length, html, b = "";
+      if(!all){
+        html = '서버 보관 ' + n + '/' + MANUALS.length + '개. 공개 저장소(<code>data/manual</code>)에 있는 원본과 그림을 서버로 옮깁니다.';
+        b = btn("매뉴얼 원본 서버로 옮기기", "OKCSEC.migrateManuals()");
+      } else {
+        html = '<span class="ok">✔ 9개 읍면 매뉴얼 원본이 서버에 보관되어 있습니다.</span><br>';
+        if(!cryptOn()) html += '<span class="bad">공유 암호가 정해지지 않아 암호화할 수 없습니다.</span>';
+        else if(r.plain.length){
+          html += '<span class="bad">암호화되지 않은 매뉴얼 자료 ' + r.plain.length + '개</span> (본문·이전 버전·그림). 지금은 로그인으로만 보호되고 있습니다.';
+          b = S.key ? btn("매뉴얼 암호화하기", "OKCSEC.encryptManuals()") : '<span class="note">먼저 이 기기에 공유 암호를 입력하세요.</span>';
+        } else html += '<span class="ok">✔ 매뉴얼 본문·이전 버전·그림이 모두 공유 암호로 암호화되어 있습니다.</span>';
+      }
+      st.innerHTML = html; if(bt) bt.innerHTML = b;
     }, function(e){ st.textContent = "확인하지 못했습니다: " + errMsg(e); });
   }
+  S.encryptManuals = function(){
+    var d = db(); if(!d) return;
+    if(!S.key){ alert("먼저 이 기기에 공유 암호를 입력하세요."); return; }
+    if(!confirm("서버의 매뉴얼 본문·이전 버전·그림을 모두 공유 암호로 잠글까요?\n\n잠근 뒤에는 공유 암호를 입력한 기기에서만 매뉴얼을 볼 수 있습니다. (1~2분 걸릴 수 있습니다)")) return;
+    var st = document.getElementById("sec_mnlst");
+    mnlPlainList().then(function(r){
+      var i = 0, list = r.plain;
+      return list.reduce(function(p, x){
+        return p.then(function(){
+          if(st) st.textContent = "매뉴얼 암호화 중… " + (++i) + "/" + list.length;
+          return d.ref(x[0]).set(x[1]);   // 쓰기 가로채기가 암호화해서 올린다
+        });
+      }, Promise.resolve()).then(function(){ return list.length; });
+    }).then(function(n){ alert("매뉴얼 자료 " + n + "개를 암호화했습니다."); renderMnlStatus(); })
+      .catch(function(e){ alert("암호화 중 오류: " + (e.message || e)); renderMnlStatus(); });
+  };
   function blobToDataURL(b){ return new Promise(function(res, rej){ var r = new FileReader(); r.onload = function(){ res(r.result); }; r.onerror = rej; r.readAsDataURL(b); }); }
   S.migrateManuals = function(){
     var d = db(); if(!d || typeof MANUALS === "undefined") return;
@@ -971,6 +1099,8 @@ main{flex:1;display:flex;min-height:0}
 .secrow .sr-txt span{display:block;color:#6b7280;font-size:11.5px;word-break:break-all}
 .secrow .sr-txt em{font-style:normal;font-size:10px;padding:1px 5px;border-radius:4px;margin-left:5px;font-weight:700}
 .secrow .sr-act{flex:none;display:flex;flex-wrap:wrap;justify-content:flex-end;max-width:50%}
+.secrow .sr-act select.secrole{width:auto !important;flex:none;border:1px solid #cbd5e1;border-radius:7px;padding:3px 6px;font-size:11.5px;margin:2px 0 2px 4px;background:#fff;color:#1e3a5f;font-weight:700}
+.secrow .sr-act{align-items:center}
 .secrow .sr-act .secbtn{margin:2px 0 2px 4px;padding:4px 8px;font-size:11.5px}
 #ovlpanel .ovladd.ovledit{background:#fff !important;color:#1e3a5f !important}
 .rsedit-bar{display:flex;gap:6px;margin-bottom:8px}
@@ -13162,7 +13292,7 @@ function mnlListen(code){
   }
   var ref = db.ref("okc_manual_v6/" + code);
   _mnl.listen = ref;
-  ref.on("value", function(s){
+  ref.on("value", OKCSEC.wrapManual(function(s){
     var v = s.val();
     var prevAt = _mnl.remote[code] && _mnl.remote[code].at;
     _mnl.remote[code] = v && v.html ? v : null;
@@ -13173,7 +13303,7 @@ function mnlListen(code){
       return;
     }
     mnlRender();
-  });
+  }));
 }
 function mnlCurrent(code){
   var r = _mnl.remote[code];
@@ -13391,6 +13521,7 @@ function mnlPrint(){
 function mnlStartEdit(){
   var code = _mnl.code;
   if(!code || mnlCurrent(code) == null){ alert("매뉴얼을 불러온 뒤에 수정할 수 있습니다."); return; }
+  if(OKCSEC.mnlNeedKey() || OKCSEC.mnlIsLocked(mnlCurrent(code))){ OKCSEC.askPassphrase(false); return; }
   var doc = document.getElementById("mnl_doc");
   _mnl.editing = true;
   _mnl.baseAt = (_mnl.remote[code] && _mnl.remote[code].at) || 0;
@@ -13537,6 +13668,7 @@ function mnlOpenHistory(){
 function mnlCloseHistory(){ document.getElementById("mnl_hist").classList.remove("on"); }
 function mnlRestore(key){
   var code = _mnl.code, db = mnlDb();
+  if(OKCSEC.mnlNeedKey() || OKCSEC.mnlIsLocked(mnlCurrent(code))){ OKCSEC.askPassphrase(false); return; }
   var label = key === "orig" ? "원본" : "선택한 이전 버전";
   if(!confirm(label + "으로 되돌릴까요?\n지금 내용은 '이전 버전'에 보관됩니다.")) return;
   var cur = _mnl.remote[code];
