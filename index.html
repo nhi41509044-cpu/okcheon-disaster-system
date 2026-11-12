@@ -130,11 +130,13 @@ if(typeof firebase === "undefined" || !firebase.auth){
     });
   }
   var _decCache = {};
+  function fp(s){ return s.length < 200 ? s : s.length + ":" + s.slice(5, 45) + s.slice(-24); }   // 앞부분(무작위 IV)+길이+끝
   function decWith(key, s){
-    if(_decCache[s] !== undefined) return Promise.resolve(_decCache[s]);
+    var f = fp(s);
+    if(_decCache[f] !== undefined) return Promise.resolve(_decCache[f]);
     var raw = unb64(s.slice(ENC.length));
     return crypto.subtle.decrypt({name:"AES-GCM", iv:raw.slice(0, 12)}, key, raw.slice(12)).then(function(pt){
-      var t = td.decode(pt); if(s.length < 4000) _decCache[s] = t; return t;
+      var t = td.decode(pt); _decCache[f] = t; return t;
     });
   }
   function isEnc(v){ return typeof v === "string" && v.indexOf(ENC) === 0; }
@@ -189,82 +191,155 @@ if(typeof firebase === "undefined" || !firebase.auth){
     }).then(function(){ resyncAll(); });
   };
 
-  // 항목 하나의 개인정보 칸을 차례로 돌며 fn(값, 바꿀함수) 실행
-  function eachPII(it, fn){
-    PII_TOP.forEach(function(f){ if(it[f] != null && it[f] !== "") fn(it[f], function(v){ it[f] = v; }, f); });
-    if(Array.isArray(it.victims)) it.victims.forEach(function(v, i){
-      if(!v) return;
-      PII_VIC.forEach(function(f){ if(v[f] != null && v[f] !== "") fn(v[f], function(x){ v[f] = x; }, "victims." + i + "." + f); });
+  /* ---- 암호화 대상 칸 정의 (점으로 이어 쓴 경로, *는 배열·목록의 모든 항목) ---- */
+  var PII_PATHS = ["reporterName", "reporterTel", "victimName", "victimTel", "victimAddr", "victims.*.name", "victims.*.tel", "victims.*.addr"];
+  var SPEC = {
+    // 상황: 인적사항 + 조치·피해 내용 + 진행 기록의 설명·담당자·사진 (위치·유형·상태·시각은 평문)
+    item: PII_PATHS.concat(["victimAction", "victims.*.act", "facilityDamage", "note", "timeline.*.desc", "timeline.*.manager", "timeline.*.photos.*"]),
+    chat: ["dept", "name", "msg"],
+    presence: ["label", "dept", "name"],
+    memo: ["text"],
+    allow: ["email", "dept", "name"]
+  };
+  S.SPEC = SPEC;
+  var LOCK_IMG = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120"><rect width="160" height="120" fill="#e5e7eb"/><text x="80" y="58" font-size="34" text-anchor="middle">🔒</text><text x="80" y="92" font-size="13" text-anchor="middle" fill="#4b5563">암호 필요</text></svg>');
+  S.LOCK_IMG = LOCK_IMG;
+  function isLock(v){ return v === LOCK || v === LOCK_IMG; }
+  function lockFor(path){ return /photos\.\d+$/.test(path) ? LOCK_IMG : LOCK; }
+  function isPIIPath(path){ return PII_PATHS.indexOf(path.replace(/\.\d+\./g, ".*.")) >= 0; }
+  function setPath(obj, path, val){
+    var p = path.split("."), n = obj;
+    for(var i = 0; i < p.length - 1; i++){
+      var k = /^\d+$/.test(p[i]) ? +p[i] : p[i];
+      if(n[k] == null || typeof n[k] !== "object") n[k] = /^\d+$/.test(p[i + 1]) ? [] : {};
+      n = n[k];
+    }
+    var last = p[p.length - 1]; n[/^\d+$/.test(last) ? +last : last] = val;
+  }
+  function getPath(obj, path){
+    var p = path.split("."), n = obj;
+    for(var i = 0; i < p.length; i++){ if(n == null) return undefined; n = n[p[i]]; }
+    return n;
+  }
+  // 대상 칸을 차례로 돌며 fn(값, 바꿀함수, 경로) 실행 — 비어 있지 않은 글자 값만
+  function eachField(obj, spec, fn){
+    spec.forEach(function(pat){
+      (function go(node, parts, prefix){
+        if(node == null || typeof node !== "object") return;
+        var head = parts[0], rest = parts.slice(1);
+        var keys = head === "*" ? Object.keys(node) : [head];
+        keys.forEach(function(k){
+          var path = prefix ? prefix + "." + k : String(k);
+          if(!rest.length){
+            var v = node[k];
+            if(typeof v === "string" && v !== "") fn(v, function(x){ node[k] = x; }, path);
+          } else go(node[k], rest, path);
+        });
+      })(obj, pat.split("."), "");
     });
   }
-  function hasPlainPII(it){
-    var n = 0; eachPII(it, function(v){ if(v !== LOCK && !isEnc(v)) n++; }); return n > 0;
+  function hasPlain(obj, spec){
+    var n = 0; if(obj && typeof obj === "object") eachField(obj, spec, function(v){ if(!isLock(v) && !isEnc(v)) n++; }); return n > 0;
   }
+  function hasPlainPII(it){ return hasPlain(it, PII_PATHS); }
   S.hasPlainPII = hasPlainPII;
+  S.hasPlain = hasPlain;
 
-  // 서버에서 받은 항목 풀기 (못 풀면 LOCK 표시 + 원래 암호문은 _enc에 보관)
-  function decryptItem(it){
-    if(!it || typeof it !== "object") return Promise.resolve(it);
+  // 서버에서 받은 기록 풀기 (못 풀면 잠금 표시 + 원래 암호문은 _enc에 보관)
+  function decryptRec(rec, spec, useStash){
+    if(!rec || typeof rec !== "object") return Promise.resolve(rec);
     var jobs = [];
-    eachPII(it, function(v, put, path){
+    eachField(rec, spec, function(v, put, path){
       if(!isEnc(v)) return;
-      if(!S.key){ it._enc = it._enc || {}; it._enc[path] = v; put(LOCK); return; }
-      jobs.push(decWith(S.key, v).then(put, function(){ it._enc = it._enc || {}; it._enc[path] = v; put(LOCK); }));
+      var keep = function(){ rec._enc = rec._enc || {}; rec._enc[path] = v; put(lockFor(path)); };
+      if(!S.key){ keep(); return; }
+      jobs.push(decWith(S.key, v).then(put, keep));
     });
-    // 키가 없어 이 기기에만 보관해 둔 인적사항 되살리기
-    var st = stashGet(it.id);
-    if(st) eachStash(it, st);
-    return Promise.all(jobs).then(function(){ return it; });
+    if(useStash){
+      // 공유 암호를 정하기 전에 입력해 이 기기에만 보관해 둔 인적사항 되살리기
+      var st = stashGet(rec.id);
+      if(st) eachStash(rec, st);
+    }
+    return Promise.all(jobs).then(function(){ return rec; });
   }
-  function decryptTree(v){
+  function decryptItem(it){ return decryptRec(it, SPEC.item, true); }
+  function decryptTree(v, spec, useStash){
     if(!v || typeof v !== "object") return Promise.resolve(v);
-    return Promise.all(Object.keys(v).map(function(k){ return decryptItem(v[k]); })).then(function(){ return v; });
+    return Promise.all(Object.keys(v).map(function(k){ return decryptRec(v[k], spec, useStash); })).then(function(){ return v; });
   }
-  // 올리기 전 항목 잠그기 (원본은 건드리지 않고 복사본을 돌려준다)
-  function encryptItemForUpload(src){
+  // 올리기 전 기록 잠그기 (원본은 건드리지 않고 복사본을 돌려준다)
+  //   공유 암호가 정해져 있는데 이 기기에 없을 때: mode 'reject' 저장 거절 / 'blank' 비워서 올림 / 'plain' 그대로
+  function encryptRec(src, spec, mode, stashId){
     var it = JSON.parse(JSON.stringify(src));
     var enc = it._enc || {}; delete it._enc;
-    var jobs = [], stash = {};
-    eachPII(it, function(v, put, path){
-      if(v === LOCK){ put(enc[path] || ""); return; }
+    var jobs = [], stash = {}, blocked = false;
+    eachField(it, spec, function(v, put, path){
+      if(isLock(v)){ put(enc[path] || ""); return; }
       if(isEnc(v)) return;
-      if(S.key){ jobs.push(encWith(S.key, v).then(put)); }
-      else { stash[path] = v; put(""); }   // 키가 없으면 서버에 올리지 않고 이 기기에만 둔다
+      if(S.key){ jobs.push(encWith(S.key, v).then(put)); return; }
+      if(cryptOn()){
+        if(mode === "blank") put("");
+        else if(mode === "reject") blocked = true;
+        return;
+      }
+      // 아직 공유 암호를 정하지 않은 상태: 인적사항만 서버에 올리지 않고 이 기기에 둔다
+      if(stashId && isPIIPath(path)){ stash[path] = v; put(""); }
     });
-    if(Object.keys(stash).length){ stashPut(it.id, stash); S._stashNotice(); }
+    if(blocked) return Promise.reject(needKeyErr());
+    if(Object.keys(stash).length){ stashPut(stashId, stash); S._stashNotice(); }
     return Promise.all(jobs).then(function(){ return it; });
   }
-  // 이 기기 보관함 (키가 없을 때 입력한 인적사항)
+  // 이 기기 보관함 (공유 암호를 정하기 전에 입력한 인적사항)
   function stashAll(){ try{ return JSON.parse(lsGet("okc6_piistash") || "{}"); }catch(e){ return {}; } }
   function stashGet(id){ return id ? stashAll()[id] : null; }
   function stashPut(id, obj){ var a = stashAll(); a[id] = Object.assign(a[id] || {}, obj); lsSet("okc6_piistash", JSON.stringify(a)); }
   function stashClear(id){ var a = stashAll(); delete a[id]; lsSet("okc6_piistash", JSON.stringify(a)); }
   function eachStash(it, st){
-    Object.keys(st).forEach(function(path){
-      var p = path.split(".");
-      if(p.length === 1){ if(!it[p[0]]) it[p[0]] = st[path]; }
-      else { it.victims = it.victims || []; var v = it.victims[+p[1]] = it.victims[+p[1]] || {}; if(!v[p[2]]) v[p[2]] = st[path]; }
-    });
+    Object.keys(st).forEach(function(path){ if(!getPath(it, path)) setPath(it, path, st[path]); });
   }
   var _stashT = 0;
   S._stashNotice = function(){
     if(Date.now() - _stashT < 5000) return; _stashT = Date.now();
     setTimeout(function(){
-      alert("🔒 공유 암호가 이 기기에 설정되지 않아, 피해자·신고자 인적사항은 서버에 올리지 않고 이 기기에만 저장했습니다.\n\n" +
-            "다른 담당자와 공유하려면 [⚙설정 → 🔐 보안 관리]에서 공유 암호를 입력하세요. 입력하면 자동으로 암호화해 올립니다.");
+      alert("🔒 아직 공유 암호가 정해지지 않아, 피해자·신고자 인적사항은 서버에 올리지 않고 이 기기에만 저장했습니다.\n\n" +
+            "관리자가 [🔐 보안 관리]에서 공유 암호를 정하면 자동으로 암호화해 올립니다.");
     }, 100);
   };
 
-  // 서버 쓰기 가로채기: 상황 항목(공유·개인)을 저장할 때 자동 암호화
+  /* ---- 서버 쓰기 가로채기: 저장할 때 자동 암호화 ---- */
   var RE_ITEM = /^\/?(okc_items_v6\/[^\/]+|okc_personal_v6\/[^\/]+\/items\/[^\/]+)$/;
+  var WRITE_RULES = [
+    [RE_ITEM, SPEC.item, "reject"],
+    [/^\/?okc_chat_v6\/[^\/]+$/, SPEC.chat, "reject"],
+    [/^\/?okc_presence\/[^\/]+$/, SPEC.presence, "blank"],
+    [/^\/?okc_personal_v6\/[^\/]+\/memos\/[^\/]+$/, SPEC.memo, "reject"],
+    [/^\/?okc_allow\/[^\/]+$/, SPEC.allow, "plain"]
+  ];
   // 매뉴얼: 본문(html)과 그림도 공유 암호로 잠근다
   var RE_MNLDOC = /^\/?(okc_manual_v6\/[^\/]+|okc_manualhist_v6\/[^\/]+\/[^\/]+|okc_mnlsrc_v6\/[^\/]+)$/;
   var RE_MNLIMG = /^\/?okc_mnlimg_v6\/[^\/]+$/;
   var MNL_LOCK = "<!--okc-locked-->";
   function cryptOn(){ return !!(S.meta && S.meta.salt); }
-  function needKeyErr(){ var e = new Error("공유 암호를 이 기기에 입력해야 매뉴얼을 저장할 수 있습니다."); e.code = "OKC_NEED_KEY"; return e; }
+  S.cryptOn = cryptOn;
+  S.needKey = function(){ return cryptOn() && !S.key; };
+  function needKeyErr(){ var e = new Error("공유 암호를 이 기기에 입력해야 저장할 수 있습니다."); e.code = "OKC_NEED_KEY"; return e; }
   function refPath(ref){
     try{ return decodeURIComponent(ref.toString().substring(ref.root.toString().length)).replace(/^\/+/, ""); }catch(e){ return ""; }
+  }
+  // 암호가 없어 못 올린 저장은 기억해 두었다가, 암호를 입력하면 바로 올린다 (이 화면이 열려 있는 동안)
+  var _pending = {}, _needT = 0;
+  function holdWrite(path, value){
+    _pending[path] = value;
+    if(Date.now() - _needT < 4000) return; _needT = Date.now();
+    setTimeout(function(){
+      alert("🔒 이 기기에 공유 암호가 입력되지 않아 방금 내용을 서버에 저장하지 못했습니다.\n\n공유 암호를 입력하면 바로 저장됩니다. (입력하지 않고 창을 닫으면 방금 내용은 다른 담당자에게 전달되지 않습니다)");
+      try{ S.askPassphrase(false); }catch(e){}
+    }, 50);
+  }
+  function flushPending(){
+    var d = db(); if(!d || !S.key) return;
+    var p = _pending; _pending = {};
+    Object.keys(p).forEach(function(path){ try{ d.ref(path).set(p[path]); }catch(e){} });
   }
   function patchSet(){
     if(!window.firebase || !firebase.database || !firebase.database.Reference) return false;
@@ -272,10 +347,18 @@ if(typeof firebase === "undefined" || !firebase.auth){
     if(P._okcPatched) return true;
     var orig = P.set;
     P.set = function(value, onComplete){
-      var self = this;
-      var path = refPath(self);
-      if(value && typeof value === "object" && RE_ITEM.test(path)){
-        return encryptItemForUpload(value).then(function(v){ return orig.call(self, v, onComplete); });
+      var self = this, path = refPath(self);
+      if(value && typeof value === "object"){
+        for(var i = 0; i < WRITE_RULES.length; i++){
+          var r = WRITE_RULES[i];
+          if(!r[0].test(path)) continue;
+          return encryptRec(value, r[1], r[2], r[0] === RE_ITEM ? value.id : null).then(function(v){
+            return orig.call(self, v, onComplete);
+          }, function(err){
+            if(err && err.code === "OKC_NEED_KEY") holdWrite(path, value);
+            throw err;
+          });
+        }
       }
       if(cryptOn() && value && typeof value === "object" && typeof value.html === "string" && RE_MNLDOC.test(path)){
         if(value.html.indexOf(MNL_LOCK) >= 0) return Promise.reject(needKeyErr());   // 잠김 안내문을 본문으로 저장하지 않는다
@@ -299,19 +382,27 @@ if(typeof firebase === "undefined" || !firebase.auth){
   }
   S.patchSet = patchSet;
 
+  var _refreshers = [];
+  S.onKeyChange = function(fn){ _refreshers.push(fn); };
   // 받은 값 풀어서 넘겨주기 (onValue 핸들러 감싸기). 늦게 끝난 이전 결과는 버린다.
-  S.wrapItems = function(handler){
-    var seq = 0;
-    return function(snap){
+  //   kind: 'item' | 'chat' | 'presence' | 'memo'
+  S.wrapTree = function(handler, kind){
+    var seq = 0, spec = SPEC[kind], last = null;
+    var run = function(snap){
+      last = snap;
       var my = ++seq, v = snap.val();
-      decryptTree(v).then(function(dv){
+      decryptTree(v, spec, kind === "item").then(function(dv){
         if(my !== seq) return;
         handler({ val:function(){ return dv; }, key:snap.key, exists:function(){ return dv != null; } });
       });
     };
+    // 공유 암호가 입력되거나 바뀌면 마지막으로 받은 값을 다시 풀어 보여준다 (상황 목록은 resyncAll이 따로 처리)
+    if(kind !== "item") _refreshers.push(function(){ if(last) run(last); });
+    return run;
   };
+  S.wrapItems = function(handler){ return S.wrapTree(handler, "item"); };
 
-  // 키가 생기거나 바뀌면: 화면의 잠긴 칸 다시 풀기 + 이 기기 보관분을 서버로
+  // 키가 생기거나 바뀌면: 화면의 잠긴 칸 다시 풀기 + 못 올린 저장 올리기
   function resyncAll(){
     try{
       if(typeof _mnl !== "undefined" && _mnl.code){
@@ -319,20 +410,19 @@ if(typeof firebase === "undefined" || !firebase.auth){
         if(!_mnl.editing){ mnlListen(c0); mnlLoadOrig(c0).then(function(){ if(_mnl.code === c0) mnlRender(); }); }
       }
     }catch(e){}
+    _refreshers.forEach(function(fn){ try{ fn(); }catch(e){} });
     if(!window.items) return;
     var list = (window.items || []);
     Promise.all(list.map(function(it){
       if(!it._enc) return null;
-      Object.keys(it._enc).forEach(function(path){
-        var c = it._enc[path], p = path.split(".");
-        if(p.length === 1) it[p[0]] = c; else if(it.victims && it.victims[+p[1]]) it.victims[+p[1]][p[2]] = c;
-      });
+      Object.keys(it._enc).forEach(function(path){ setPath(it, path, it._enc[path]); });
       delete it._enc;
       return decryptItem(it);
     })).then(function(){
       try{ if(typeof persist === "function") persist(); }catch(e){}
       try{ if(typeof renderAll === "function") renderAll(); }catch(e){}
       if(!S.key) return;
+      flushPending();
       var st = stashAll();
       Object.keys(st).forEach(function(id){
         var it = list.filter(function(x){ return x.id === id; })[0];
@@ -345,40 +435,49 @@ if(typeof firebase === "undefined" || !firebase.auth){
   }
   S.resyncAll = resyncAll;
 
-  // 관리자: 서버에 평문으로 남은 인적사항을 일괄 암호화 (공유 + 개인 공간 모두)
+  // 서버에서 아직 평문인 기록 찾기 → [[경로, 값]] (대화·메모·사용자·상황)
+  function plainList(){
+    var d = db(), out = [];
+    return Promise.all(["okc_items_v6", "okc_personal_v6", "okc_chat_v6", "okc_allow"].map(function(p){ return d.ref(p).once("value"); })).then(function(r){
+      var items = r[0].val() || {}, pers = r[1].val() || {}, chat = r[2].val() || {}, allow = r[3].val() || {};
+      Object.keys(items).forEach(function(k){ if(hasPlain(items[k], SPEC.item)) out.push(["okc_items_v6/" + k, items[k], "상황"]); });
+      Object.keys(pers).forEach(function(p){
+        var its = (pers[p] && pers[p].items) || {}, ms = (pers[p] && pers[p].memos) || {};
+        Object.keys(its).forEach(function(k){ if(hasPlain(its[k], SPEC.item)) out.push(["okc_personal_v6/" + p + "/items/" + k, its[k], "개인 상황"]); });
+        Object.keys(ms).forEach(function(k){ if(hasPlain(ms[k], SPEC.memo)) out.push(["okc_personal_v6/" + p + "/memos/" + k, ms[k], "메모"]); });
+      });
+      Object.keys(chat).forEach(function(k){ if(hasPlain(chat[k], SPEC.chat)) out.push(["okc_chat_v6/" + k, chat[k], "대화"]); });
+      Object.keys(allow).forEach(function(k){ if(hasPlain(allow[k], SPEC.allow)) out.push(["okc_allow/" + k, allow[k], "사용자"]); });
+      return out;
+    });
+  }
+  S.plainList = plainList;
+  // 관리자: 서버에 평문으로 남은 내용을 일괄 암호화
   S.encryptExisting = function(onProgress){
     var d = db(); if(!d) return Promise.reject(new Error("서버에 연결되어 있지 않습니다."));
     if(!S.key) return Promise.reject(new Error("먼저 이 기기에 공유 암호를 입력하세요."));
-    var done = 0, total = 0;
-    function run(path, isPersonal){
-      return d.ref(path).once("value").then(function(s){
-        var v = s.val() || {}, jobs = [];
-        Object.keys(v).forEach(function(k){
-          if(isPersonal){
-            var its = (v[k] && v[k].items) || {};
-            Object.keys(its).forEach(function(id){ if(hasPlainPII(its[id])){ total++; jobs.push(d.ref(path + "/" + k + "/items/" + id).set(its[id]).then(tick)); } });
-          } else if(hasPlainPII(v[k])){ total++; jobs.push(d.ref(path + "/" + k).set(v[k]).then(tick)); }
-        });
-        return Promise.all(jobs);
-      });
-    }
-    function tick(){ done++; if(onProgress) onProgress(done, total); }
-    return run("okc_items_v6", false).then(function(){ return run("okc_personal_v6", true); }).then(function(){ return done; });
+    return plainList().then(function(list){
+      var i = 0;
+      return list.reduce(function(p, x){
+        return p.then(function(){ return d.ref(x[0]).set(x[1]); }).then(function(){ if(onProgress) onProgress(++i, list.length); });
+      }, Promise.resolve()).then(function(){ return list.length; });
+    });
   };
   function reencryptAll(oldKey, newKey){
     if(!oldKey) return Promise.resolve();
     var d = db();
-    function fix(path, it){
+    function fix(path, rec, spec){
       var jobs = [], n = 0;
-      eachPII(it, function(v, put){
-        if(v === LOCK) return;
+      if(!rec || typeof rec !== "object") return Promise.resolve();
+      eachField(rec, spec, function(v, put){
+        if(isLock(v)) return;
         n++;
         if(isEnc(v)) jobs.push(decWith(oldKey, v).then(function(t){ return encWith(newKey, t); }).then(put, function(){}));
         else jobs.push(encWith(newKey, v).then(put));
       });
       if(!n) return Promise.resolve();
       // 가로채기를 거치지 않고 그대로 쓴다 (이미 새 키로 잠근 값)
-      return Promise.all(jobs).then(function(){ return S._rawSet.call(d.ref(path), it); });
+      return Promise.all(jobs).then(function(){ return S._rawSet.call(d.ref(path), rec); });
     }
     function reStr(path, val){   // 암호문 문자열 하나를 새 키로
       if(!isEnc(val)) return encWith(newKey, val).then(function(c){ return S._rawSet.call(d.ref(path), c); });
@@ -403,16 +502,23 @@ if(typeof firebase === "undefined" || !firebase.auth){
     }
     return reManuals().then(function(){ return d.ref("okc_items_v6").once("value"); }).then(function(s){
       var v = s.val() || {};
-      return Promise.all(Object.keys(v).map(function(k){ return fix("okc_items_v6/" + k, v[k]); }));
+      return seqEach(Object.keys(v), function(k){ return fix("okc_items_v6/" + k, v[k], SPEC.item); });
     }).then(function(){
       return d.ref("okc_personal_v6").once("value");
     }).then(function(s){
       var v = s.val() || {}, jobs = [];
       Object.keys(v).forEach(function(p){
-        var its = (v[p] && v[p].items) || {};
-        Object.keys(its).forEach(function(id){ jobs.push(fix("okc_personal_v6/" + p + "/items/" + id, its[id])); });
+        var its = (v[p] && v[p].items) || {}, ms = (v[p] && v[p].memos) || {};
+        Object.keys(its).forEach(function(id){ jobs.push(["okc_personal_v6/" + p + "/items/" + id, its[id], SPEC.item]); });
+        Object.keys(ms).forEach(function(id){ jobs.push(["okc_personal_v6/" + p + "/memos/" + id, ms[id], SPEC.memo]); });
       });
-      return Promise.all(jobs);
+      return seqEach(jobs, function(j){ return fix(j[0], j[1], j[2]); });
+    }).then(function(){ return d.ref("okc_chat_v6").once("value"); }).then(function(s){
+      var v = s.val() || {};
+      return seqEach(Object.keys(v), function(k){ return fix("okc_chat_v6/" + k, v[k], SPEC.chat); });
+    }).then(function(){ return d.ref("okc_allow").once("value"); }).then(function(s){
+      var v = s.val() || {};
+      return seqEach(Object.keys(v), function(k){ return fix("okc_allow/" + k, v[k], SPEC.allow); });
     });
   }
 
@@ -611,10 +717,10 @@ if(typeof firebase === "undefined" || !firebase.auth){
     if(!(S.meta && S.meta.salt)) return;
     var body =
       (changed ? '<div class="note" style="color:#b45309;margin-bottom:8px">관리자가 공유 암호를 바꿨습니다. 새 암호를 입력해 주세요.</div>' : '') +
-      '<div class="note" style="margin-bottom:8px">피해자·신고자 인적사항은 공유 암호로 잠겨서 서버에 저장됩니다. 이 기기에서 보거나 공유하려면 공유 암호를 한 번 입력하세요. (이 기기에 기억됩니다)</div>' +
+      '<div class="note" style="margin-bottom:8px">인적사항, 상황의 세부 내용·사진, 대화, 메모, 매뉴얼은 공유 암호로 잠겨서 서버에 저장됩니다. 이 기기에서 보거나 등록하려면 공유 암호를 한 번 입력하세요. (이 기기에 기억됩니다)</div>' +
       '<div class="fitem"><label>공유 암호</label><input type="password" id="sec_pp" autocomplete="off" onkeydown="if(event.key===\'Enter\')document.getElementById(\'mok\').click()"></div>' +
       '<div id="sec_pperr" class="note" style="color:#dc2626"></div>' +
-      '<div class="note">암호를 모르면 관리자에게 문의하세요. 지금 건너뛰면 인적사항은 "' + LOCK + '"로 보이고, 새로 입력한 인적사항은 이 기기에만 저장됩니다.</div>';
+      '<div class="note">암호를 모르면 관리자에게 문의하세요. 지금 건너뛰면 상황의 위치·유형·상태만 보이고(나머지는 "' + LOCK + '"), 상황 등록·대화는 할 수 없습니다.</div>';
     openModal("🔑 공유 암호 입력", body, function(){
       var p = (document.getElementById("sec_pp") || {}).value || "";
       if(!p){ document.getElementById("sec_pperr").textContent = "암호를 입력하세요."; return false; }
@@ -661,7 +767,7 @@ if(typeof firebase === "undefined" || !firebase.auth){
     if(m && m.salt && !S.key && approved()) ppBtns += btn("공유 암호 입력", "OKCSEC.askPassphrase(false)");
     if(m && m.salt && S.key) ppBtns += btn("이 기기에서 지우기", "if(confirm('이 기기에 저장된 공유 암호를 지울까요?')){OKCSEC.forgetKey();OKCSEC.resyncAll();OKCSEC.openPanel();}", "ghost");
     if(isAdmin()) ppBtns += btn((m && m.salt) ? "공유 암호 바꾸기" : "공유 암호 처음 정하기", "OKCSEC.setPassphraseUI()", (m && m.salt) ? "ghost" : "");
-    html += sec("🔑 공유 암호 (피해자·신고자 인적사항 암호화)", '<div>' + ppTxt + '</div><div style="margin-top:6px">' + ppBtns + '</div>');
+    html += sec("🔑 공유 암호 (인적사항·상황 내용·사진·대화·메모·매뉴얼 암호화)", '<div>' + ppTxt + '</div><div style="margin-top:6px">' + ppBtns + '</div>');
 
     if(!S.user || !d){ el.innerHTML = html; return; }
     // 초기 관리자 지정
@@ -682,7 +788,10 @@ if(typeof firebase === "undefined" || !firebase.auth){
     html += sec("🚪 로그인 필수", '<div>' + (S.requireLogin ? '<span class="ok">켜짐</span> — 로그인·승인한 사람만 공유 모드를 쓸 수 있습니다.' :
       '<span class="bad">꺼짐</span> — 직원들이 가입·승인을 마치면 켜세요. 켠 뒤 Firebase 보안 규칙을 잠급니다.') + '</div>' +
       '<div style="margin-top:6px">' + btn(S.requireLogin ? "끄기" : "켜기", "OKCSEC.setRequire(" + (!S.requireLogin) + ")", S.requireLogin ? "ghost" : "") + '</div>');
-    html += sec("🧹 기존 자료 암호화", '<div id="sec_encst" class="note">서버에 평문으로 남아 있는 인적사항을 확인 중…</div><div id="sec_encbtn" style="margin-top:6px"></div>');
+    html += sec("🧹 기존 자료 암호화", '<div id="sec_encst" class="note">서버에 평문으로 남아 있는 기록을 확인 중…</div><div id="sec_encbtn" style="margin-top:6px"></div>');
+    html += sec("💾 백업", '<div class="note">서버의 전체 자료를 파일 하나로 내려받습니다. 암호화된 내용은 암호화된 채로 저장되므로, 복원해서 보려면 그때의 공유 암호가 필요합니다. 주 1회 정도 받아 안전한 곳에 보관하세요.</div>' +
+      '<div id="sec_bkst" class="note"></div><div style="margin-top:6px">' + btn("전체 백업 내려받기", "OKCSEC.backup()") + btn("백업 파일로 복원", "OKCSEC.restoreUI()", "danger") +
+      '<input type="file" id="sec_bkfile" accept=".json,application/json" style="display:none" onchange="OKCSEC.restoreFile(this)"></div>');
     html += sec("📘 매뉴얼 비공개 보관", '<div id="sec_mnlst" class="note">확인 중…</div><div id="sec_mnlbtn" style="margin-top:6px"></div>');
     el.innerHTML = html;
     renderUsers(); renderEncStatus(); renderMnlStatus();
@@ -701,7 +810,8 @@ if(typeof firebase === "undefined" || !firebase.auth){
   function renderUsers(){
     var d = db(), box = document.getElementById("sec_users"); if(!d || !box) return;
     Promise.all([d.ref("okc_pending").once("value"), d.ref("okc_allow").once("value")]).then(function(r){
-      var pend = r[0].val() || {}, allow = r[1].val() || {};
+      var pend = r[0].val() || {}, allow0 = r[1].val() || {};
+      return decryptTree(allow0, SPEC.allow, false).then(function(allow){
       var pk = Object.keys(pend).filter(function(k){ return !allow[k]; }).sort(function(a, b){ return (pend[b].at || 0) - (pend[a].at || 0); });
       var ak = Object.keys(allow).sort(function(a, b){ return ((allow[a].role === "admin") ? 0 : 1) - ((allow[b].role === "admin") ? 0 : 1) || String(allow[a].dept).localeCompare(String(allow[b].dept)); });
       var row = function(u, actions, tag){
@@ -724,7 +834,8 @@ if(typeof firebase === "undefined" || !firebase.auth){
           return row(u, acts, tag);
         }).join("");
       box.innerHTML = sec("👥 가입 신청 · 사용자", inner);
-    }, function(e){ box.innerHTML = sec("👥 가입 신청 · 사용자", '<div class="note">불러오지 못했습니다: ' + h(errMsg(e)) + '</div>'); });
+      });
+    }).catch(function(e){ box.innerHTML = sec("👥 가입 신청 · 사용자", '<div class="note">불러오지 못했습니다: ' + h(errMsg(e)) + '</div>'); });
   }
   S.approve = function(uid, role){
     var d = db();
@@ -774,20 +885,75 @@ if(typeof firebase === "undefined" || !firebase.auth){
   };
   function renderEncStatus(){
     var d = db(), st = document.getElementById("sec_encst"), bt = document.getElementById("sec_encbtn"); if(!d || !st) return;
-    Promise.all([d.ref("okc_items_v6").once("value"), d.ref("okc_personal_v6").once("value")]).then(function(r){
-      var n = 0, a = r[0].val() || {}, p = r[1].val() || {};
-      Object.keys(a).forEach(function(k){ if(hasPlainPII(a[k])) n++; });
-      Object.keys(p).forEach(function(k){ var its = (p[k] && p[k].items) || {}; Object.keys(its).forEach(function(i){ if(hasPlainPII(its[i])) n++; }); });
-      st.innerHTML = n ? '평문 인적사항이 남아 있는 상황 <b>' + n + '건</b>' : '<span class="ok">✔ 평문으로 남은 인적사항이 없습니다.</span>';
+    plainList().then(function(list){
+      var by = {}; list.forEach(function(x){ by[x[2]] = (by[x[2]] || 0) + 1; });
+      var n = list.length;
+      st.innerHTML = n ? '아직 암호화되지 않은 기록 <b>' + n + '건</b> (' + Object.keys(by).map(function(k){ return k + " " + by[k]; }).join(", ") + ')'
+                       : '<span class="ok">✔ 상황(인적사항·내용·사진)·대화·메모·사용자 정보가 모두 암호화되어 있습니다.</span>';
       if(bt) bt.innerHTML = n ? (S.key ? btn("지금 암호화하기", "OKCSEC.runEncrypt()") : '<span class="note">먼저 이 기기에 공유 암호를 입력(또는 처음 정하기)하세요.</span>') : "";
     }, function(e){ st.textContent = "확인하지 못했습니다: " + errMsg(e); });
   }
   S.runEncrypt = function(){
-    if(!confirm("서버에 평문으로 남은 인적사항을 모두 공유 암호로 잠글까요?")) return;
+    if(!confirm("서버에 평문으로 남은 기록(상황의 인적사항·내용·사진, 대화, 메모, 사용자 정보)을 모두 공유 암호로 잠글까요?\n\n먼저 [전체 백업 내려받기]로 백업을 받아 두는 것을 권합니다.")) return;
     var st = document.getElementById("sec_encst");
     S.encryptExisting(function(dn, t){ if(st) st.textContent = "암호화 중… " + dn + "/" + t; })
       .then(function(n){ alert(n + "건을 암호화했습니다."); renderEncStatus(); })
       .catch(function(e){ alert(e.message); });
+  };
+
+  /* ---------------- 백업 · 복원 ---------------- */
+  var BK_PATHS = ["okc_items_v6", "okc_chat_v6", "okc_chatpin_v6", "okc_personal_v6", "okc_customhazard_v6", "okc_customrisk_v6", "okc_riskgeo_v6",
+    "okc_shelters_v6", "okc_wlwatch_v6", "okc_periods_v6", "okc_warnings_v6", "okc_logo_v6", "okc_kmarelay_v6", "okc_perfbase_v6",
+    "okc_manual_v6", "okc_manualmeta_v6", "okc_manualhist_v6", "okc_manualhidx_v6", "okc_mnlsrc_v6", "okc_mnlimg_v6",
+    "okc_allow", "okc_cryptmeta_v6", "okc_secmeta_v6"];
+  // 복원할 때 건드리지 않는 곳: 사용자·권한 (잘못 복원하면 아무도 접속하지 못하게 될 수 있다)
+  var BK_NO_RESTORE = ["okc_allow", "okc_secmeta_v6"];
+  S.backup = function(){
+    var d = db(), st = document.getElementById("sec_bkst"); if(!d) return;
+    if(st) st.textContent = "백업 자료를 모으는 중…";
+    var out = {_okcBackup:1, at:Date.now(), by:who(), project:"okcheon3500", data:{}}, i = 0;
+    BK_PATHS.reduce(function(p, path){
+      return p.then(function(){ return d.ref(path).once("value"); }).then(function(s){
+        var v = s.val(); if(v != null) out.data[path] = v;
+        if(st) st.textContent = "백업 자료를 모으는 중… " + (++i) + "/" + BK_PATHS.length;
+      });
+    }, Promise.resolve()).then(function(){
+      var json = JSON.stringify(out), t = new Date(), p2 = function(x){ return (x < 10 ? "0" : "") + x; };
+      var name = "okcheon_backup_" + t.getFullYear() + p2(t.getMonth() + 1) + p2(t.getDate()) + "_" + p2(t.getHours()) + p2(t.getMinutes()) + ".json";
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([json], {type:"application/json"})); a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      lsSet("okc6_lastbackup", String(Date.now()));
+      if(st) st.innerHTML = '<span class="ok">✔ ' + h(name) + ' 내려받음</span> (' + (json.length / 1048576).toFixed(1) + 'MB) — 이 파일에는 개인정보가 (암호화된 상태로) 들어 있으니 안전한 곳에 보관하세요.';
+    }).catch(function(e){ if(st) st.textContent = "백업하지 못했습니다: " + errMsg(e); });
+  };
+  S.restoreUI = function(){
+    if(!isAdmin()) return;
+    if(!confirm("백업 파일로 복원하면 서버의 현재 자료(상황·대화·매뉴얼 등)가 백업 시점의 내용으로 **전부 바뀝니다**.\n백업 이후에 등록한 내용은 사라집니다.\n\n계속하려면 확인을 누르고 백업 파일(.json)을 고르세요.\n(사용자·권한 설정은 바뀌지 않습니다)")) return;
+    var f = document.getElementById("sec_bkfile"); if(f){ f.value = ""; f.click(); }
+  };
+  S.restoreFile = function(input){
+    var file = input.files && input.files[0], d = db(), st = document.getElementById("sec_bkst"); if(!file || !d) return;
+    var rd = new FileReader();
+    rd.onload = function(){
+      var bk; try{ bk = JSON.parse(rd.result); }catch(e){ alert("백업 파일을 읽을 수 없습니다."); return; }
+      if(!bk || bk._okcBackup !== 1 || !bk.data){ alert("이 시스템의 백업 파일이 아닙니다."); return; }
+      var when = fmtT(bk.at), typed = prompt(when + " 백업(" + (bk.by || "") + ")으로 복원합니다.\n서버의 현재 자료가 이 백업 내용으로 바뀝니다.\n\n진행하려면 아래에 '복원'이라고 입력하세요.");
+      if(typed !== "복원"){ alert("복원을 취소했습니다."); return; }
+      var paths = BK_PATHS.filter(function(p){ return BK_NO_RESTORE.indexOf(p) < 0; }), i = 0;
+      paths.reduce(function(p, path){
+        return p.then(function(){
+          if(st) st.textContent = "복원 중… " + (++i) + "/" + paths.length;
+          var v = bk.data[path];
+          return v == null ? d.ref(path).remove() : S._rawSet.call(d.ref(path), v);   // 백업에 든 그대로(암호문 포함) 되돌린다
+        });
+      }, Promise.resolve()).then(function(){
+        alert("복원했습니다. 화면을 새로 고칩니다.\n\n백업 당시의 공유 암호가 지금과 다르면, 다시 접속할 때 그때의 공유 암호를 입력해야 합니다.");
+        forgetKey(); location.reload();
+      }).catch(function(e){ alert("복원 중 오류가 났습니다: " + errMsg(e) + "\n일부만 복원됐을 수 있으니 다시 시도해 주세요."); });
+    };
+    rd.readAsText(file);
   };
 
   /* ---------------- 매뉴얼 비공개 보관 ---------------- */
@@ -4745,12 +4911,12 @@ function initFirebase(){
     }));
     chatRef = db.ref("okc_chat_v6");
     chatMode = "fb";
-    chatRef.limitToLast(200).on("value", function(snap){
+    chatRef.limitToLast(200).on("value", OKCSEC.wrapTree(function(snap){
       var v = snap.val();
       chatMsgs = v ? Object.values(v) : [];
       chatMsgs.sort(function(a,b){ return (a.t||0) - (b.t||0); });
       renderChat();
-    });
+    }, "chat"));
     riskRef = db.ref("okc_riskgeo_v6");
     riskRef.on("value", function(snap){
       var v = snap.val();
@@ -4866,7 +5032,7 @@ function initFirebase(){
     presenceRef.onDisconnect().remove();
     // 내 접속 상태를 30초마다 갱신 (살아있음 신호)
     setInterval(updateMyPresence, 30 * 1000);
-    db.ref("okc_presence").on("value", function(s){
+    db.ref("okc_presence").on("value", OKCSEC.wrapTree(function(s){
       var v = s.val() || {};
       var now = serverNow();
       var STALE = 2 * 60 * 1000; // 2분 이상 활동 없으면 접속 종료로 간주
@@ -4892,7 +5058,7 @@ function initFirebase(){
       userCnt = onlineUsers.length;
       var el = document.getElementById("conn");
       if(el && el.classList.contains("on")){ el.textContent = "👥 " + userCnt; }
-    });
+    }, "presence"));
   }catch(e){
     alert("Firebase 설정 오류: " + e.message);
   }
@@ -9374,6 +9540,7 @@ function sendChat(){
   var dept = val("c_dept"), name = val("c_name"), msg = val("c_msg");
   if(!dept || !name){ alert("부서와 이름을 먼저 입력해야 대화할 수 있습니다."); return; }
   if(!msg) return;
+  if(chatMode === "fb" && chatRef){ try{ if(OKCSEC.needKey()){ OKCSEC.askPassphrase(false); return; } }catch(e){} }
   localStorage.setItem("okc6_dept", dept);
   localStorage.setItem("okc6_name", name);
   var m = {id:uid(), dept:dept, name:name, msg:msg, t:Date.now()};
@@ -9588,6 +9755,8 @@ loadGeocodeCache();
 loadParcelCache();
 loadCustomRiskSites();
 loadCustomHazards();
+// 로그인·승인 상태가 확인되면 개인 공간을 계정 기준으로 다시 묶는다
+try{ OKCSEC.onChange(function(){ try{ if(!document.getElementById("gate") || document.getElementById("gate").classList.contains("hide")) bindPersonal(); }catch(e){} }); }catch(e){}
 loadWeather();
 setInterval(loadWeather, 10 * 60 * 1000);
 setMobileTab("map");
@@ -11016,12 +11185,31 @@ function bindPersonal(){
   var dept = (localStorage.getItem("okc6_dept") || "").trim();
   var name = (localStorage.getItem("okc6_name") || "").trim();
   if(!dept && !name) return;
-  var key = personKeyOf(dept, name);
+  var legacyKey = personKeyOf(dept, name);
+  var key = legacyKey;
+  try{
+    if(OKCSEC.user && OKCSEC.approved()){
+      key = "u_" + OKCSEC.user.uid;
+      // 같은 사람의 저장 위치만 바뀌는 것이므로, 이 기기의 개인 자료를 그대로 이어 쓴다
+      if(localStorage.getItem("okc6_personal_owner") === legacyKey) localStorage.setItem("okc6_personal_owner", key);
+    }
+  }catch(e){}
   if(key === _personalKey && personalRef) return;
   if(personalRef){ try{ personalRef.child("items").off(); personalRef.child("memos").off(); }catch(e){} }
 
   var db = firebase.database();
   var ref = db.ref("okc_personal_v6/" + key);
+  if(key !== legacyKey){
+    // 예전 위치(부서__이름)에 있던 내 자료를 새 위치로 옮기고 예전 것은 지운다
+    var oldRef = db.ref("okc_personal_v6/" + legacyKey);
+    oldRef.once("value").then(function(os){
+      var ov = os.val(); if(!ov) return;
+      var jobs = [];
+      Object.keys(ov.items || {}).forEach(function(k){ jobs.push(ref.child("items/" + k).set(ov.items[k])); });
+      Object.keys(ov.memos || {}).forEach(function(k){ jobs.push(ref.child("memos/" + k).set(ov.memos[k])); });
+      return Promise.all(jobs).then(function(){ return oldRef.remove(); });
+    }).catch(function(e){ console.warn("개인공간 옮기기 보류:", e && e.message); });
+  }
   var owner = ""; try{ owner = localStorage.getItem("okc6_personal_owner") || ""; }catch(e){}
   var sameOwner = !owner || owner === key;
   // 이 기기에만 있던 기존 자료: 같은 사람이면 서버로 올리고, 다른 사람이면 화면에서 뺀다
@@ -11047,11 +11235,11 @@ function bindPersonal(){
                    .concat(Object.keys(sv).map(function(k){ var it = sv[k]; it.private = true; return it; }));
       persist(); renderAll();
     }), personalFail);
-    ref.child("memos").on("value", function(s){
+    ref.child("memos").on("value", OKCSEC.wrapTree(function(s){
       var sv = s.val() || {};
       cacheMemos(Object.keys(sv).map(function(k){ return sv[k]; }));
       renderMemos();
-    }, personalFail);
+    }, "memo"), personalFail);
     updateMemoSync();
   }).catch(personalFail);
   updateMemoSync();
