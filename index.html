@@ -1867,6 +1867,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div class="ovlsep"></div>
     <button class="ovladd" onclick="openAddRiskSiteForm()">➕ 위험지역 추가 등록</button>
     <button class="ovladd ovledit" onclick="openEditRiskSiteList()">✏️ 위험지역 수정</button>
+    <button class="ovladd ovledit" onclick="openHazardList()">🌊 재해우려지역 추가·수정</button>
   </div>
   <div id="roadpanel">
     <div class="rzttl">도로구역 <span>국토교통부 V-World 2026-09</span>
@@ -2679,24 +2680,276 @@ var HAZARD_SITES = [
 function toggleHazard(on){
   var st = document.getElementById("geocode_status");
   if(!on){ if(map.hasLayer(hazardLayer)) map.removeLayer(hazardLayer); return; }
+  var list = effectiveHazards();
   if(!hazardLayer._builtCount){
     hazardLayer.clearLayers();
-    HAZARD_SITES.forEach(addHazardMarker);
-    hazardLayer._builtCount = HAZARD_SITES.length;
+    list.forEach(addHazardMarker);
+    hazardLayer._builtCount = list.length || -1;
   }
   if(!map.hasLayer(hazardLayer)) hazardLayer.addTo(map);
-  if(st) st.textContent = "재해우려지역 " + HAZARD_SITES.length + "곳 표시완료";
+  if(st) st.textContent = "재해우려지역 " + list.length + "곳 표시완료";
 }
 function addHazardMarker(s){
   var info = {label:"재해우려지역", name:s.nm, addr:s.addr,
     rows:[["분류", s.c1], ["세분류", s.c2], ["피해유형", s.dmg], ["대피소", s.sh], ["주소", s.addr]]};
-  var key = "hz:" + s.no + ":" + s.addr;
+  // 담당자가 추가·수정한 곳은 위치가 바뀔 수 있으므로 좌표까지 넣어 필지 캐시를 구분한다
+  var key = s._cid ? ("hzc:" + s._cid + ":" + s.addr + ":" + Number(s.lat).toFixed(5) + "," + Number(s.lng).toFixed(5))
+                   : ("hz:" + s.no + ":" + s.addr);
   var pc = parcelCache[key];
   if(pc && pc.r){ hazardLayer.addLayer(makeParcelPoly(pc.r, pc.j, HAZARD_COLOR, "", info)); return; }
   var c = L.circle([s.lat, s.lng], {radius:40, color:HAZARD_COLOR, weight:1, fillColor:HAZARD_COLOR, fillOpacity:0.7, interactive:false});
   c._riskInfo = {label:info.label, name:info.name, addr:info.addr, color:HAZARD_COLOR, jibun:"", rows:info.rows};
   hazardLayer.addLayer(c);
   queueParcelUpgrade({layer:hazardLayer, marker:c, pos:{lat:s.lat, lng:s.lng}, color:HAZARD_COLOR, popupHtml:"", addr:key, info:info});
+}
+/* ---------- 재해우려지역 추가·수정 ----------
+   기본자료(HAZARD_SITES, 엑셀)는 그대로 두고 담당자 변경분만 따로 저장한다.
+   {id, base:기본자료 순번(no)|null, del:true(기본자료 숨김), nm, eup, c1, c2, dmg, sh, addr, lat, lng, at}
+   - base 없음 → 새로 추가한 곳 / base 있음 → 기본자료 수정본(del이면 숨김)
+   - 기본자료 수정본을 지우면 원래 자료로 되돌아간다 */
+var customHazards = [];
+var customHazardRef = null;
+var HZ_EUPS = ["옥천읍","동이면","안남면","안내면","청성면","청산면","이원면","군서면","군북면"];
+var HZ_C1 = ["인명피해우려지역-기타","자연재해위험개선지구","침수취약시설","지하차도","주차장","저수지·댐","산사태"];
+function loadCustomHazards(){
+  try{ customHazards = JSON.parse(localStorage.getItem("okc6_customhazard") || "[]"); }catch(e){ customHazards = []; }
+  if(!Array.isArray(customHazards)) customHazards = [];
+}
+function saveCustomHazards(){
+  try{ localStorage.setItem("okc6_customhazard", JSON.stringify(customHazards)); }catch(e){}
+  if(customHazardRef){ try{ customHazardRef.set(customHazards); }catch(e){} }
+}
+function hzOverride(no){ return customHazards.filter(function(c){ return c.base === no; })[0]; }
+function hzToSite(c){
+  return {no:c.base || null, nm:c.nm || "", eup:c.eup || "", c1:c.c1 || "", c2:c.c2 || "", dmg:c.dmg || "",
+          sh:c.sh || "", addr:c.addr || "", lat:Number(c.lat), lng:Number(c.lng), _cid:c.id,
+          _state:c.base ? "edited" : "added"};
+}
+// 지도에 실제로 보일 재해우려지역 목록
+function effectiveHazards(){
+  var out = [];
+  HAZARD_SITES.forEach(function(s){
+    var o = hzOverride(s.no);
+    if(!o){ out.push(s); return; }
+    if(o.del) return;
+    out.push(hzToSite(o));
+  });
+  customHazards.forEach(function(c){ if(!c.base) out.push(hzToSite(c)); });
+  return out.filter(function(s){ return isFinite(s.lat) && isFinite(s.lng); });
+}
+function redrawHazardLayer(forceOn){
+  hazardLayer._builtCount = 0;
+  hazardLayer.clearLayers();
+  var chk = document.getElementById("hazard_show");
+  if(forceOn && chk) chk.checked = true;
+  if(chk && chk.checked) toggleHazard(true);
+}
+
+var _hzQ = "";
+function openHazardList(){
+  var body =
+    '<div class="rsedit-bar">' +
+    '<input type="text" id="hz_q" placeholder="지구명·주소·분류 검색 (예: 지하차도)" value="' + esc(_hzQ) + '" ' +
+    'oninput="_hzQ=this.value;renderHazardList()">' +
+    '<button type="button" class="pbtn" style="flex:none;background:#1e3a5f;color:#fff;padding:6px 10px" onclick="openHazardForm()">➕ 새로 추가</button></div>' +
+    '<div id="hz_cnt" class="note" style="margin-bottom:4px"></div>' +
+    '<div id="hz_list"></div>';
+  openModal("🌊 재해우려지역 추가·수정", body, function(){ return true; });
+  var ok = document.getElementById("mok"); if(ok) ok.textContent = "닫기";
+  renderHazardList();
+}
+function renderHazardList(){
+  var el = document.getElementById("hz_list");
+  if(!el) return;
+  var rows = [];
+  // 새로 추가한 곳 → 기본자료(수정·숨김 표시 포함) 순서
+  customHazards.forEach(function(c){ if(!c.base) rows.push({site:hzToSite(c), st:"added", id:c.id}); });
+  HAZARD_SITES.forEach(function(s){
+    var o = hzOverride(s.no);
+    if(!o) rows.push({site:s, st:"base", no:s.no});
+    else if(o.del) rows.push({site:s, st:"hidden", no:s.no, id:o.id});
+    else rows.push({site:hzToSite(o), st:"edited", no:s.no, id:o.id});
+  });
+  var q = (_hzQ || "").replace(/\s+/g, "");
+  var hit = rows.filter(function(r){
+    if(!q) return true;
+    var t = [r.site.nm, r.site.addr, r.site.eup, r.site.c1, r.site.c2, r.site.dmg, r.site.sh].join("");
+    return t.replace(/\s+/g, "").indexOf(q) >= 0;
+  });
+  var cnt = document.getElementById("hz_cnt");
+  var shown = rows.filter(function(r){ return r.st !== "hidden"; }).length;
+  if(cnt) cnt.textContent = "지도 표시 " + shown + "곳" + (q ? " · 검색 결과 " + hit.length + "곳" : "");
+  if(!hit.length){ el.innerHTML = '<div class="note">검색 결과가 없습니다.</div>'; return; }
+  var TAG = {
+    added:'<em class="rsi-tag" style="background:#dcfce7;color:#166534">추가</em>',
+    edited:'<em class="rsi-tag">수정됨</em>',
+    hidden:'<em class="rsi-tag" style="background:#e5e7eb;color:#4b5563">숨김</em>',
+    base:''
+  };
+  var btn = function(label, js, ghost){
+    return '<button onclick="' + js + '"' + (ghost ? ' style="border-color:#d1d5db;color:#4b5563"' : '') + '>' + label + '</button>';
+  };
+  el.innerHTML = hit.map(function(r){
+    var s = r.site, b = "";
+    if(r.st === "added") b = btn("수정", "openHazardForm('c','" + r.id + "')") + btn("삭제", "removeHazard('" + r.id + "')", 1);
+    else if(r.st === "edited") b = btn("수정", "openHazardForm('c','" + r.id + "')") + btn("되돌리기", "removeHazard('" + r.id + "')", 1);
+    else if(r.st === "hidden") b = btn("다시 표시", "removeHazard('" + r.id + "')", 1);
+    else b = btn("수정", "openHazardForm('b'," + r.no + ")") + btn("숨기기", "hideBaseHazard(" + r.no + ")", 1);
+    var sub = [s.eup, s.c2 || s.c1, s.dmg].filter(Boolean).join(" · ");
+    return '<div class="rsedit-item"' + (r.st === "hidden" ? ' style="opacity:.55"' : '') + '><div class="rsi-txt"><b>' + esc(s.nm || "(지구명 없음)") + '</b>' + TAG[r.st] +
+      '<span>' + esc(s.addr) + '</span>' + (sub ? '<span>' + esc(sub) + '</span>' : '') + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:4px">' + b + '</div></div>';
+  }).join("");
+}
+
+// 입력값을 잠시 담아 두는 곳 (지도에서 위치를 찍으러 갔다 와도 유지)
+var _hzDraft = null;
+function hzSelect(id, opts, cur){
+  var has = opts.indexOf(cur) >= 0;
+  return '<select id="' + id + '">' +
+    (cur && !has ? '<option selected>' + esc(cur) + '</option>' : '') +
+    (!cur ? '<option value="" selected>(선택)</option>' : '') +
+    opts.map(function(o){ return '<option' + (o === cur ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join("") +
+    '</select>';
+}
+// openHazardForm() 새로 추가 / ('c', id) 담당자 자료 수정 / ('b', no) 기본자료 수정
+function openHazardForm(ref, key){
+  var d;
+  if(_hzDraft && _hzDraft._resume){
+    d = _hzDraft; d._resume = false;
+  } else if(ref === "c"){
+    var c = customHazards.filter(function(x){ return x.id === key; })[0];
+    if(!c){ alert("이미 삭제되었거나 다른 담당자가 바꾼 항목입니다."); return; }
+    d = hzToSite(c); d.ref = "c"; d.id = c.id; d.base = c.base || null;
+  } else if(ref === "b"){
+    var b = HAZARD_SITES.filter(function(x){ return x.no === key; })[0];
+    if(!b){ alert("항목을 찾지 못했습니다."); return; }
+    d = {}; for(var k in b) d[k] = b[k];
+    d.ref = "b"; d.base = b.no;
+  } else {
+    d = {ref:"new", nm:"", eup:"", c1:"", c2:"", dmg:"", sh:"", addr:"", lat:"", lng:""};
+  }
+  _hzDraft = d;
+  var isNew = d.ref === "new";
+  var fmt = function(v){ return (v === "" || v == null || !isFinite(v)) ? "" : Number(v).toFixed(6); };
+  var body =
+    '<button type="button" class="rsedit-back" onclick="_hzDraft=null;openHazardList()">← 목록으로</button>' +
+    (d.ref === "b" ? '<div class="note" style="margin-bottom:8px">엑셀 기본자료입니다. 저장하면 수정본이 대신 표시되고, 목록에서 <b>되돌리기</b>로 원래대로 돌릴 수 있습니다.</div>' : '') +
+    '<div class="fitem"><label>지구명 *</label><input type="text" id="hz_nm" value="' + esc(d.nm) + '" placeholder="예: ○○지구"></div>' +
+    '<div class="fitem"><label>읍면</label>' + hzSelect("hz_eup", HZ_EUPS, d.eup) + '</div>' +
+    '<div class="fitem"><label>분류</label>' + hzSelect("hz_c1", HZ_C1, d.c1) + '</div>' +
+    '<div class="fitem"><label>세분류</label><input type="text" id="hz_c2" value="' + esc(d.c2) + '" placeholder="예: 침수위험 지하차도, 하천변"></div>' +
+    '<div class="fitem"><label>피해유형</label><input type="text" id="hz_dmg" value="' + esc(d.dmg) + '" placeholder="예: 침수피해, 급류휩쓸림"></div>' +
+    '<div class="fitem"><label>대피소</label><input type="text" id="hz_sh" value="' + esc(d.sh) + '" placeholder="예: ○○ 마을회관"></div>' +
+    '<div class="fitem"><label>주소 *</label><input type="text" id="hz_addr" value="' + esc(d.addr) + '" placeholder="예: 충청북도 옥천군 옥천읍 금구리 182"></div>' +
+    '<div class="fitem"><label>위치 * <span class="note" style="font-weight:400">(위도·경도)</span></label>' +
+    '<div style="display:flex;gap:6px"><input type="text" id="hz_lat" value="' + fmt(d.lat) + '" placeholder="위도 36.xxxx" style="min-width:0">' +
+    '<input type="text" id="hz_lng" value="' + fmt(d.lng) + '" placeholder="경도 127.xxxx" style="min-width:0"></div>' +
+    '<div style="display:flex;gap:6px;margin-top:6px">' +
+    '<button type="button" class="pbtn" style="flex:1;background:#dbe4f0;color:#1e3a5f" onclick="hzGeocodeAddr()">🔍 주소로 위치 찾기</button>' +
+    '<button type="button" class="pbtn" style="flex:1;background:#dbe4f0;color:#1e3a5f" onclick="hzPickOnMap()">📍 지도에서 찍기</button></div>' +
+    '<div id="hz_locmsg" class="note" style="margin-top:4px">「일원」「/ 하천지역」처럼 설명이 붙은 주소는 좌표를 못 찾을 수 있습니다. 그럴 땐 지도에서 직접 찍어 주세요.</div></div>';
+  openModal(isNew ? "➕ 재해우려지역 추가" : "✏️ 재해우려지역 수정", body, function(){ return saveHazardForm(); });
+}
+function hzReadForm(){
+  var d = _hzDraft || {};
+  ["nm","eup","c1","c2","dmg","sh","addr","lat","lng"].forEach(function(k){
+    var el = document.getElementById("hz_" + k);
+    if(el) d[k] = String(el.value || "").trim();
+  });
+  return d;
+}
+function hzGeocodeAddr(){
+  var d = hzReadForm(), msg = document.getElementById("hz_locmsg");
+  if(!d.addr){ alert("주소를 먼저 입력하세요."); return; }
+  if(!getKey("vw")){ alert("⚙설정에서 VWorld 인증키를 먼저 등록해 주세요."); return; }
+  // 「/ 설명」, 「일원」, 괄호 설명은 떼고 찾는다
+  var q = d.addr.split("/")[0].replace(/\(.*?\)/g, "").replace(/번지/g, "").replace(/일원|일대/g, "").trim();
+  if(q.indexOf("옥천군") < 0) q = "충청북도 옥천군 " + (d.eup && q.indexOf(d.eup) < 0 ? d.eup + " " : "") + q;
+  if(msg) msg.textContent = "위치 찾는 중… (" + q + ")";
+  vwGeocode(q).then(function(r){
+    if(!r){ if(msg) msg.textContent = "좌표를 찾지 못했습니다. 「📍 지도에서 찍기」로 지정해 주세요."; return; }
+    document.getElementById("hz_lat").value = r.lat.toFixed(6);
+    document.getElementById("hz_lng").value = r.lng.toFixed(6);
+    if(msg) msg.textContent = "✔ 위치를 찾았습니다 (" + q + ")";
+    saveGeocodeCache();
+  });
+}
+function hzPickOnMap(){
+  hzReadForm();
+  closeModal();
+  if(typeof cancelDraw === "function") cancelDraw();
+  drawMode = "hazardpick";
+  document.getElementById("hinttxt").textContent = "재해우려지역 위치를 지도에서 눌러 주세요.";
+  document.getElementById("btnFinishLine").style.display = "none";
+  document.getElementById("hint").style.display = "flex";
+  document.body.classList.add("crosshair");
+  var d = _hzDraft;
+  if(d && isFinite(parseFloat(d.lat)) && isFinite(parseFloat(d.lng))){
+    try{ map.setView([parseFloat(d.lat), parseFloat(d.lng)], Math.max(map.getZoom(), 16)); }catch(e){}
+  }
+}
+function hzPickDone(lat, lng){
+  cancelDraw();
+  if(!_hzDraft) return;
+  _hzDraft.lat = lat; _hzDraft.lng = lng; _hzDraft._resume = true;
+  openHazardForm();
+  var msg = document.getElementById("hz_locmsg");
+  if(msg) msg.textContent = "✔ 지도에서 위치를 지정했습니다.";
+}
+function saveHazardForm(){
+  var d = hzReadForm();
+  var lat = parseFloat(d.lat), lng = parseFloat(d.lng);
+  if(!d.nm){ alert("지구명을 입력하세요."); return false; }
+  if(!d.addr){ alert("주소를 입력하세요."); return false; }
+  if(!isFinite(lat) || !isFinite(lng)){ alert("위치(위도·경도)를 지정하세요.\n「주소로 위치 찾기」나 「지도에서 찍기」를 이용하면 됩니다."); return false; }
+  if(lat < 36.0 || lat > 36.6 || lng < 127.3 || lng > 128.0){
+    if(!confirm("지정한 위치가 옥천군 밖으로 보입니다. 그대로 저장할까요?")) return false;
+  }
+  var rec = {nm:d.nm, eup:d.eup, c1:d.c1, c2:d.c2, dmg:d.dmg, sh:d.sh, addr:d.addr, lat:+lat.toFixed(6), lng:+lng.toFixed(6)};
+  if(d.ref === "c"){
+    customHazards = customHazards.map(function(x){
+      if(x.id !== d.id) return x;
+      var y = {}; for(var k in x) y[k] = x[k];
+      for(var k2 in rec) y[k2] = rec[k2];
+      delete y.del; y.upd = Date.now();
+      return y;
+    });
+  } else {
+    rec.id = uid(); rec.at = Date.now();
+    rec.base = d.ref === "b" ? d.base : null;
+    if(rec.base){ customHazards = customHazards.filter(function(x){ return x.base !== rec.base; }); }
+    customHazards.push(rec);
+  }
+  _hzDraft = null;
+  saveCustomHazards();
+  redrawHazardLayer(true);
+  try{ map.setView([lat, lng], Math.max(map.getZoom(), 16)); }catch(e){}
+  setTimeout(function(){ alert((d.ref === "new" ? "추가" : "수정") + "되었습니다: " + d.nm); }, 50);
+  return true;
+}
+function hideBaseHazard(no){
+  var b = HAZARD_SITES.filter(function(x){ return x.no === no; })[0];
+  if(!b) return;
+  if(!confirm("지도에서 숨길까요? (목록에서 「다시 표시」로 되돌릴 수 있습니다)\n" + b.nm + " · " + b.addr)) return;
+  customHazards = customHazards.filter(function(x){ return x.base !== no; });
+  customHazards.push({id:uid(), base:no, del:true, at:Date.now()});
+  saveCustomHazards();
+  redrawHazardLayer(false);
+  renderHazardList();
+}
+// 추가한 곳은 삭제, 기본자료 수정본·숨김은 원래대로 되돌린다
+function removeHazard(id){
+  var c = customHazards.filter(function(x){ return x.id === id; })[0];
+  if(!c) return;
+  var b = c.base ? HAZARD_SITES.filter(function(x){ return x.no === c.base; })[0] : null;
+  var nm = c.nm || (b && b.nm) || "";
+  var q = !c.base ? "삭제할까요?\n" + nm : (c.del ? "다시 지도에 표시할까요?\n" + nm : "수정 전 엑셀 기본자료로 되돌릴까요?\n" + nm);
+  if(!confirm(q)) return;
+  customHazards = customHazards.filter(function(x){ return x.id !== id; });
+  saveCustomHazards();
+  redrawHazardLayer(false);
+  renderHazardList();
 }
 // 위험지역 추가 등록 폼
 function openAddRiskSiteForm(){
@@ -3604,6 +3857,17 @@ function initFirebase(){
         if(typeof renderShelters === "function") renderShelters();
       });
     }catch(e){}
+    customHazardRef = db.ref("okc_customhazard_v6");
+    customHazardRef.on("value", function(snap){
+      var v = snap.val();
+      var next = Array.isArray(v) ? v : (v ? Object.keys(v).map(function(k){ return v[k]; }) : []);
+      next = next.filter(Boolean);
+      if(JSON.stringify(next) === JSON.stringify(customHazards)) return;
+      customHazards = next;
+      try{ localStorage.setItem("okc6_customhazard", JSON.stringify(customHazards)); }catch(e){}
+      redrawHazardLayer(false);   // 다른 담당자가 바꾼 내용 반영
+      renderHazardList();
+    });
     customRiskRef = db.ref("okc_customrisk_v6");
     customRiskRef.on("value", function(snap){
       var v = snap.val();
@@ -5052,6 +5316,10 @@ map.on("click", function(e){
   if(window._msMode) return;   // 측량 모드에서는 측량 전용 처리
   dbgLog("좌클릭 감지 (모드:" + (drawMode||"없음") + ")");
   if(window._tapHandled && Date.now() - window._tapHandled < 700){ return; }
+  if(drawMode === "hazardpick"){
+    hzPickDone(e.latlng.lat, e.latlng.lng);
+    return;
+  }
   if(drawMode === "disaster"){
     var ll = [e.latlng.lat, e.latlng.lng];
     cancelDraw();
@@ -5139,10 +5407,13 @@ var _lpTimer = null, _lpLL = null, _lpMoved = false;
   container.addEventListener("touchend", function(){
     if(_lpTimer){ clearTimeout(_lpTimer); _lpTimer=null; }
     // 등록 모드에서 짧은 탭 → 지점 선택 (Leaflet click 누락 대비)
-    if(!_lpMoved && _lpLL && (drawMode === "disaster" || drawMode === "closure")){
+    if(!_lpMoved && _lpLL && (drawMode === "disaster" || drawMode === "closure" || drawMode === "hazardpick")){
       var ll = _lpLL;
       window._tapHandled = Date.now();
-      if(drawMode === "disaster"){
+      if(drawMode === "hazardpick"){
+        var la = Array.isArray(ll) ? ll[0] : ll.lat, ln = Array.isArray(ll) ? ll[1] : ll.lng;
+        hzPickDone(la, ln);
+      } else if(drawMode === "disaster"){
         cancelDraw();
         openDisasterForm(ll);
       } else if(drawMode === "closure"){
@@ -8375,6 +8646,7 @@ renderChat();
 loadGeocodeCache();
 loadParcelCache();
 loadCustomRiskSites();
+loadCustomHazards();
 loadWeather();
 setInterval(loadWeather, 10 * 60 * 1000);
 setMobileTab("map");
