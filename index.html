@@ -193,6 +193,16 @@ main{flex:1;display:flex;min-height:0}
 #ovlpanel .ovlttl span{font-weight:400;color:#9ca3af;font-size:10px}
 #ovlpanel .ovlsep{border-top:1px solid #e5e7eb;margin:8px 0}
 #ovlpanel .ovladd{width:100%;margin-top:6px;border:1px solid #1e3a5f;background:#1e3a5f;color:#fff;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer}
+#ovlpanel .ovladd.ovledit{background:#fff !important;color:#1e3a5f !important}
+.rsedit-bar{display:flex;gap:6px;margin-bottom:8px}
+.rsedit-bar select{flex:0 0 auto;width:auto}
+.rsedit-bar input{flex:1 1 auto;min-width:0}
+.rsedit-item{display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid #eef1f5}
+.rsedit-item .rsi-txt{flex:1 1 auto;min-width:0;font-size:12.5px;line-height:1.35}
+.rsedit-item .rsi-txt span{display:block;color:#6b7280;font-size:11.5px;word-break:keep-all}
+.rsedit-item .rsi-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;background:#fef3c7;color:#92400e;margin-left:4px;font-weight:600}
+.rsedit-item button{flex:none;border:1px solid #1e3a5f;background:#fff;color:#1e3a5f;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
+.rsedit-back{background:none;border:none;color:#1e3a5f;font-size:12px;padding:0 0 8px;cursor:pointer}
 @media (max-width:860px){ #ovlpanel{max-height:60vh;overflow-y:auto} }
 @media (max-width:860px){ #rstack{display:contents} }
 .lyb{border:1px solid #e5e7eb;background:#f8fafc;border-radius:9px;padding:9px 4px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;color:#334155;display:flex;align-items:center;justify-content:center;text-align:center;min-height:40px}
@@ -1856,6 +1866,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div id="geocode_status" style="font-size:10.5px;color:#9ca3af;margin-top:3px"></div>
     <div class="ovlsep"></div>
     <button class="ovladd" onclick="openAddRiskSiteForm()">➕ 위험지역 추가 등록</button>
+    <button class="ovladd ovledit" onclick="openEditRiskSiteList()">✏️ 위험지역 수정</button>
   </div>
   <div id="roadpanel">
     <div class="rzttl">도로구역 <span>국토교통부 V-World 2026-09</span>
@@ -2605,6 +2616,17 @@ function saveCustomRiskSites(){
 function customRiskAddrs(kind){
   return customRiskSites.filter(function(s){ return s.kind === kind; }).map(function(s){ return s.addr; });
 }
+// 기본자료(고시) 주소 중 담당자가 수정해 대체한 주소는 빼고, 담당자 등록·수정분을 더한다.
+// 기본자료를 수정하면 {rk:원래종류, ra:원래주소}를 가진 항목이 새로 생기고, 그 항목을 지우면 원래대로 돌아간다.
+function riskBaseAddrs(kind){ return kind === "steep" ? STEEP_ADDRS : LAND_ADDRS; }
+function isBaseReplaced(kind, addr){
+  return customRiskSites.some(function(s){ return s.rk === kind && s.ra === addr; });
+}
+function effectiveRiskAddrs(kind){
+  var base = riskBaseAddrs(kind).filter(function(a){ return !isBaseReplaced(kind, a); });
+  var seen = {};
+  return base.concat(customRiskAddrs(kind)).filter(function(a){ if(seen[a]) return false; seen[a] = 1; return true; });
+}
 function customRiskName(kind, addr){
   var s = customRiskSites.filter(function(x){ return x.kind === kind && x.addr === addr; })[0];
   return s ? s.name : "";
@@ -2613,13 +2635,13 @@ function toggleSteep(on){
   if(!on){ if(map.hasLayer(steepLayer)) map.removeLayer(steepLayer); return; }
   var key = getKey("vw");
   if(!key){ alert("급경사지 표시는 ⚙설정에서 VWorld 인증키가 필요합니다."); document.getElementById("steep_show").checked = false; return; }
-  renderRiskLayer("steep", STEEP_ADDRS.concat(customRiskAddrs("steep")), steepLayer, "#facc15", "급경사지");
+  renderRiskLayer("steep", effectiveRiskAddrs("steep"), steepLayer, "#facc15", "급경사지");
 }
 function toggleLandslide(on){
   if(!on){ if(map.hasLayer(landslideLayer)) map.removeLayer(landslideLayer); return; }
   var key = getKey("vw");
   if(!key){ alert("산사태취약지역 표시는 ⚙설정에서 VWorld 인증키가 필요합니다."); document.getElementById("landslide_show").checked = false; return; }
-  renderRiskLayer("landslide", LAND_ADDRS.concat(customRiskAddrs("landslide")), landslideLayer, "#a3e635", "산사태취약지역");
+  renderRiskLayer("landslide", effectiveRiskAddrs("landslide"), landslideLayer, "#a3e635", "산사태취약지역");
 }
 /* ---------- 재해우려지역 (26년 여름철 인명피해우려지역 현황, 엑셀 좌표 그대로 사용) ----------
    no 순번 / nm 지역명 / c1 분류(I열) / c2 세분류(J열) / dmg 피해유형 및 통계기준(K열) / sh 대피소 명칭(P열) / addr 주소(AB열) */
@@ -2728,16 +2750,18 @@ function renderAddedRiskList(){
   el.innerHTML = customRiskSites.slice().reverse().map(function(s){
     var label = s.kind === "steep" ? "급경사지" : "산사태취약지역";
     return '<div class="addedrisk-item">' +
-      '<b>' + esc(label) + '</b> ' + esc(s.name || "") + '<br>' +
+      '<b>' + esc(label) + '</b> ' + esc(s.name || "") + (s.ra ? ' <span class="note">(기본자료 수정)</span>' : '') + '<br>' +
       '<span class="note">' + esc(s.addr) + '</span>' +
-      '<button class="pbtn" style="background:#e5e7eb;color:#374151;font-size:11px;padding:3px 7px;margin-left:6px" ' +
-      'onclick="removeCustomRiskSite(\'' + s.id + '\')">삭제</button></div>';
+      '<button class="pbtn" style="background:#dbe4f0;color:#1e3a5f;font-size:11px;padding:3px 7px;margin-left:6px" ' +
+      'onclick="openEditRiskSiteForm(\'c\',\'' + s.id + '\')">수정</button>' +
+      '<button class="pbtn" style="background:#e5e7eb;color:#374151;font-size:11px;padding:3px 7px;margin-left:4px" ' +
+      'onclick="removeCustomRiskSite(\'' + s.id + '\')">' + (s.ra ? '되돌리기' : '삭제') + '</button></div>';
   }).join("");
 }
 function removeCustomRiskSite(id){
   var s = customRiskSites.filter(function(x){ return x.id === id; })[0];
   if(!s) return;
-  if(!confirm("삭제할까요?\n" + (s.name || s.addr))) return;
+  if(!confirm((s.ra ? "수정 전 기본자료로 되돌릴까요?\n" : "삭제할까요?\n") + (s.name || s.addr))) return;
   customRiskSites = customRiskSites.filter(function(x){ return x.id !== id; });
   saveCustomRiskSites();
   // 다시 그리기 위해 캐시 리셋
@@ -2746,6 +2770,138 @@ function removeCustomRiskSite(id){
   if(document.getElementById("steep_show") && document.getElementById("steep_show").checked) toggleSteep(true);
   if(document.getElementById("landslide_show") && document.getElementById("landslide_show").checked) toggleLandslide(true);
   renderAddedRiskList();
+}
+/* ---------- 위험지역 수정 (급경사지·산사태취약지역) ----------
+   담당자 등록분은 그 항목을 고치고, 기본자료(고시)는 원래 주소를 대체하는 항목을 새로 만든다.
+   기본자료 수정분은 '되돌리기'로 언제든 원래대로 돌아간다. */
+var _rsEditKind = "steep", _rsEditQ = "";
+function riskKindLabel(k){ return k === "steep" ? "급경사지" : "산사태취약지역"; }
+// 화면에 보이는 위험지역 전체 목록 (기본자료 + 담당자 등록분)
+function riskEditEntries(kind){
+  var out = [];
+  var base = riskBaseAddrs(kind);
+  base.forEach(function(a, i){
+    if(isBaseReplaced(kind, a)) return;
+    var nm = (kind === "steep" && typeof STEEP_NAMES !== "undefined" && STEEP_NAMES[i]) ? STEEP_NAMES[i] : "";
+    out.push({ref:"b", kind:kind, addr:a, name:nm, idx:i});
+  });
+  customRiskSites.forEach(function(s){
+    if(s.kind === kind) out.push({ref:"c", kind:kind, addr:s.addr, name:s.name || "", id:s.id, edited:!!s.ra, added:!s.ra});
+  });
+  return out;
+}
+function openEditRiskSiteList(){
+  var body =
+    '<div class="rsedit-bar">' +
+    '<select id="rse_kind" onchange="_rsEditKind=this.value;renderRiskEditList()">' +
+    '<option value="steep"' + (_rsEditKind === "steep" ? ' selected' : '') + '>급경사지</option>' +
+    '<option value="landslide"' + (_rsEditKind === "landslide" ? ' selected' : '') + '>산사태취약지역</option>' +
+    '</select>' +
+    '<input type="text" id="rse_q" placeholder="리·지번·지구명 검색 (예: 문정리)" value="' + esc(_rsEditQ) + '" ' +
+    'oninput="_rsEditQ=this.value;renderRiskEditList()"></div>' +
+    '<div id="rse_cnt" class="note" style="margin-bottom:4px"></div>' +
+    '<div id="rse_list"></div>';
+  openModal("✏️ 위험지역 수정", body, function(){ return true; });
+  var ok = document.getElementById("mok"); if(ok) ok.textContent = "닫기";
+  renderRiskEditList();
+}
+function renderRiskEditList(){
+  var el = document.getElementById("rse_list");
+  if(!el) return;
+  var q = (_rsEditQ || "").replace(/\s+/g, "");
+  var all = riskEditEntries(_rsEditKind);
+  var hit = all.filter(function(e){
+    if(!q) return true;
+    return (e.addr + e.name).replace(/\s+/g, "").indexOf(q) >= 0;
+  });
+  // 담당자 등록·수정분을 위에 보여준다
+  hit.sort(function(a, b){ return (a.ref === "c" ? 0 : 1) - (b.ref === "c" ? 0 : 1); });
+  var LIMIT = 60;
+  var cnt = document.getElementById("rse_cnt");
+  if(cnt) cnt.textContent = riskKindLabel(_rsEditKind) + " " + all.length + "곳 중 " + hit.length + "곳" +
+    (hit.length > LIMIT ? " (위에서 " + LIMIT + "곳만 표시 — 검색어로 좁혀 주세요)" : "");
+  if(!hit.length){ el.innerHTML = '<div class="note">검색 결과가 없습니다.</div>'; return; }
+  el.innerHTML = hit.slice(0, LIMIT).map(function(e){
+    var arg = e.ref === "c" ? "'c','" + e.id + "'" : "'b','" + e.kind + "'," + e.idx;
+    var tag = e.edited ? '<em class="rsi-tag">수정됨</em>' : (e.added ? '<em class="rsi-tag" style="background:#dcfce7;color:#166534">추가</em>' : '');
+    return '<div class="rsedit-item"><div class="rsi-txt"><b>' + esc(e.name || "(명칭 없음)") + '</b>' + tag +
+      '<span>' + esc(e.addr) + '</span></div>' +
+      '<button onclick="openEditRiskSiteForm(' + arg + ')">수정</button></div>';
+  }).join("");
+}
+// ref: 'c'(담당자 등록분, id) 또는 'b'(기본자료, kind, 순번)
+function openEditRiskSiteForm(ref, a, b){
+  var cur;
+  if(ref === "c"){
+    var s = customRiskSites.filter(function(x){ return x.id === a; })[0];
+    if(!s){ alert("이미 삭제되었거나 다른 담당자가 바꾼 항목입니다."); return; }
+    cur = {ref:"c", id:s.id, kind:s.kind, addr:s.addr, name:s.name || "", ra:s.ra};
+  } else {
+    var addr0 = riskBaseAddrs(a)[b];
+    if(!addr0){ alert("항목을 찾지 못했습니다."); return; }
+    var nm0 = (a === "steep" && typeof STEEP_NAMES !== "undefined" && STEEP_NAMES[b]) ? STEEP_NAMES[b] : "";
+    cur = {ref:"b", kind:a, addr:addr0, name:nm0};
+  }
+  var body =
+    '<button type="button" class="rsedit-back" onclick="openEditRiskSiteList()">← 목록으로</button>' +
+    (cur.ref === "b" ? '<div class="note" style="margin-bottom:8px">고시된 기본자료입니다. 저장하면 수정본이 대신 표시되고, 「위험지역 추가 등록」 목록에서 <b>되돌리기</b>로 원래대로 돌릴 수 있습니다.</div>' : '') +
+    (cur.ra ? '<div class="note" style="margin-bottom:8px">원래 기본자료: ' + esc(cur.ra) + '</div>' : '') +
+    '<div class="fitem"><label>종류</label>' +
+    '<select id="rse_kind2">' +
+    '<option value="steep"' + (cur.kind === "steep" ? ' selected' : '') + '>급경사지</option>' +
+    '<option value="landslide"' + (cur.kind === "landslide" ? ' selected' : '') + '>산사태취약지역</option>' +
+    '</select></div>' +
+    '<div class="fitem"><label>주소 (지번 주소)</label>' +
+    '<input type="text" id="rse_addr" value="' + esc(cur.addr) + '"></div>' +
+    '<div class="fitem"><label>지구명/명칭 <span class="note" style="font-weight:400">(선택)</span></label>' +
+    '<input type="text" id="rse_name" value="' + esc(cur.name) + '" placeholder="예: ○○지구"></div>' +
+    '<div class="note">주소를 바꾸면 VWorld 지오코딩으로 위치를 다시 찾습니다. 주소를 찾지 못하면 저장되지 않습니다.</div>';
+  openModal("✏️ 위험지역 수정 — " + riskKindLabel(cur.kind), body, function(){
+    var kind = val("rse_kind2");
+    var addr = val("rse_addr").trim().replace(/\s+/g, " ");
+    var name = val("rse_name").trim();
+    if(!addr){ alert("주소를 입력하세요."); return false; }
+    if(kind === cur.kind && addr === cur.addr && name === cur.name){ alert("바뀐 내용이 없습니다."); return false; }
+    // 같은 종류에 같은 주소가 이미 있으면 막는다 (자기 자신은 제외)
+    if((kind !== cur.kind || addr !== cur.addr) && effectiveRiskAddrs(kind).indexOf(addr) >= 0){
+      alert("이미 같은 주소의 " + riskKindLabel(kind) + "이(가) 있습니다."); return false;
+    }
+    var finish = function(pos){
+      if(cur.ref === "c"){
+        customRiskSites = customRiskSites.map(function(x){
+          if(x.id !== cur.id) return x;
+          var y = {}; for(var k in x) y[k] = x[k];
+          y.kind = kind; y.addr = addr; y.name = name; y.upd = Date.now();
+          return y;
+        });
+      } else {
+        customRiskSites.push({id:uid(), kind:kind, addr:addr, name:name, rk:cur.kind, ra:cur.addr, at:Date.now()});
+      }
+      saveCustomRiskSites();
+      saveGeocodeCache();
+      redrawRiskLayers(kind);
+      renderAddedRiskList();
+      if(pos && typeof map !== "undefined"){ try{ map.setView([pos.lat, pos.lng], Math.max(map.getZoom(), 16)); }catch(e){} }
+      alert("수정되었습니다: " + (name || addr));
+    };
+    if(addr === cur.addr){ finish(geocodeCache[addr] || null); return true; }
+    if(!getKey("vw")){ alert("⚙설정에서 VWorld 인증키를 먼저 등록해 주세요."); return false; }
+    vwGeocode(addr).then(function(r){
+      if(!r){ alert("주소의 좌표를 찾지 못해 저장하지 않았습니다. 지번 주소를 다시 확인해 주세요.\n(예: 충청북도 옥천군 옥천읍 문정리 345-7)"); return; }
+      finish(r);
+    });
+    return true;
+  });
+}
+// 수정 후 두 레이어를 다시 그린다 (수정한 종류는 꺼져 있으면 켠다)
+function redrawRiskLayers(showKind){
+  steepLayer._builtCount = 0;
+  landslideLayer._builtCount = 0;
+  var se = document.getElementById("steep_show"), le = document.getElementById("landslide_show");
+  if(showKind === "steep" && se) se.checked = true;
+  if(showKind === "landslide" && le) le.checked = true;
+  if(se && se.checked) toggleSteep(true); else if(map.hasLayer(steepLayer)) map.removeLayer(steepLayer);
+  if(le && le.checked) toggleLandslide(true); else if(map.hasLayer(landslideLayer)) map.removeLayer(landslideLayer);
 }
 function renderRiskLayer(kind, addrs, layer, color, label){
   var st = document.getElementById("geocode_status");
@@ -2839,8 +2995,8 @@ function runParcelQueue(){
 
 function addRiskMarker(layer, pos, color, label, addr){
   var c = L.circle([pos.lat, pos.lng], {radius:40, color:color, weight:1, fillColor:color, fillOpacity:0.7, interactive:false});
-  var name = "";
-  if(label === "급경사지" && typeof STEEP_NAMES !== "undefined"){
+  var name = customRiskName(label === "급경사지" ? "steep" : "landslide", addr) || "";
+  if(!name && label === "급경사지" && typeof STEEP_NAMES !== "undefined"){
     var idx = STEEP_ADDRS.indexOf(addr);
     if(idx >= 0 && STEEP_NAMES[idx]) name = STEEP_NAMES[idx];
   }
@@ -4409,6 +4565,8 @@ function openModal(title, body, onOk, initPhotos, wide){
   _photos = Array.isArray(initPhotos) ? initPhotos.slice() : [];
   bindPhotoInput();
   renderVictims();   // 피해자 입력칸이 있는 폼이면 그려 준다
+  document.getElementById("mok").textContent = "저장";   // 수정 목록 창에서 '닫기'로 바꾼 것을 되돌린다
+  document.getElementById("mok").textContent = "저장";   // 수정 목록 창에서 '닫기'로 바꾼 것을 되돌린다
   document.getElementById("mok").onclick = function(){
     if(onOk() !== false) closeModal();
   };
