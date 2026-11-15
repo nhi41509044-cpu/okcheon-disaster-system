@@ -11236,7 +11236,9 @@ map.on("zoomend", function(){ upStatus(); });
   #lyrs .lyrsgrid .lyb.on{background:#0f2540 !important;border-color:#0f2540 !important;color:#fff !important}
 }
 
-@media (min-width:861px){ #lyrs .lyrsgrid{flex-wrap:wrap !important} }
+@media (min-width:861px){ /* 주제도 버튼까지 한 줄에 들어가게 버튼 여백만 줄인다 */
+  #lyrs .lyrsgrid{flex-wrap:nowrap !important;gap:4px !important}
+  #lyrs .lyrsgrid .lyb{padding:0 7px !important;letter-spacing:-.06em !important} }
 /* 2) 레이어 패널: 흰 카드 확보 + 날씨·특보 카드(z-index 1200)보다 위로 */
 #ovlpanel,#roadpanel,#rivpanel,#gbpanel,#agpanel,#wqpanel,#uppanel,#rnpanel,#wlpanel,#shpanel{z-index:1500 !important;
   background:#fff !important;border:1px solid #e3e9f0 !important;border-radius:14px !important;
