@@ -14209,98 +14209,242 @@ function mnlDelImg(){
   };
 })();
 </script>
-<style id="wx-fold-css">
-/* ===== 모바일 날씨·특보 카드 내리기/올리기 ===== */
-#wxfold,#wxmini{display:none}
+<style id="bn-circle-css">
+/* ===== 날씨·특보 배너 닫기/다시 열기 원형 버튼 (PC·모바일), 모바일 검색 원형 버튼 ===== */
+#bncbar{position:absolute;z-index:1180;display:flex;gap:10px;pointer-events:none}
+#bncbar .bnc{pointer-events:auto;position:relative;width:58px;height:58px;padding:0;border-radius:50%;
+  border:1.5px solid #dbe2ea;background:#fff;color:#0f2540;font-family:inherit;font-size:11px;font-weight:800;
+  letter-spacing:-.03em;line-height:1.1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  cursor:pointer;box-shadow:0 6px 18px rgba(15,37,64,.22);transition:background .15s,color .15s,transform .1s}
+#bncbar .bnc:active{transform:scale(.94)}
+#bncbar .bnc .bnci{font-size:19px;line-height:1}
+#bncbar .bnc.on{background:#0f2540;border-color:#0f2540;color:#fff}
+#bncbar .bnc .bncb{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;
+  border-radius:9px;background:#d92d20;color:#fff;font-size:10.5px;line-height:15px;border:1.5px solid #fff}
+#bnc_search{display:none !important}
+/* PC: 지도 왼쪽 아래 가로 배치 */
+@media (min-width:861px){
+  #bncbar{left:14px;bottom:14px;flex-direction:row}
+}
+/* 모바일: 지도 오른쪽 위 세로 배치 (검색·날씨·특보) */
 @media (max-width:860px){
-  /* 카드 맨 위 손잡이: 누르거나 아래로 밀면 내려간다 */
-  html body #wxdock #wxfold{display:flex;position:absolute;left:50%;top:0;transform:translateX(-50%);z-index:1200;
-    width:64px;height:16px;padding:0;border:0;border-radius:0 0 10px 10px;background:transparent;
-    align-items:center;justify-content:center;cursor:pointer;font-size:0;color:transparent}
-  html body #wxdock #wxfold::before{content:"";width:34px;height:4px;border-radius:2px;background:#c3cdd9}
-  html body #wxdock #wxfold:active::before{background:#8493a6}
-  html body:not(.wx-folded) #wxdock #wxbar{padding-top:15px}
-  /* 내린 상태: 한 줄 요약만 남긴다 */
-  html body.wx-folded #wxdock #wxbar,html body.wx-folded #wxdock #warnbanners,html body.wx-folded #wxdock #wxfold{display:none !important}
-  html body.wx-folded #wxdock{left:auto;right:10px;border-radius:999px}
-  html body.wx-folded #wxdock #wxmini{display:flex;align-items:center;gap:7px;min-height:36px;padding:0 12px 0 13px;
-    border:0;border-radius:999px;background:#fff;color:#0f2540;font-family:inherit;font-size:12.5px;font-weight:800;
-    letter-spacing:-.03em;white-space:nowrap;cursor:pointer}
-  html body.wx-folded #wxdock #wxmini .wm-t{font-size:15px}
-  html body.wx-folded #wxdock #wxmini .wm-w{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;
-    background:#fff7ea;color:#8a5411;font-size:11.5px}
-  html body.wx-folded #wxdock #wxmini .wm-w.al{background:#fdeceb;color:#b42318}
-  html body.wx-folded #wxdock #wxmini .wm-w.ok{background:#e8f5ef;color:#12805c}
-  html body.wx-folded #wxdock #wxmini .wm-up{color:#5b6b7d;font-size:12px;margin-left:1px}
-  html body.wx-folded #wxdock>.bctl{display:none}
+  #bncbar{right:10px;top:10px;flex-direction:column;gap:9px}
+  #bncbar .bnc{width:54px;height:54px;font-size:10.5px}
+  #bnc_search{display:flex !important}
+  body.thr-active #bncbar,body.panel-open #bncbar{display:none}
+}
+
+/* 배너 닫기(×) 버튼 */
+.bnx{position:absolute;z-index:1300;width:24px;height:24px;padding:0;border-radius:50%;border:1.5px solid #fff;
+  background:#5b6b7d;color:#fff;font-family:inherit;font-size:13px;font-weight:800;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(15,37,64,.3)}
+.bnx:active{background:#0f2540}
+@media (min-width:861px){
+  #wxbar>.bnx,#warnbanners>.bnx{top:-10px;left:-10px}
+}
+@media (max-width:860px){
+  html body #wxdock #wxbar{position:relative;padding-right:42px}
+  html body #wxdock #wxbar::after{padding-left:4px}
+  html body #wxdock #wxbar>.bnx{top:50%;right:9px;transform:translateY(-50%);background:#eef2f7;color:#5b6b7d;border-color:#eef2f7;box-shadow:none}
+  html body #wxdock #warnbanners{position:relative}
+  html body #wxdock #warnbanners>.bnx{top:7px;right:9px;background:#eef2f7;color:#5b6b7d;border-color:#eef2f7;box-shadow:none}
+  html body #wxdock #warnbanners .warnban .wdel{top:auto;bottom:6px;transform:none}
+}
+/* 등록 특보 해제 버튼은 '해제' 글자로 구분 (배너 닫기 ×와 혼동 방지) */
+.warnban .wdel{font-size:0 !important}
+.warnban .wdel::after{content:"해제";font-size:10.5px;font-weight:800;color:#b42318;background:#fdeceb;border-radius:6px;padding:2px 6px}
+
+/* 숨김 상태 */
+html body.wx-hide #wxbar{display:none !important}
+html body.wn-hide #warnbanners{display:none !important}
+@media (max-width:860px){
+  html body.wx-hide.wn-hide #wxdock{display:none !important}
+  html body.wx-hide #wxdock #warnbanners{border-top:0;border-radius:14px}
+  html body.wn-hide #wxdock #wxbar{border-radius:14px}
+}
+
+/* 모바일 검색 창 (화면 가운데) */
+#msearch{display:none}
+@media (max-width:860px){
+  #msearch.open{display:block;position:fixed;inset:0;z-index:2400}
+  #msearch .msbd{position:absolute;inset:0;background:rgba(15,37,64,.45)}
+  #msearch .mscard{position:absolute;left:14px;right:14px;top:50%;transform:translateY(-58%);
+    background:#fff;border-radius:18px;padding:16px 14px 14px;box-shadow:0 18px 40px rgba(15,37,64,.35)}
+  #msearch .msttl{display:flex;align-items:center;justify-content:space-between;margin:0 2px 10px;
+    font-size:14px;font-weight:800;color:#0f2540;letter-spacing:-.02em}
+  #msearch .msclose{width:30px;height:30px;border:0;border-radius:50%;background:#eef2f7;color:#5b6b7d;font-size:15px;
+    font-weight:800;cursor:pointer;font-family:inherit}
+  #msearch .msrow{display:flex;gap:8px}
+  #msearch .msrow label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  #msearch input{flex:1;min-width:0;height:46px;border:1.5px solid #0f2540;border-radius:12px;padding:0 13px;
+    font-size:16px;font-family:inherit;color:#0f2540;outline:none;background:#fff}
+  #msearch input:focus{box-shadow:0 0 0 3px rgba(31,111,235,.18)}
+  #msearch .msgo{flex:none;height:46px;padding:0 16px;border:0;border-radius:12px;background:#0f2540;color:#fff;
+    font-size:14px;font-weight:800;font-family:inherit;cursor:pointer}
+  #msearch .mshint{margin:9px 2px 0;font-size:11.5px;color:#5b6b7d;line-height:1.45}
+  #msearch .msres{margin-top:8px;max-height:38vh;overflow-y:auto}
+  #msearch .msres:empty{display:none}
+  #msearch .msres .sr,#msearch .msres button{display:block;width:100%;text-align:left;padding:11px 10px;margin:0 0 6px;
+    border:1px solid #e6ebf2;border-radius:10px;background:#f6f8fb;color:#0f2540;font-size:13px;font-weight:700;
+    font-family:inherit;cursor:pointer}
+  #msearch .msres .note{font-size:12px;color:#5b6b7d;padding:6px 2px}
 }
 </style>
+<div id="msearch" aria-hidden="true">
+  <div class="msbd"></div>
+  <div class="mscard" role="dialog" aria-modal="true" aria-labelledby="msearch_t">
+    <div class="msttl"><span id="msearch_t">🔍 주소·상황 검색</span>
+      <button type="button" class="msclose" aria-label="검색 창 닫기">✕</button></div>
+    <form class="msrow" onsubmit="return false">
+      <label for="msearch_q">검색어</label>
+      <input id="msearch_q" type="search" placeholder="예) 옥천읍 금구리 123-4 · 침수" autocomplete="off" enterkeyhint="search">
+      <button type="submit" class="msgo">검색</button>
+    </form>
+    <div class="mshint">등록된 상황(위치·유형·내용)을 먼저 찾고, 없으면 주소·지번으로 찾아 지도를 이동합니다.</div>
+    <div class="msres" id="msearch_res"></div>
+  </div>
+</div>
 <script>
-/* ---------- 모바일 날씨·특보 카드 내리기/올리기 ----------
-   ⌄ 버튼을 누르거나 카드를 아래로 밀면 한 줄 요약으로 내려가고,
-   요약을 누르거나 위로 밀면 다시 올라온다. 상태는 이 기기에 기억한다. */
+/* ---------- 날씨·특보 배너: ×로 닫고 원형 버튼으로 다시 열기 (PC·모바일 공통) ---------- */
 (function(){
-  var dock = document.getElementById("wxdock");
-  if(!dock) return;
-  var KEY = "okc6_wxfold";
-  var fold = document.createElement("button");
-  fold.id = "wxfold"; fold.type = "button";
-  fold.setAttribute("aria-label", "날씨·특보 카드 내리기");
-  fold.textContent = "⌄";
-  var mini = document.createElement("button");
-  mini.id = "wxmini"; mini.type = "button";
-  mini.setAttribute("aria-label", "날씨·특보 카드 올리기");
-  dock.insertBefore(fold, dock.firstChild);
-  dock.appendChild(mini);
+  var wrap = document.getElementById("mapwrap");
+  var wx = document.getElementById("wxbar"), wb = document.getElementById("warnbanners");
+  if(!wrap || !wx || !wb) return;
+  var KEY = "okc6_bnhide";
+  var st = {wx:false, wn:false};
+  try{ var v = JSON.parse(localStorage.getItem(KEY) || "null"); if(v){ st.wx = !!v.wx; st.wn = !!v.wn; } }catch(e){}
 
-  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
-  function summary(){
-    var t = document.querySelector("#wxbar .wxtemp");
-    var ws = document.querySelectorAll("#warnbanners .warnban:not(.warn-none) .wttl");
-    var alert = document.querySelector("#warnbanners .warn-alert");
-    var w;
-    if(ws.length){
-      w = '<span class="wm-w' + (alert ? ' al' : '') + '">⚠ ' + esc(ws[0].textContent.trim()) +
-          (ws.length > 1 ? ' 외 ' + (ws.length - 1) : '') + '</span>';
-    } else {
-      w = '<span class="wm-w ok">특보 없음</span>';
-    }
-    mini.innerHTML = (t ? '<span class="wm-t">' + esc(t.textContent.trim()) + '</span>' : '<span>날씨</span>') +
-      w + '<span class="wm-up" aria-hidden="true">⌃</span>';
+  var bar = document.createElement("div");
+  bar.id = "bncbar";
+  bar.innerHTML =
+    '<button type="button" class="bnc" id="bnc_search" aria-label="검색 창 열기"><span class="bnci">🔍</span>검색</button>' +
+    '<button type="button" class="bnc" id="bnc_wx" aria-label="날씨 배너 보이기/닫기"><span class="bnci">🌤️</span>날씨</button>' +
+    '<button type="button" class="bnc" id="bnc_wn" aria-label="기상특보 배너 보이기/닫기"><span class="bnci">⚠️</span>특보</button>';
+  wrap.appendChild(bar);
+  var bWx = document.getElementById("bnc_wx"), bWn = document.getElementById("bnc_wn");
+
+  function mkX(label, fn){
+    var x = document.createElement("button");
+    x.type = "button"; x.className = "bnx"; x.textContent = "✕";
+    x.setAttribute("aria-label", label);
+    x.addEventListener("click", function(ev){ ev.stopPropagation(); ev.preventDefault(); fn(); });
+    x.addEventListener("pointerdown", function(ev){ ev.stopPropagation(); });
+    return x;
   }
-  function set(on, save){
-    document.body.classList.toggle("wx-folded", on);
-    if(on) summary();
-    if(save){ try{ localStorage.setItem(KEY, on ? "1" : "0"); }catch(e){} }
+  function ensureX(){
+    if(!wx.querySelector(":scope > .bnx")) wx.appendChild(mkX("날씨 배너 닫기", function(){ set("wx", true); }));
+    if(!wb.querySelector(":scope > .bnx")) wb.insertBefore(mkX("특보 배너 닫기", function(){ set("wn", true); }), wb.firstChild);
   }
-  fold.addEventListener("click", function(ev){ ev.stopPropagation(); set(true, true); });
-  mini.addEventListener("click", function(ev){ ev.stopPropagation(); set(false, true); });
+  function warnSig(){
+    return Array.prototype.map.call(wb.querySelectorAll(".warnban:not(.warn-none) .wttl"), function(e){ return e.textContent.trim(); }).sort().join("|");
+  }
+  var hiddenSig = null;
+  function syncDock(){
+    var dock = document.getElementById("wxdock");
+    if(!dock) return;
+    if(st.wx && st.wn && window.innerWidth <= 860) document.documentElement.style.setProperty("--wxdock-h", "-8px");
+    else setTimeout(function(){ var h = dock.offsetHeight; if(h > 0) document.documentElement.style.setProperty("--wxdock-h", h + "px"); }, 30);
+  }
+  function render(){
+    document.body.classList.toggle("wx-hide", st.wx);
+    document.body.classList.toggle("wn-hide", st.wn);
+    bWx.classList.toggle("on", !st.wx); bWx.setAttribute("aria-pressed", st.wx ? "false" : "true");
+    bWn.classList.toggle("on", !st.wn); bWn.setAttribute("aria-pressed", st.wn ? "false" : "true");
+    var n = wb.querySelectorAll(".warnban:not(.warn-none)").length;
+    var bg = bWn.querySelector(".bncb");
+    if(n && st.wn){ if(!bg){ bg = document.createElement("span"); bg.className = "bncb"; bWn.appendChild(bg); } bg.textContent = n; }
+    else if(bg) bg.remove();
+    syncDock();
+  }
+  function set(k, hide){
+    st[k] = hide;
+    if(k === "wn") hiddenSig = hide ? warnSig() : null;
+    try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){}
+    render();
+  }
+  bWx.addEventListener("click", function(){ set("wx", !st.wx); });
+  bWn.addEventListener("click", function(){ set("wn", !st.wn); });
 
-  // 아래로 밀면 내리기, 위로 밀면 올리기
-  var y0 = null;
-  dock.addEventListener("touchstart", function(ev){
-    if(ev.target.closest(".bctl")) { y0 = null; return; }
-    y0 = ev.touches[0].clientY;
-  }, {passive:true});
-  dock.addEventListener("touchend", function(ev){
-    if(y0 === null) return;
-    var dy = ev.changedTouches[0].clientY - y0; y0 = null;
-    var folded = document.body.classList.contains("wx-folded");
-    if(dy > 35 && !folded) set(true, true);
-    else if(dy < -35 && folded) set(false, true);
-  }, {passive:true});
-
-  // 내려 둔 동안에도 날씨·특보가 바뀌면 요약을 갱신
+  // 특보 목록이 다시 그려지면 × 버튼을 다시 붙이고, 새 특보가 생기면 닫아 둔 배너를 자동으로 다시 연다
   if(window.MutationObserver){
-    var mo = new MutationObserver(function(){ if(document.body.classList.contains("wx-folded")) summary(); });
-    ["wxbar","warnbanners"].forEach(function(id){
-      var el = document.getElementById(id);
-      if(el) mo.observe(el, {childList:true, subtree:true, characterData:true});
+    new MutationObserver(function(){
+      ensureX();
+      if(st.wn){
+        var sig = warnSig();
+        if(hiddenSig !== null && sig && sig !== hiddenSig){ set("wn", false); return; }
+      }
+      render();
+    }).observe(wb, {childList:true});
+    new MutationObserver(ensureX).observe(wx, {childList:true});
+  }
+  ensureX();
+  if(st.wn) hiddenSig = warnSig();
+  render();
+  window.addEventListener("resize", syncDock);
+})();
+
+/* ---------- 모바일 검색: 원형 '검색' 버튼 → 화면 가운데 검색 창 ---------- */
+(function(){
+  var box = document.getElementById("msearch");
+  var btn = document.getElementById("bnc_search");
+  if(!box || !btn) return;
+  var inp = document.getElementById("msearch_q"), res = document.getElementById("msearch_res");
+  var form = box.querySelector("form"), srs = null, mo = null, opened = false;
+
+  function open(){
+    opened = true;
+    box.classList.add("open"); box.setAttribute("aria-hidden", "false");
+    res.innerHTML = "";
+    setTimeout(function(){ try{ inp.focus(); inp.select(); }catch(e){} }, 60);
+  }
+  function close(){
+    opened = false;
+    box.classList.remove("open"); box.setAttribute("aria-hidden", "true");
+    try{ inp.blur(); }catch(e){}
+  }
+  window.openMobileSearch = open;
+  window.closeMobileSearch = close;
+  btn.addEventListener("click", open);
+  box.querySelector(".msbd").addEventListener("click", close);
+  box.querySelector(".msclose").addEventListener("click", close);
+  document.addEventListener("keydown", function(ev){ if(ev.key === "Escape" && opened) close(); });
+
+  // 좌측 검색 결과(#srs)를 검색 창 안에 그대로 보여준다
+  function mirror(){
+    if(!opened || !srs) return;
+    res.innerHTML = "";
+    Array.prototype.forEach.call(srs.children, function(el){
+      if(el.classList.contains("sr")){
+        var b = document.createElement("button");
+        b.type = "button"; b.textContent = "📍 " + el.textContent;
+        b.addEventListener("click", function(){ el.click(); close(); });
+        res.appendChild(b);
+      } else {
+        var d = document.createElement("div");
+        d.className = "note"; d.textContent = el.textContent;
+        res.appendChild(d);
+      }
     });
   }
-  var saved = null;
-  try{ saved = localStorage.getItem(KEY); }catch(e){}
-  if(saved === "1") set(true, false);
+  // 검색 결과 지점으로 이동하면 창을 닫는다
+  var _go = window.goToSearchResult;
+  if(typeof _go === "function"){
+    window.goToSearchResult = function(){ var r = _go.apply(this, arguments); if(opened) close(); return r; };
+  }
+  form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var kw = (inp.value || "").trim();
+    if(!kw) return;
+    try{ if(typeof headerJumpToItem === "function" && headerJumpToItem(kw)){ close(); return; } }catch(e){}
+    var q = document.getElementById("q");
+    srs = document.getElementById("srs");
+    if(!q || typeof doSearch !== "function"){ res.innerHTML = '<div class="note">검색 기능을 불러오지 못했습니다.</div>'; return; }
+    q.value = kw;
+    var hq = document.getElementById("hq"); if(hq) hq.value = kw;
+    if(srs && window.MutationObserver && !mo){ mo = new MutationObserver(mirror); mo.observe(srs, {childList:true, subtree:true, characterData:true}); }
+    res.innerHTML = '<div class="note">검색중…</div>';
+    doSearch(true);
+  });
 })();
 </script>
 </body>
