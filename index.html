@@ -10462,6 +10462,8 @@ function themeShow(g, v){
         document.getElementById(k + "_opv").textContent = op + "%";
         ThemeZone.setFill(k, (100 - op) / 100);
       });
+      ThemeZone.setKind("ag1", document.getElementById("ag_k1").checked);
+      ThemeZone.setKind("ag2", document.getElementById("ag_k2").checked);
       document.getElementById("ag_n1").textContent = ThemeZone.count("ag1");
       document.getElementById("ag_n2").textContent = ThemeZone.count("ag2");
       themeShow(g, document.getElementById(g + "_on").checked);
@@ -14385,10 +14387,14 @@ function mnlDelImg(){
   var isMobile = function(){ return window.innerWidth <= 860; };
   var ICON = {"일반":"🗺️","위성":"🛰️","지적도":"📐","로드뷰":"📷","측량":"📏","용도지역지구":"🧭",
     "군 경계 밖 회색처리":"🌫️","위험구역":"⚠️","도로구역":"🛣️","도시계획도로":"🏙️","하천구역":"🌊","대피소":"🏠",
-    "지도에 표시":"👁️","세부 설정":"⚙️","지명":"🏷️"};
+    "지도에 표시":"👁️","세부 설정":"⚙️","지명":"🏷️",
+    "주제도":"🗂️","개발제한구역":"🚫","농업진흥지역":"🌾","수질보전특별대책지역":"💧","농업진흥구역":"🌱","농업보호구역":"🌿"};
   var LABEL = {"용도지역지구":"용도지역<br>지구","군 경계 밖 회색처리":"경계 밖<br>회색처리","도시계획도로":"도시계획<br>도로",
-    "산사태취약지역":"산사태<br>취약지역","재해우려지역":"재해우려<br>지역","지도에 표시":"지도에<br>표시"};
-  var PANEL = {ovlbtn:"ovlpanel", roadbtn:"roadpanel", upbtn:"uppanel", rivbtn:"rivpanel", shbtn:"shpanel"};
+    "산사태취약지역":"산사태<br>취약지역","재해우려지역":"재해우려<br>지역","지도에 표시":"지도에<br>표시",
+    "개발제한구역":"개발제한<br>구역","농업진흥지역":"농업진흥<br>지역","수질보전특별대책지역":"수질보전<br>특별대책",
+    "농업진흥구역":"농업진흥<br>구역","농업보호구역":"농업보호<br>구역"};
+  var PANEL = {ovlbtn:"ovlpanel", roadbtn:"roadpanel", upbtn:"uppanel", rivbtn:"rivpanel", shbtn:"shpanel",
+               gbbtn:"gbpanel", agbtn:"agpanel", wqbtn:"wqpanel"};
   var stack = [], timer = null, nodes = [];
 
   function hiddenInline(el){
@@ -14416,7 +14422,7 @@ function mnlDelImg(){
       var labels = btn.id === "ovlbtn" ? p.querySelectorAll(":scope > label") : p.querySelectorAll(":scope > label");
       labels.forEach(function(lb){
         var it = chkItem(lb);
-        if(it && (btn.id === "ovlbtn" || /_on$/.test(it.src.id))) list.push(it);
+        if(it && (btn.id === "ovlbtn" || /_on$/.test(it.src.id) || /^ag_k\d$/.test(it.src.id))) list.push(it);
       });
     }
     list.push({label: "세부 설정", kind: "act", run: function(){
@@ -14432,9 +14438,9 @@ function mnlDelImg(){
     if(grid) Array.prototype.forEach.call(grid.children, function(el){
       if(hiddenInline(el)) return;
       if(el.tagName === "BUTTON"){
-        if(el.id === "zonebtn"){
+        if(el.id === "zonebtn" || el.id === "themebtn"){
           var subs = [];
-          document.querySelectorAll("#zonemenu > button").forEach(function(b){
+          document.querySelectorAll((el.id === "zonebtn" ? "#zonemenu" : "#thememenu") + " > button").forEach(function(b){
             if(hiddenInline(b)) return;
             subs.push({label: txt(b), kind: "group", src: b, kids: function(){ return zoneChildren(b); }});
           });
@@ -14467,8 +14473,10 @@ function mnlDelImg(){
   function countOn(it, depth){
     if(it.kind === "chk" || it.kind === "btn") return isOn(it) ? 1 : 0;
     if(it.kind !== "group" || depth > 3) return 0;
-    var n = 0;
-    it.kids().forEach(function(k){ n += countOn(k, depth + 1); });
+    var n = 0, ks = it.kids();
+    var show = ks.filter(function(k){ return k.kind === "chk" && /_on$/.test(k.src.id); })[0];
+    if(show && !show.src.checked) return 0;
+    ks.forEach(function(k){ n += countOn(k, depth + 1); });
     return n;
   }
 
