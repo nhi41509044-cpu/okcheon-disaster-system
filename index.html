@@ -14870,5 +14870,99 @@ html body.wn-hide #warnbanners{display:none !important}
   });
 })();
 </script>
+<style id="mobile-fill-petal-css">
+/* ===== 모바일: 목록·메모(대화) 화면 가로 꽉 채우기 + 더보기 흰색 방사형 메뉴 ===== */
+@media (max-width:860px){
+  main.show-side #side, main.show-chat #chat{flex:1 1 auto !important;width:100% !important;min-width:0 !important;max-width:none !important}
+  body.panel-open #petalmenu:not(.petal-hidden){display:block !important}
+  #petalmenu #petalbackdrop{background:rgba(15,37,64,.42);transition:opacity .2s}
+  #petalmenu:not(.pt-open) #petalbackdrop{opacity:0 !important}
+  #petalmenu.pt-closing, #petalmenu.pt-closing *{pointer-events:none !important}
+  #petalmenu .petal{left:var(--pt-cx,50%) !important;top:var(--pt-cy,50%) !important;width:62px !important;height:62px !important;
+    margin:-31px 0 0 -31px !important;border:1.5px solid #dbe2ea !important;background:#fff !important;color:#0f2540 !important;
+    font-family:inherit;font-size:10.5px;font-weight:800;letter-spacing:-.05em;line-height:1.12;gap:3px;padding:0 2px;
+    box-shadow:0 6px 18px rgba(15,37,64,.28) !important;
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .18s,background .15s}
+  #petalmenu .petal span{font-size:19px;line-height:1}
+  #petalmenu .petal:not(.petal-center){opacity:0 !important;transform:translate(0,0) scale(.3) !important;pointer-events:none !important}
+  #petalmenu.pt-open .petal:not(.petal-center){opacity:1 !important;transform:translate(var(--tx,0px),var(--ty,0px)) scale(1) !important;pointer-events:auto !important}
+  #petalmenu.pt-open .petal:not(.petal-center):active{background:#eef2f7 !important}
+  #petalmenu .petal-center{background:#0f2540 !important;border:2px solid rgba(255,255,255,.65) !important;color:#fff !important;
+    width:64px !important;height:64px !important;margin:-32px 0 0 -32px !important;font-size:12px;z-index:2}
+  #petalmenu .petal-center .pt-x{font-size:16px}
+  #petalmenu .pt-cap{position:fixed;left:var(--pt-cx,50%);top:calc(var(--pt-cy,50%) - var(--pt-r,116px) - 66px);transform:translateX(-50%);
+    background:#fff;color:#0f2540;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:800;letter-spacing:-.02em;
+    box-shadow:0 4px 14px rgba(15,37,64,.25);white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
+  #petalmenu.pt-open .pt-cap{opacity:1}
+  #mtabs #dock_more.on{background:#0f2540;color:#fff}
+  body.pt-active #wxdock,body.pt-active .stats#statbox,body.pt-active #connfab,body.pt-active #mfab,body.pt-active #shareFab{visibility:hidden}
+}
+</style>
+<script>
+/* 더보기: 지도 테마와 같은 흰색 방사형 메뉴 (튀어나오는 애니메이션, 화면 크기에 맞춰 자동 배치) */
+(function(){
+  var pm = document.getElementById("petalmenu");
+  if(!pm) return;
+  var cap = document.createElement("div");
+  cap.className = "pt-cap"; cap.textContent = "더보기";
+  pm.appendChild(cap);
+  var ctr = pm.querySelector(".petal-center");
+  if(ctr) ctr.innerHTML = '<span class="pt-x">✕</span>닫기';
+  var closeT = null;
+  function radius(n){ return n <= 3 ? 92 : n <= 5 ? 104 : n <= 7 ? 116 : 128; }
+  function place(){
+    var top = 0, bottom = window.innerHeight;
+    var m = document.querySelector("main");
+    if(m){ var r = m.getBoundingClientRect(); if(r.height > 0){ top = Math.max(top, r.top); bottom = Math.min(bottom, r.bottom); } }
+    var dock = document.getElementById("mtabs");
+    if(dock && dock.offsetHeight) bottom = Math.min(bottom, dock.getBoundingClientRect().top);
+    var cy = Math.round((top + bottom) / 2 + 18);
+    cy = Math.max(top + 200, Math.min(cy, bottom - 170));
+    var items = [].slice.call(pm.querySelectorAll(".petal:not(.petal-center)"));
+    var n = items.length, R = radius(n);
+    var maxR = Math.floor(window.innerWidth / 2) - 36;      // 좁은 화면에서도 잘리지 않게
+    if(R > maxR) R = Math.max(84, maxR);
+    pm.style.setProperty("--pt-cx", Math.round(window.innerWidth / 2) + "px");
+    pm.style.setProperty("--pt-cy", cy + "px");
+    pm.style.setProperty("--pt-r", R + "px");
+    items.forEach(function(b, i){
+      var a = (-90 + i * 360 / n) * Math.PI / 180;
+      b.style.setProperty("--tx", Math.round(Math.cos(a) * R) + "px");
+      b.style.setProperty("--ty", Math.round(Math.sin(a) * R) + "px");
+      b.style.transitionDelay = (i * 22) + "ms";
+    });
+  }
+  function isOpen(){ return pm.classList.contains("pt-open"); }
+  function open(){
+    clearTimeout(closeT);
+    try{ if(window.closeThemeRadial && document.getElementById("thmradial").classList.contains("thr-open")) closeThemeRadial(); }catch(e){}
+    place();
+    pm.classList.remove("petal-hidden", "pt-closing");
+    void pm.offsetWidth;
+    pm.classList.add("pt-open");
+    document.body.classList.add("pt-active");
+    setOn(true);
+  }
+  function close(){
+    pm.classList.remove("pt-open");
+    pm.classList.add("pt-closing");
+    pm.querySelectorAll(".petal").forEach(function(b){ b.style.transitionDelay = "0ms"; });
+    document.body.classList.remove("pt-active");
+    setOn(false);
+    clearTimeout(closeT);
+    closeT = setTimeout(function(){ if(!isOpen()){ pm.classList.add("petal-hidden"); pm.classList.remove("pt-closing"); } }, 230);
+  }
+  function setOn(v){
+    ["morebtn", "dock_more"].forEach(function(id){ var e = document.getElementById(id); if(e) e.classList.toggle("on", v); });
+  }
+  window.togglePetalMenu = function(){
+    if(window.innerWidth > 860){ pm.classList.toggle("petal-hidden"); return; }
+    isOpen() ? close() : open();
+  };
+  window.closePetalMenu = function(){ if(isOpen()) close(); };
+  window.addEventListener("resize", function(){ if(isOpen()) place(); });
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape" && isOpen()) close(); });
+})();
+</script>
 </body>
 </html>
